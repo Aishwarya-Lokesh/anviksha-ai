@@ -1,0 +1,422 @@
+
+> anviksha-app@0.1.0 dev
+> next dev
+
+  ▲ Next.js 14.2.5
+  - Local:        http://localhost:3000
+  - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Ready in 5s
+ ○ Compiling / ...
+ ✓ Compiled / in 16.1s (1212 modules)
+ ⚠ Fast Refresh had to perform a full reload due to a runtime error.
+ GET / 200 in 16522ms
+ GET /_next/static/webpack/dac83a32f5bc5f1e.webpack.hot-update.json 404 in 16671ms
+ GET / 200 in 88ms
+ GET / 200 in 84ms
+ ○ Compiling /student/resume ...
+ ✓ Compiled /student/resume in 11.6s (1817 modules)
+ GET /student/resume 200 in 12814ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 1291ms (1829 modules)
+ ✓ Compiled in 540ms (887 modules)
+ ○ Compiling /student ...
+ ✓ Compiled /student in 6.4s (2908 modules)
+ ○ Compiling /student/assistant ...
+ ✓ Compiled /student/assistant in 1144ms (2627 modules)
+ ✓ Compiled in 2.2s (1427 modules)
+ ✓ Compiled in 729ms (1427 modules)
+ ✓ Compiled in 637ms (1427 modules)
+ ○ Compiling /teacher/question-paper ...
+ ✓ Compiled /teacher/question-paper in 3.1s (2920 modules)
+ GET /teacher/question-paper 200 in 3916ms
+ ✓ Compiled in 6.3s (2641 modules)
+ ✓ Compiled in 1587ms (2641 modules)
+ ✓ Compiled in 1560ms (2641 modules)
+ ✓ Compiled in 2.1s (2641 modules)
+ ✓ Compiled in 659ms (1441 modules)
+ ✓ Compiled in 584ms (1441 modules)
+ ✓ Compiled in 589ms (1441 modules)
+ ✓ Compiled in 3.3s (2641 modules)
+ ✓ Compiled in 1866ms (1441 modules)
+ ✓ Compiled in 1896ms (1441 modules)
+ ✓ Compiled in 815ms (1441 modules)
+ GET /student/assistant 200 in 272ms
+ ○ Compiling /teacher/assistant ...
+ ✓ Compiled /teacher/assistant in 1097ms (2643 modules)
+ GET /teacher/assistant 200 in 1352ms
+ ○ Compiling /admin/assistant ...
+ ✓ Compiled /admin/assistant in 2.8s (2660 modules)
+ GET /admin/assistant 200 in 2976ms
+ ○ Compiling /hod/assistant ...
+ ✓ Compiled /hod/assistant in 1061ms (2673 modules)
+ GET /hod/assistant 200 in 1199ms
+ GET /student 200 in 327ms
+ ○ Compiling /teacher ...
+ ✓ Compiled /teacher in 1810ms (2701 modules)
+ GET /teacher 200 in 2039ms
+ ○ Compiling /admin ...
+ ✓ Compiled /admin in 1423ms (2708 modules)
+ GET /admin 200 in 1813ms
+ ✓ Compiled in 4.1s (2655 modules)
+ ✓ Compiled in 1679ms (2655 modules)
+ ✓ Compiled in 1648ms (2655 modules)
+ ✓ Compiled in 1301ms (1469 modules)
+ ✓ Compiled in 2.5s (2669 modules)
+ ✓ Compiled in 1969ms (2673 modules)
+ ✓ Compiled in 1375ms (1471 modules)
+ ✓ Compiled in 767ms (1471 modules)
+ ✓ Compiled in 732ms (1471 modules)
+ ✓ Compiled in 711ms (1471 modules)
+ ✓ Compiled in 644ms (1471 modules)
+ ✓ Compiled in 899ms (1471 modules)
+ GET /student 200 in 404ms
+ ○ Compiling /teacher ...
+ ✓ Compiled /teacher in 746ms (1221 modules)
+ GET /teacher 200 in 1071ms
+ ○ Compiling /hod ...
+ ✓ Compiled /hod in 1020ms (2691 modules)
+ GET /hod 200 in 1319ms
+ GET / 200 in 67ms
+ GET /login 200 in 77ms
+ GET /student 200 in 87ms
+ GET /teacher 200 in 72ms
+ GET /hod 200 in 72ms
+ ○ Compiling /admin ...
+ ✓ Compiled /admin in 1324ms (1248 modules)
+ GET /admin 200 in 1865ms
+ GET /student/assistant 200 in 90ms
+ ✓ Compiled /teacher/assistant in 379ms (1252 modules)
+ GET /teacher/assistant 200 in 628ms
+ ✓ Compiled /hod/assistant in 415ms (1256 modules)
+ GET /hod/assistant 200 in 564ms
+ ✓ Compiled /admin/assistant in 408ms (1260 modules)
+ GET /admin/assistant 200 in 547ms
+ ○ Compiling /teacher/question-paper ...
+ ✓ Compiled /teacher/question-paper in 2.4s (1540 modules)
+ GET /teacher/question-paper 200 in 3633ms
+ ○ Compiling /teacher/ppt-generator ...
+ ✓ Compiled /teacher/ppt-generator in 2.9s (3017 modules)
+ GET /teacher/ppt-generator 200 in 3049ms
+ ○ Compiling /student/resume ...
+ ✓ Compiled /student/resume in 590ms (1560 modules)
+ GET /student/resume 200 in 1126ms
+ GET /student/assistant 200 in 159ms
+ GET /student/assistant 200 in 118ms
+ ○ Compiling /teacher/attendance ...
+ ✓ Compiled /teacher/attendance in 2.4s (2699 modules)
+ ○ Compiling /teacher/notes ...
+ ✓ Compiled /teacher/notes in 1910ms (2710 modules)
+ ○ Compiling /teacher/question-paper ...
+ ✓ Compiled /teacher/question-paper in 665ms (1515 modules)
+ ○ Compiling /teacher/ppt-generator ...
+ ✓ Compiled /teacher/ppt-generator in 678ms (1518 modules)
+ ✓ Compiled in 8.3s (2988 modules)
+ ✓ Compiled in 873ms (1489 modules)
+ ✓ Compiled in 6.2s (2988 modules)
+ ✓ Compiled in 3s (2988 modules)
+ ✓ Compiled in 2.3s (2988 modules)
+ ✓ Compiled in 5.7s (2988 modules)
+ ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+ GET /teacher/question-paper 200 in 4464ms
+ ○ Compiling /teacher/assistant ...
+ ✓ Compiled /teacher/assistant in 1415ms (1503 modules)
+ GET /teacher/assistant 200 in 1986ms
+ ○ Compiling /admin/assistant ...
+ ✓ Compiled /admin/assistant in 669ms (1514 modules)
+ GET /admin/assistant 200 in 1044ms
+ GET /student/assistant 200 in 415ms
+ ○ Compiling /hod/assistant ...
+ ✓ Compiled /hod/assistant in 625ms (1522 modules)
+ GET /hod/assistant 200 in 845ms
+ ✓ Compiled in 5.8s (2998 modules)
+ ✓ Compiled in 3.9s (2998 modules)
+ ✓ Compiled in 1610ms (2998 modules)
+ GET /student 200 in 482ms
+ GET /student 200 in 71ms
+ ○ Compiling /teacher/students ...
+ ✓ Compiled /teacher/students in 8.7s (3007 modules)
+ ✓ Compiled in 1549ms (1497 modules)
+ ✓ Compiled in 2.5s (3007 modules)
+ ⨯ ./app/teacher/question-paper/page.tsx
+Error: 
+  [31mx[0m Expression expected
+    ,-[[36;1;4mD:\major\major project\anviksha-app\app\teacher\question-paper\page.tsx[0m:79:1]
+ [2m79[0m |   };
+ [2m80[0m | 
+ [2m81[0m |   return (
+ [2m82[0m |     <><Topbar greeting="Question Paper Generator" subtitle="Teacher workspace > Question papers" avatarLetter="R" />
+    : [31;1m     ^[0m
+ [2m83[0m |       <div className="p-6 grid xl:grid-cols-2 gap-6"><div className="space-y-5">
+ [2m84[0m |         <Card><h2 className="font-semibold">1. Documents</h2><p className="text-xs text-muted mt-1">Both files are required. Every question is selected from the Important Questions file and supported by Subject Notes. Tag single-module files so the selected paper module is enforced.</p><select className={`${field} mt-3`} value={sourceModule} onChange={event => setSourceModule(event.target.value)}><option value="">Auto-detect modules from document</option>{[1, 2, 3, 4, 5].map(module => <option key={module} value={`Module ${module}`}>Module {module}</option>)}</select><div className="grid md:grid-cols-2 gap-3 mt-3"><Uploader title="Upload Subject Notes" items={notes} onChange={event => upload("notes", event)} remove={id => setNotes(old => old.filter(item => item.id !== id))} /><Uploader title="Upload Important Questions" items={important} onChange={event => upload("important_questions", event)} remove={id => setImportant(old => old.filter(item => item.id !== id))} /></div></Card>
+ [2m85[0m |         <Card><h2 className="font-semibold">2. Paper Details</h2><div className="grid md:grid-cols-2 gap-3 mt-3"><input className={field} placeholder="Subject Name" value={subject} onChange={event => setSubject(event.target.value)} /><input className={field} placeholder="Faculty Name" value={facultyName} onChange={event => setFacultyName(event.target.value)} /><input className={field} type="date" value={examDate} onChange={event => setExamDate(event.target.value)} /><input className={field} type="time" value={examTime} onChange={event => setExamTime(event.target.value)} /><input className={field} type="number" min="1" placeholder="Total Marks (manual)" value={totalMarks} onChange={event => setTotalMarks(event.target.value)} /></div><select className={`${field} mt-3`} value={headerStyle} onChange={event => setHeaderStyle(event.target.value)}>{["Standard", "University Style", "College Style", "Department Style", "Minimal", "Custom Header"].map(option => <option key={option}>{option}</option>)}</select>{headerStyle === "Custom Header" && <div className="mt-3 border border-dashed border-brand/30 rounded-xl p-3"><label className="cursor-pointer flex gap-2 text-sm"><Upload size={15} />Upload Header Image<input className="hidden" type="file" accept=".png,.jpg,.jpeg" onChange={uploadHeader} /></label>{headerImage && <><img src={headerImage} alt="Custom header preview" className="mt-3 max-h-28 w-full object-contain" /><button className="mt-2 text-xs text-red-500" onClick={() => setHeaderImage(undefined)}>Remove image</button></>}</div>}</Card>
+    `----
+
+  [31mx[0m Expected ',', got 'className'
+    ,-[[36;1;4mD:\major\major project\anviksha-app\app\teacher\question-paper\page.tsx[0m:80:1]
+ [2m80[0m | 
+ [2m81[0m |   return (
+ [2m82[0m |     <><Topbar greeting="Question Paper Generator" subtitle="Teacher workspace > Question papers" avatarLetter="R" />
+ [2m83[0m |       <div className="p-6 grid xl:grid-cols-2 gap-6"><div className="space-y-5">
+    : [31;1m           ^^^^^^^^^[0m
+ [2m84[0m |         <Card><h2 className="font-semibold">1. Documents</h2><p className="text-xs text-muted mt-1">Both files are required. Every question is selected from the Important Questions file and supported by Subject Notes. Tag single-module files so the selected paper module is enforced.</p><select className={`${field} mt-3`} value={sourceModule} onChange={event => setSourceModule(event.target.value)}><option value="">Auto-detect modules from document</option>{[1, 2, 3, 4, 5].map(module => <option key={module} value={`Module ${module}`}>Module {module}</option>)}</select><div className="grid md:grid-cols-2 gap-3 mt-3"><Uploader title="Upload Subject Notes" items={notes} onChange={event => upload("notes", event)} remove={id => setNotes(old => old.filter(item => item.id !== id))} /><Uploader title="Upload Important Questions" items={important} onChange={event => upload("important_questions", event)} remove={id => setImportant(old => old.filter(item => item.id !== id))} /></div></Card>
+ [2m85[0m |         <Card><h2 className="font-semibold">2. Paper Details</h2><div className="grid md:grid-cols-2 gap-3 mt-3"><input className={field} placeholder="Subject Name" value={subject} onChange={event => setSubject(event.target.value)} /><input className={field} placeholder="Faculty Name" value={facultyName} onChange={event => setFacultyName(event.target.value)} /><input className={field} type="date" value={examDate} onChange={event => setExamDate(event.target.value)} /><input className={field} type="time" value={examTime} onChange={event => setExamTime(event.target.value)} /><input className={field} type="number" min="1" placeholder="Total Marks (manual)" value={totalMarks} onChange={event => setTotalMarks(event.target.value)} /></div><select className={`${field} mt-3`} value={headerStyle} onChange={event => setHeaderStyle(event.target.value)}>{["Standard", "University Style", "College Style", "Department Style", "Minimal", "Custom Header"].map(option => <option key={option}>{option}</option>)}</select>{headerStyle === "Custom Header" && <div className="mt-3 border border-dashed border-brand/30 rounded-xl p-3"><label className="cursor-pointer flex gap-2 text-sm"><Upload size={15} />Upload Header Image<input className="hidden" type="file" accept=".png,.jpg,.jpeg" onChange={uploadHeader} /></label>{headerImage && <><img src={headerImage} alt="Custom header preview" className="mt-3 max-h-28 w-full object-contain" /><button className="mt-2 text-xs text-red-500" onClick={() => setHeaderImage(undefined)}>Remove image</button></>}</div>}</Card>
+ [2m86[0m |         <Card><div className="flex justify-between"><h2 className="font-semibold">3. Paper Structure</h2><span className="text-xs text-muted">Question marks: {configuredMarks} · Paper total: {totalMarks || "—"}</span></div>{parts.map((part, partIndex) => <PartEditor key={partIndex} part={part} index={partIndex} updateQuestion={updateQuestion} addQuestion={() => setParts(old => old.map((item, index) => index === partIndex ? { ...item, questions: [...item.questions, newQuestion()] } : item))} removeQuestion={questionIndex => setParts(old => old.map((item, index) => index === partIndex ? { ...item, questions: item.questions.filter((_, qIndex) => qIndex !== questionIndex) } : item))} removePart={() => { if (confirm(`Remove ${part.name}?`)) setParts(old => old.filter((_, index) => index !== partIndex)); }} />)}<button className="mt-3 text-sm text-brand flex gap-1" onClick={() => setParts(old => [...old, newPart(old.length)])}><Plus size={14} />Add Part</button></Card>
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/teacher/question-paper/page.tsx
+ ✓ Compiled in 2.6s (2987 modules)
+ ✓ Compiled in 1308ms (3001 modules)
+ GET /teacher/question-paper 200 in 2333ms
+ GET /teacher/question-paper 200 in 343ms
+ ○ Compiling /teacher/notes ...
+ ✓ Compiled /teacher/notes in 4.6s (1510 modules)
+ ○ Compiling /teacher/ia-marks ...
+ ✓ Compiled /teacher/ia-marks in 3.6s (3009 modules)
+ ○ Compiling /teacher/reports ...
+ ✓ Compiled /teacher/reports in 3s (3017 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 3s (1510 modules)
+ GET / 200 in 4334ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 1689ms (1517 modules)
+ GET /login 200 in 2115ms
+ GET /student 200 in 838ms
+ GET /teacher 200 in 110ms
+ ✓ Compiled /hod in 505ms (1527 modules)
+ GET /hod 200 in 856ms
+ ○ Compiling /admin ...
+ ✓ Compiled /admin in 1050ms (1543 modules)
+ GET /admin 200 in 1293ms
+ GET /student/assistant 200 in 98ms
+ ○ Compiling /teacher/assistant ...
+ ✓ Compiled /teacher/assistant in 1243ms (1547 modules)
+ GET /teacher/assistant 200 in 1534ms
+ ○ Compiling /hod/assistant ...
+ ✓ Compiled /hod/assistant in 838ms (1551 modules)
+ GET /hod/assistant 200 in 1043ms
+ ○ Compiling /admin/assistant ...
+ ✓ Compiled /admin/assistant in 797ms (1555 modules)
+ GET /admin/assistant 200 in 1027ms
+ GET /teacher/question-paper 200 in 3229ms
+ GET /teacher/ppt-generator 200 in 129ms
+ ○ Compiling /student/resume ...
+ ✓ Compiled /student/resume in 1866ms (1565 modules)
+ GET /student/resume 200 in 2534ms
+ GET / 200 in 139ms
+ GET /teacher/question-paper 200 in 141ms
+ GET /teacher/question-paper 200 in 143ms
+ GET /teacher/question-paper 200 in 182ms
+ GET / 200 in 173ms
+ GET / 200 in 160ms
+ ○ Compiling /teacher/notes ...
+ ✓ Compiled /teacher/notes in 2s (1498 modules)
+ ○ Compiling /teacher/assistant ...
+ ✓ Compiled /teacher/assistant in 1016ms (1502 modules)
+ ○ Compiling /admin ...
+ ✓ Compiled /admin in 2.1s (1231 modules)
+ ○ Compiling /admin/documents ...
+ ✓ Compiled /admin/reports in 14.5s (2744 modules)
+ ○ Compiling /admin/logs ...
+ ✓ Compiled /admin/placements in 3.5s (2747 modules)
+ ✓ Compiled in 2.3s (1517 modules)
+ ○ Compiling /admin/datasets/students ...
+ ✓ Compiled /admin/assistant in 6.7s (3050 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 1577ms (1223 modules)
+ ○ Compiling /login ...
+ ✓ Compiled /login in 1058ms (1230 modules)
+ ○ Compiling /hod ...
+ ✓ Compiled /hod in 1481ms (1230 modules)
+ ○ Compiling /hod/students ...
+ ✓ Compiled /hod/students in 1945ms (2751 modules)
+ ○ Compiling /hod/faculty ...
+ ✓ Compiled /hod/faculty in 1408ms (2760 modules)
+ ○ Compiling /hod/placements ...
+ ✓ Compiled /hod/placements in 3.1s (3043 modules)
+ ○ Compiling /hod/assistant ...
+ ✓ Compiled /hod/assistant in 766ms (1494 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 710ms (1482 modules)
+ ○ Compiling /teacher ...
+ ✓ Compiled /teacher in 1276ms (1502 modules)
+ GET /teacher 200 in 739ms
+ GET /teacher 200 in 124ms
+ ○ Compiling /teacher/assistant ...
+ ✓ Compiled /teacher/assistant in 1196ms (1494 modules)
+ ○ Compiling /teacher/question-paper ...
+ ✓ Compiled /teacher/question-paper in 1472ms (1493 modules)
+ ○ Compiling /teacher/ppt-generator ...
+ ✓ Compiled /teacher/ppt-generator in 1536ms (1495 modules)
+ ○ Compiling /teacher/notes ...
+ ✓ Compiled /teacher/notes in 1091ms (1495 modules)
+ ○ Compiling /teacher/attendance ...
+ ✓ Compiled /teacher/attendance in 981ms (1501 modules)
+ ○ Compiling /teacher/students ...
+ ✓ Compiled /teacher/students in 969ms (1507 modules)
+ ○ Compiling /teacher/counseling ...
+ ✓ Compiled /teacher/counseling in 3.7s (3058 modules)
+ ○ Compiling /teacher/performance ...
+ ✓ Compiled /teacher/performance in 3.3s (3043 modules)
+ ○ Compiling /student/achievements ...
+ ✓ Compiled /student/achievements in 7.5s (3052 modules)
+ GET /student/achievements 200 in 8871ms
+ ○ Compiling /student/profile ...
+ ✓ Compiled /student/profile in 2.4s (3057 modules)
+ GET /student/profile 200 in 2803ms
+ GET /teacher 200 in 405ms
+ ○ Compiling / ...
+ ✓ Compiled / in 1057ms (1522 modules)
+ ○ Compiling /login ...
+ ✓ Compiled /login in 796ms (1529 modules)
+ ○ Compiling /student ...
+ ✓ Compiled /student in 910ms (1508 modules)
+ ✓ Compiled /student/profile in 458ms (1513 modules)
+ ○ Compiling /student/resume ...
+ ✓ Compiled /student/resume in 767ms (1524 modules)
+ ○ Compiling /student/placement ...
+ ✓ Compiled /student/placement in 3.5s (3071 modules)
+ ○ Compiling /student/achievements ...
+ ✓ Compiled /student/achievements in 527ms (1531 modules)
+ ✓ Compiled /student/assistant in 498ms (1513 modules)
+ ○ Compiling /student/counseling ...
+ ✓ Compiled /student/counseling in 1712ms (3061 modules)
+ ○ Compiling /student/notes ...
+ ✓ Compiled /student/notes in 1650ms (3070 modules)
+ ○ Compiling /student/documents ...
+ ✓ Compiled /student/documents in 1521ms (3056 modules)
+ ○ Compiling /student/attendance ...
+ ✓ Compiled /student/attendance in 1432ms (3064 modules)
+ ○ Compiling /student/rank ...
+ ✓ Compiled /student/rank in 1684ms (3073 modules)
+ ○ Compiling /student/profile ...
+ ✓ Compiled /student/profile in 922ms (1521 modules)
+ ○ Compiling /student ...
+ ✓ Compiled /student in 753ms (1534 modules)
+ ✓ Compiled / in 537ms (1226 modules)
+ ✓ Compiled /login in 385ms (1225 modules)
+ ✓ Compiled /teacher in 506ms (1238 modules)
+ ○ Compiling /teacher/students ...
+ ✓ Compiled /teacher/students in 1121ms (1512 modules)
+ ○ Compiling /teacher/attendance ...
+ ✓ Compiled /teacher/attendance in 1423ms (1509 modules)
+ ○ Compiling /teacher/notes ...
+ ✓ Compiled /teacher/notes in 931ms (1495 modules)
+ ○ Compiling /teacher/question-paper ...
+ ✓ Compiled /teacher/question-paper in 700ms (1494 modules)
+ ○ Compiling /teacher/ia-marks ...
+ ✓ Compiled /teacher/ia-marks in 668ms (1499 modules)
+ ○ Compiling /teacher/ppt-generator ...
+ ✓ Compiled /teacher/ppt-generator in 923ms (1508 modules)
+ ○ Compiling /teacher/performance ...
+ ✓ Compiled /teacher/performance in 2.8s (1489 modules)
+ ○ Compiling /teacher ...
+ ✓ Compiled /teacher in 897ms (1501 modules)
+ ○ Compiling /teacher/question-paper ...
+ ✓ Compiled /teacher/question-paper in 785ms (1501 modules)
+ ○ Compiling /teacher/reports ...
+ ✓ Compiled /teacher/reports in 1109ms (1506 modules)
+ ○ Compiling /teacher/counseling ...
+ ✓ Compiled /teacher/counseling in 1568ms (1516 modules)
+ ✓ Compiled in 3.5s (3065 modules)
+ ○ Compiling /teacher/ppt-generator ...
+ ✓ Compiled /teacher/ppt-generator in 1116ms (1499 modules)
+ GET /teacher/ppt-generator 200 in 1622ms
+ GET /teacher/counseling 200 in 282ms
+ GET /teacher/counseling 200 in 183ms
+ GET /teacher/counseling 200 in 172ms
+ GET /teacher/counseling 200 in 120ms
+ ○ Compiling /teacher/question-paper ...
+ ✓ Compiled /teacher/question-paper in 688ms (1496 modules)
+ ✓ Compiled /teacher/ppt-generator in 400ms (1505 modules)
+ GET /teacher/ppt-generator 200 in 328ms
+ ○ Compiling / ...
+ ✓ Compiled / in 1214ms (1495 modules)
+ ○ Compiling /login ...
+ ✓ Compiled /login in 877ms (1502 modules)
+ ✓ Compiled /teacher in 396ms (1513 modules)
+ ○ Compiling /teacher/performance ...
+ ✓ Compiled /teacher/performance in 1836ms (1500 modules)
+ ○ Compiling /teacher/attendance ...
+ ✓ Compiled /teacher/attendance in 870ms (1227 modules)
+ ○ Compiling /teacher/ia-marks ...
+ ✓ Compiled /teacher/ia-marks in 1102ms (1226 modules)
+ ○ Compiling /teacher/notes ...
+ ✓ Compiled /teacher/notes in 1780ms (1232 modules)
+ ✓ Compiled /teacher/students in 603ms (1511 modules)
+ ✓ Compiled in 5.6s (3059 modules)
+ ✓ Compiled in 1501ms (1576 modules)
+ ✓ Compiled in 1835ms (1576 modules)
+ ✓ Compiled in 1535ms (1576 modules)
+ ✓ Compiled in 1406ms (1576 modules)
+ ✓ Compiled in 1418ms (1576 modules)
+ ✓ Compiled in 4.7s (3059 modules)
+ ○ Compiling /teacher ...
+ ✓ Compiled /teacher in 1343ms (1496 modules)
+ GET /teacher 200 in 2635ms
+ GET /teacher/ppt-generator 200 in 253ms
+ GET /teacher/ppt-generator 200 in 163ms
+ ○ Compiling /teacher/question-paper ...
+ ✓ Compiled /teacher/question-paper in 1140ms (1501 modules)
+ ○ Compiling /teacher/performance ...
+ ✓ Compiled /teacher/performance in 928ms (1506 modules)
+ ○ Compiling /teacher/counseling ...
+ ✓ Compiled /teacher/counseling in 1518ms (1511 modules)
+ ○ Compiling /teacher/reports ...
+ ✓ Compiled /teacher/reports in 550ms (1516 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 1418ms (1517 modules)
+ ○ Compiling /login ...
+ ✓ Compiled /login in 562ms (1524 modules)
+ ○ Compiling /hod ...
+ ✓ Compiled /hod in 904ms (1534 modules)
+ ✓ Compiled /hod/assistant in 492ms (1497 modules)
+ ○ Compiling /hod/placements ...
+ ✓ Compiled /hod/placements in 926ms (1505 modules)
+ ○ Compiling /hod/faculty ...
+ ✓ Compiled /hod/faculty in 572ms (1510 modules)
+ ○ Compiling /hod/students ...
+ ✓ Compiled /hod/students in 1412ms (1488 modules)
+ ○ Compiling /admin ...
+ ✓ Compiled /admin in 1143ms (1508 modules)
+ ✓ Compiled /admin/assistant in 482ms (1506 modules)
+ ○ Compiling /admin/logs ...
+ ✓ Compiled /admin/logs in 854ms (1511 modules)
+ ○ Compiling /admin/reports ...
+ ✓ Compiled /admin/reports in 1458ms (1510 modules)
+ ○ Compiling /admin/documents ...
+ ✓ Compiled /admin/documents in 2.2s (1220 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 3.4s (1219 modules)
+ ✓ Compiled /login in 463ms (1226 modules)
+ ○ Compiling /teacher ...
+ ✓ Compiled /teacher in 1978ms (1247 modules)
+ ○ Compiling /teacher/ia-marks ...
+ ✓ Compiled /teacher/ia-marks in 1081ms (1230 modules)
+ ✓ Compiled /teacher in 386ms (1241 modules)
+ GET /teacher 200 in 926ms
+ GET /teacher 200 in 120ms
+ ○ Compiling /teacher/assistant ...
+ ✓ Compiled /teacher/assistant in 869ms (1230 modules)
+ ○ Compiling /teacher/students ...
+ ✓ Compiled /teacher/students in 4.1s (1498 modules)
+ ○ Compiling /teacher/ppt-generator ...
+ ✓ Compiled /teacher/ppt-generator in 2.1s (1508 modules)
+ ○ Compiling /teacher/question-paper ...
+ ✓ Compiled /teacher/question-paper in 1868ms (1504 modules)
+ ○ Compiling /teacher/ia-marks ...
+ ✓ Compiled /teacher/ia-marks in 1658ms (1501 modules)
+ ○ Compiling /teacher/notes ...
+ ✓ Compiled /teacher/notes in 1824ms (1493 modules)
+ ○ Compiling /teacher/counseling ...
+ ✓ Compiled /teacher/counseling in 2.6s (1493 modules)
+ ○ Compiling / ...
+ ✓ Compiled / in 5s (1490 modules)
+ GET / 200 in 6606ms
+ ○ Compiling /login ...
+ ✓ Compiled /login in 835ms (1497 modules)

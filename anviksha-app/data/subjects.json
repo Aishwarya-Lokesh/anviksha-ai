@@ -1,0 +1,7 @@
+[
+  { "code": "21IS51", "name": "Database Management Systems", "semester": 5, "faculty": "Dr. Rahul Sharma" },
+  { "code": "21IS52", "name": "Operating Systems", "semester": 5, "faculty": "Dr. Rahul Sharma" },
+  { "code": "21IS53", "name": "Computer Networks", "semester": 5, "faculty": "Prof. Meena Kumari" },
+  { "code": "21IS54", "name": "Web Technology", "semester": 5, "faculty": "Prof. Arvind Rao" },
+  { "code": "21IS55", "name": "Artificial Intelligence", "semester": 5, "faculty": "Dr. Rahul Sharma" }
+]

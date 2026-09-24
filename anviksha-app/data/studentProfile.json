@@ -1,0 +1,83 @@
+{
+  "profile": {
+    "name": "Soukhya M",
+    "usn": "4GW23IS012",
+    "dept": "Information Science & Engineering",
+    "batch": "2027",
+    "semester": "5th Semester",
+    "email": "soukhya@example.com",
+    "phone": "+91 98765 43210",
+    "location": "Bengaluru, Karnataka",
+    "linkedin": "linkedin.com/in/soukhyam",
+    "github": "github.com/soukhyam",
+    "skills": "Java, Python, SQL, React, Machine Learning",
+    "cgpa": 9.04,
+    "attendance": 88,
+    "profileScore": 78,
+    "backlogs": 0,
+    "achievementsCount": 12,
+    "profileCompletion": 78,
+    "rank": 4,
+    "batchSize": 72
+  },
+  "sgpaTrend": [
+    { "label": "Sem 1", "sgpa": 8.45 },
+    { "label": "Sem 2", "sgpa": 8.67 },
+    { "label": "Sem 3", "sgpa": 8.93 },
+    { "label": "Sem 4", "sgpa": 9.21 },
+    { "label": "Sem 5", "sgpa": 9.04 }
+  ],
+  "attendanceOverview": [
+    { "name": "Excellent (90%+)", "value": 4, "color": "#1F9D55" },
+    { "name": "Good (75-89%)", "value": 2, "color": "#3B82F6" },
+    { "name": "Average (60-74%)", "value": 0, "color": "#E8A93B" },
+    { "name": "Low (<60%)", "value": 0, "color": "#E5484D" }
+  ],
+  "subjectAttendance": [
+    { "code": "21IS51", "name": "DBMS", "held": 24, "attended": 22, "pct": 92 },
+    { "code": "21IS52", "name": "Operating Systems", "held": 24, "attended": 21, "pct": 88 },
+    { "code": "21IS53", "name": "Computer Networks", "held": 24, "attended": 22, "pct": 90 },
+    { "code": "21IS54", "name": "Web Technology", "held": 24, "attended": 20, "pct": 85 },
+    { "code": "21IS55", "name": "Artificial Intelligence", "held": 23, "attended": 22, "pct": 94 }
+  ],
+  "iaWindows": {
+    "Full Semester": { "start": "2026-01-05", "end": "2026-06-10" },
+    "IA-1": { "start": "2026-01-05", "end": "2026-02-14" },
+    "IA-2": { "start": "2026-02-15", "end": "2026-04-01" }
+  },
+  "events": [
+    { "title": "Internal Assessment 2", "date": "21 May 2026", "type": "assessment" },
+    { "title": "End Semester Exam", "date": "10 June 2026", "type": "exam" },
+    { "title": "Project Submission", "date": "25 June 2026", "type": "deadline" }
+  ],
+  "achievements": [
+    { "id": "A1", "title": "Smart India Hackathon 2026", "desc": "Participated in SIH 2026 and developed an innovative solution.", "date": "Apr 2026", "type": "Hackathon" },
+    { "id": "A2", "title": "AWS Cloud Practitioner", "desc": "Successfully completed AWS Cloud Practitioner certification.", "date": "Mar 2026", "type": "Certificate" },
+    { "id": "A3", "title": "Library Management System", "desc": "Developed a full-stack library management system.", "date": "Jan 2026", "type": "Project" },
+    { "id": "A4", "title": "CodeSprint 2.0", "desc": "Secured 2nd place in coding competition.", "date": "Feb 2026", "type": "Hackathon" },
+    { "id": "A5", "title": "React.js Course", "desc": "Completed advanced React.js development course.", "date": "Jan 2026", "type": "Certificate" },
+    { "id": "A6", "title": "NSS Volunteer", "desc": "Actively participated in NSS activities.", "date": "2025", "type": "Activity" }
+  ],
+  "documentRequests": [
+    { "id": "D1", "type": "Transcript", "purpose": "Higher Studies", "date": "20 May 2026", "status": "Pending" },
+    { "id": "D2", "type": "Bonafide Certificate", "purpose": "Official Use", "date": "18 May 2026", "status": "Pending" },
+    { "id": "D3", "type": "Study Certificate", "purpose": "Scholarship", "date": "15 May 2026", "status": "Collectable" },
+    { "id": "D4", "type": "Conduct Certificate", "purpose": "Internship", "date": "10 May 2026", "status": "Collected" },
+    { "id": "D5", "type": "Grade Card", "purpose": "Personal", "date": "05 May 2026", "status": "Collected" },
+    { "id": "D6", "type": "Migration Certificate", "purpose": "Higher Studies", "date": "01 May 2026", "status": "Collected" }
+  ],
+  "notes": [
+    { "subject": "DBMS", "title": "Normalization & Functional Dependencies", "size": "2.4 MB", "date": "12 May 2026" },
+    { "subject": "Operating Systems", "title": "Deadlock Avoidance Algorithms", "size": "1.8 MB", "date": "10 May 2026" },
+    { "subject": "Computer Networks", "title": "TCP/IP Layer Reference", "size": "3.1 MB", "date": "08 May 2026" },
+    { "subject": "Artificial Intelligence", "title": "Search Algorithms Summary", "size": "1.2 MB", "date": "05 May 2026" }
+  ],
+  "counseling": {
+    "mentor": "Dr. Rahul Sharma",
+    "designation": "Assistant Professor, Dept. of ISE",
+    "notes": [
+      { "date": "15 May 2026", "note": "Discussed semester project timeline, on track. Encouraged to attend the AI workshop." },
+      { "date": "02 Apr 2026", "note": "Reviewed IA-1 performance, suggested focus on Operating Systems." }
+    ]
+  }
+}

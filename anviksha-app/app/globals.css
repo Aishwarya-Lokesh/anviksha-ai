@@ -1,0 +1,19 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Sora:wght@600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  background-color: #F7F7FB;
+  color: #12141F;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #d1d0e6 transparent;
+}
+*::-webkit-scrollbar { width: 8px; height: 8px; }
+*::-webkit-scrollbar-thumb { background: #d1d0e6; border-radius: 8px; }
+
+.numeric { font-variant-numeric: tabular-nums; }

@@ -1,0 +1,32 @@
+{
+  "stats": { "totalStudents": 2452, "totalFaculty": 156, "totalSubjects": 78, "documentRequests": 32, "activeUsers": 892 },
+  "overviewTrend": [
+    { "label": "May 1", "students": 2380, "faculty": 150, "requests": 20 },
+    { "label": "May 6", "students": 2390, "faculty": 151, "requests": 22 },
+    { "label": "May 11", "students": 2400, "faculty": 152, "requests": 25 },
+    { "label": "May 16", "students": 2430, "faculty": 154, "requests": 28 },
+    { "label": "May 21", "students": 2445, "faculty": 155, "requests": 30 },
+    { "label": "May 25", "students": 2452, "faculty": 156, "requests": 32 }
+  ],
+  "departmentDistribution": [
+    { "name": "Computer Science", "value": 858, "color": "#3B82F6" },
+    { "name": "Information Science", "value": 613, "color": "#5B3FD9" },
+    { "name": "Electronics", "value": 491, "color": "#1F9D55" },
+    { "name": "Mechanical", "value": 294, "color": "#E8A93B" },
+    { "name": "Others", "value": 196, "color": "#E5484D" }
+  ],
+  "recentRequests": [
+    { "name": "Rahul Sharma", "type": "Bonafide Certificate", "status": "Pending", "date": "25 May 2026" },
+    { "name": "Priya Patel", "type": "Transcript", "status": "Pending", "date": "24 May 2026" },
+    { "name": "Aman Verma", "type": "Migration Certificate", "status": "Collectable", "date": "23 May 2026" },
+    { "name": "Sneha Iyer", "type": "Grade Card", "status": "Pending", "date": "23 May 2026" },
+    { "name": "Rohit Kumar", "type": "Bonafide Certificate", "status": "Rejected", "date": "22 May 2026" }
+  ],
+  "activityLogs": [
+    { "user": "Admin", "action": "Approved document request for Aman Verma", "time": "10:32 AM, 25 May 2026" },
+    { "user": "Dr. Rahul Sharma", "action": "Uploaded attendance for 21IS51", "time": "09:50 AM, 25 May 2026" },
+    { "user": "Admin", "action": "Added new faculty: Prof. Kavya Reddy", "time": "09:10 AM, 25 May 2026" },
+    { "user": "Prof. Meena Kumari", "action": "Generated question paper for 21IS53", "time": "08:45 AM, 25 May 2026" },
+    { "user": "Admin", "action": "Rejected document request for Rohit Kumar", "time": "08:20 AM, 25 May 2026" }
+  ]
+}

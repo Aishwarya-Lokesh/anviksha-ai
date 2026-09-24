@@ -1,0 +1,473 @@
+D:\major\major project\anviksha-backend\venv\Lib\site-packages\pypdf\_crypt_providers\_cryptography.py:32: CryptographyDeprecationWarning: ARC4 has been moved to cryptography.hazmat.decrepit.ciphers.algorithms.ARC4 and will be removed from cryptography.hazmat.primitives.ciphers.algorithms in 48.0.0.
+  from cryptography.hazmat.primitives.ciphers.algorithms import AES, ARC4
+INFO:     Started server process [6812]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:54663 - "GET /docs HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54664 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54665 - "GET /student/certificates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54666 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54667 - "GET /student/certificates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54672 - "GET /certificates/4GW23IS001_Aishwarya_S_L.pdf HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54679 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54680 - "GET /admin/reports/snapshot HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54683 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54693 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54701 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54701 - "OPTIONS /teacher/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54701 - "GET /teacher/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54701 - "GET /teacher/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54701 - "OPTIONS /teacher/dashboard-stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54701 - "OPTIONS /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54708 - "OPTIONS /teacher/active-batches HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54701 - "OPTIONS /teacher/passed-out-batches HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54708 - "OPTIONS /teacher/extra-work HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54708 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54708 - "GET /teacher/passed-out-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54701 - "GET /teacher/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54711 - "GET /teacher/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54708 - "GET /teacher/extra-work HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54711 - "GET /teacher/passed-out-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54710 - "GET /teacher/active-batches HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54710 - "GET /teacher/extra-work HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54701 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54701 - "OPTIONS /teacher/next-semester-for-batch?batch=2022 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54712 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54711 - "GET /teacher/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54708 - "GET /teacher/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54710 - "GET /teacher/active-batches HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54701 - "GET /teacher/next-semester-for-batch?batch=2022 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54712 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54701 - "GET /teacher/next-semester-for-batch?batch=2022 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54709 - "GET /teacher/dashboard-stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54701 - "OPTIONS /teacher/insight HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54709 - "GET /teacher/dashboard-stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54701 - "GET /teacher/insight HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54701 - "GET /teacher/insight HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54718 - "OPTIONS /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54718 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54718 - "OPTIONS /student/excellence-score HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54719 - "OPTIONS /student/attendance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54719 - "OPTIONS /student/notes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54718 - "OPTIONS /student/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54725 - "GET /student/notes HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54726 - "GET /student/notes HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54723 - "GET /student/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54718 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54724 - "GET /student/attendance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54719 - "GET /student/excellence-score HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54723 - "GET /student/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54718 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54724 - "GET /student/attendance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54719 - "GET /student/excellence-score HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54719 - "OPTIONS /student/insight HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54724 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54724 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54719 - "GET /student/insight HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54719 - "GET /student/insight HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54730 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54731 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54731 - "OPTIONS /student/certificates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54732 - "OPTIONS /student/certificates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54732 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54733 - "GET /student/certificates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54731 - "GET /student/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54733 - "GET /student/certificates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54732 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54731 - "GET /student/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54731 - "OPTIONS /student/achievements HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54732 - "OPTIONS /student/courses HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54733 - "OPTIONS /student/internships HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54733 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54731 - "GET /student/internships HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54732 - "GET /student/courses HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54734 - "GET /student/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54735 - "GET /student/achievements HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54733 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54731 - "GET /student/internships HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54736 - "GET /student/courses HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54732 - "GET /student/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54734 - "GET /student/achievements HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54739 - "OPTIONS /student/placement HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54738 - "OPTIONS /student/placement HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54738 - "GET /student/placement HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54740 - "GET /student/internships HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54739 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54738 - "GET /student/placement HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54740 - "GET /student/internships HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54739 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54740 - "GET /student/achievements HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54739 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54738 - "GET /student/certificates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54740 - "GET /student/achievements HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54741 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54738 - "GET /student/certificates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54742 - "GET /certificates/4GW23IS001_Aishwarya_S_L.pdf HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54743 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54756 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54756 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54756 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54756 - "OPTIONS /student/ask-ai HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54756 - "POST /student/ask-ai HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54756 - "OPTIONS /student/counseling HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54764 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54756 - "GET /student/counseling HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54764 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54756 - "GET /student/counseling HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54764 - "GET /student/notes HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54764 - "GET /student/notes HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54756 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54756 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54768 - "OPTIONS /student/documents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54771 - "OPTIONS /student/documents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54771 - "GET /student/documents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54768 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54771 - "GET /student/documents HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54768 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54768 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54772 - "GET /student/courses HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54774 - "GET /student/achievements HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54771 - "GET /student/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54773 - "GET /student/internships HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54768 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54774 - "GET /student/achievements HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54772 - "GET /student/courses HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54773 - "GET /student/internships HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54775 - "GET /student/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54772 - "GET /student/internships HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54775 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54773 - "GET /student/placement HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54772 - "GET /student/internships HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54775 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54773 - "GET /student/placement HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54775 - "GET /student/achievements HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54773 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54772 - "GET /student/certificates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54775 - "GET /student/achievements HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54773 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54772 - "GET /student/certificates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54772 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54773 - "GET /student/attendance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54772 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54773 - "GET /student/attendance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54778 - "OPTIONS /student/rank HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54779 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54778 - "GET /student/rank HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54779 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54778 - "GET /student/rank HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54778 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54778 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54783 - "GET /student/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54782 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54784 - "GET /student/certificates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54784 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54783 - "GET /student/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54782 - "GET /student/certificates HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54786 - "GET /student/notes HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54786 - "GET /student/notes HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54782 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54783 - "GET /student/attendance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54784 - "GET /student/excellence-score HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54787 - "GET /student/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54782 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54787 - "GET /student/dashboard HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54786 - "GET /student/attendance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54784 - "GET /student/excellence-score HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54784 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54784 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54786 - "GET /student/insight HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54786 - "GET /student/insight HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54790 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54791 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54797 - "POST /auth/login HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54797 - "GET /teacher/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54797 - "GET /teacher/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54797 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54797 - "GET /teacher/extra-work HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54800 - "GET /teacher/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54797 - "GET /teacher/passed-out-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54799 - "GET /teacher/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54797 - "GET /teacher/extra-work HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54797 - "GET /teacher/passed-out-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54801 - "GET /teacher/active-batches HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54800 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54797 - "GET /teacher/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54799 - "GET /teacher/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54802 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54801 - "GET /teacher/active-batches HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54800 - "GET /teacher/next-semester-for-batch?batch=2022 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54799 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54800 - "GET /teacher/next-semester-for-batch?batch=2022 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54798 - "GET /teacher/dashboard-stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54798 - "GET /teacher/dashboard-stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54800 - "GET /teacher/insight HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54800 - "GET /teacher/insight HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54806 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54806 - "OPTIONS /teacher/next-semester-for-batch?batch=2023 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54806 - "GET /teacher/next-semester-for-batch?batch=2023 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54807 - "OPTIONS /teacher/subject-lookup?code=BIS703 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54807 - "GET /teacher/subject-lookup?code=BIS703 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54807 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54807 - "GET /teacher/subject-lookup?code=BIS703 HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54807 - "POST /teacher/assignments HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:54807 - "POST /teacher/assignments HTTP/1.1" 422 Unprocessable Entity
+INFO:     127.0.0.1:54809 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54810 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54819 - "OPTIONS /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54820 - "OPTIONS /teacher/available-semesters HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54821 - "OPTIONS /teacher/my-batches HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54822 - "OPTIONS /teacher/available-sections HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54822 - "OPTIONS /teacher/students HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54819 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54819 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54821 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54822 - "GET /teacher/available-semesters HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54821 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54822 - "GET /teacher/available-semesters HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54823 - "GET /teacher/students HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54820 - "GET /teacher/available-sections HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54820 - "GET /teacher/available-sections HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54823 - "GET /teacher/students HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54823 - "OPTIONS /teacher/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54823 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54823 - "GET /teacher/passed-out-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54820 - "GET /teacher/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54823 - "GET /teacher/extra-work HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54823 - "GET /teacher/passed-out-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54819 - "GET /teacher/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54819 - "GET /teacher/extra-work HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54824 - "GET /teacher/active-batches HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54820 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54821 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54819 - "GET /teacher/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54823 - "GET /teacher/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54824 - "GET /teacher/active-batches HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54820 - "GET /teacher/next-semester-for-batch?batch=2022 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54820 - "GET /teacher/next-semester-for-batch?batch=2022 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54821 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54822 - "GET /teacher/dashboard-stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54822 - "GET /teacher/dashboard-stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54821 - "GET /teacher/insight HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54821 - "GET /teacher/insight HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54827 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54831 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54821 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54829 - "GET /teacher/available-semesters HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54828 - "GET /teacher/available-sections HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54821 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54830 - "GET /teacher/students HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54829 - "GET /teacher/available-semesters HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54828 - "GET /teacher/available-sections HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54830 - "GET /teacher/students HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54832 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54834 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54832 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54834 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54836 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54835 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54835 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54838 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54838 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54838 - "GET /teacher/passed-out-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54838 - "GET /teacher/extra-work HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54842 - "GET /teacher/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54840 - "GET /teacher/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54842 - "GET /teacher/passed-out-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54840 - "GET /teacher/extra-work HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54844 - "GET /teacher/active-batches HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54843 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54842 - "GET /teacher/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54844 - "GET /teacher/active-batches HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54840 - "GET /teacher/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54838 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54843 - "GET /teacher/next-semester-for-batch?batch=2022 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54843 - "GET /teacher/next-semester-for-batch?batch=2022 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54842 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54841 - "GET /teacher/dashboard-stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54841 - "GET /teacher/dashboard-stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54842 - "GET /teacher/insight HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54842 - "GET /teacher/insight HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54849 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54851 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54851 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54849 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54849 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54852 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54852 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54849 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54849 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54852 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54851 - "GET /teacher/available-semesters HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54849 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54851 - "GET /teacher/available-semesters HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54854 - "GET /teacher/available-sections HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54853 - "GET /teacher/students HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54853 - "GET /teacher/students HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54854 - "GET /teacher/available-sections HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54856 - "OPTIONS /teacher/notes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54857 - "OPTIONS /teacher/notes HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54856 - "GET /teacher/notes HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54856 - "GET /teacher/notes HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54859 - "GET /teacher/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54858 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54859 - "GET /teacher/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54858 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54862 - "OPTIONS /teacher/question-paper HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54861 - "OPTIONS /teacher/question-paper HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54861 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54862 - "GET /teacher/question-paper HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54861 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54862 - "GET /teacher/question-paper HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54861 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54861 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54862 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54861 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54863 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54863 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54869 - "OPTIONS /teacher/generated-presentations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54868 - "OPTIONS /teacher/style-references?output_type=ppt HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54867 - "OPTIONS /teacher/content-sources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54866 - "OPTIONS /teacher/generated-presentations HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54865 - "OPTIONS /teacher/style-references?output_type=ppt HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54864 - "OPTIONS /teacher/content-sources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54868 - "GET /teacher/generated-presentations HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54869 - "GET /teacher/generated-presentations HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54864 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54867 - "GET /teacher/content-sources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54864 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54869 - "GET /teacher/content-sources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54866 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54865 - "GET /teacher/style-references?output_type=ppt HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54865 - "GET /teacher/style-references?output_type=ppt HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54866 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54872 - "OPTIONS /teacher/module-mappings?content_source_id=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54872 - "GET /teacher/module-mappings?content_source_id=1 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54872 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54872 - "OPTIONS /teacher/generate-styled-content HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54872 - "POST /teacher/generate-styled-content HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54872 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54873 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54878 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54879 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54883 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54895 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54899 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54919 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54899 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54919 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54899 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54918 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54918 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54919 - "GET /teacher/generated-presentations HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54919 - "GET /teacher/generated-presentations HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54899 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54918 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54925 - "GET /teacher/content-sources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54926 - "GET /teacher/style-references?output_type=ppt HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54899 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54925 - "GET /teacher/content-sources HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54926 - "GET /teacher/style-references?output_type=ppt HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54918 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54930 - "GET /teacher/notes HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54930 - "GET /teacher/notes HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54928 - "GET /teacher/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54929 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54929 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54928 - "GET /teacher/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54929 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54929 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54928 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54928 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54930 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54930 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54928 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54928 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54930 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54929 - "GET /teacher/available-semesters HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54928 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54929 - "GET /teacher/available-semesters HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54934 - "GET /teacher/available-sections HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54935 - "GET /teacher/students HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54934 - "GET /teacher/available-sections HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54935 - "GET /teacher/students HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54943 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54943 - "GET /teacher/extra-work HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54940 - "GET /teacher/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54942 - "GET /teacher/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54943 - "GET /teacher/passed-out-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54942 - "GET /teacher/extra-work HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54938 - "GET /teacher/active-batches HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54938 - "GET /teacher/passed-out-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54939 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54943 - "GET /teacher/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54940 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54942 - "GET /teacher/me HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54938 - "GET /teacher/active-batches HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54939 - "GET /teacher/next-semester-for-batch?batch=2022 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54943 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54939 - "GET /teacher/next-semester-for-batch?batch=2022 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54941 - "GET /teacher/dashboard-stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54941 - "GET /teacher/dashboard-stats HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54939 - "GET /teacher/insight HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54939 - "GET /teacher/insight HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54954 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54959 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54964 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54969 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54974 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54978 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54982 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54977 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54979 - "GET /teacher/available-semesters HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54982 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54977 - "GET /teacher/available-semesters HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54980 - "GET /teacher/available-sections HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54981 - "GET /teacher/students HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54980 - "GET /teacher/available-sections HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54981 - "GET /teacher/students HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54981 - "OPTIONS /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54980 - "OPTIONS /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54982 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54982 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54977 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54979 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54977 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54979 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54982 - "GET /teacher/notes HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54982 - "GET /teacher/notes HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54979 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54977 - "GET /teacher/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54977 - "GET /teacher/assignments HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54979 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54979 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54977 - "GET /teacher/question-paper HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54979 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54977 - "GET /teacher/question-paper HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54979 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54979 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54977 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54977 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54984 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54984 - "GET /teacher/subjects HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54985 - "OPTIONS /teacher/reports/performance?batch=2024 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54985 - "OPTIONS /teacher/reports/attendance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54985 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54985 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54986 - "GET /teacher/reports/performance?batch=2024 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54987 - "GET /teacher/reports/attendance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54986 - "GET /teacher/reports/performance?batch=2024 HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54987 - "GET /teacher/reports/attendance HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54986 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54987 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54986 - "GET /teacher/my-batches HTTP/1.1" 404 Not Found
+INFO:     127.0.0.1:54987 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54989 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:54994 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55013 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55018 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55023 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55029 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55050 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55063 - "GET /notifications HTTP/1.1" 200 OK
+INFO:     127.0.0.1:55080 - "GET /notifications HTTP/1.1" 200 OK

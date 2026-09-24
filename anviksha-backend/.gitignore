@@ -1,0 +1,10 @@
+.env
+__pycache__/
+*.pyc
+anviksha_dev.db
+data_raw/
+scripts/question_bank_manifest.json
+scripts/completeness_report.txt
+scripts/generated_credentials.csv
+.venv/
+venv/

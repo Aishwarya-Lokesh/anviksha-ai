@@ -1,0 +1,30 @@
+{
+  "profile": { "name": "Dr. Rahul Sharma", "designation": "Assistant Professor", "dept": "Department of ISE" },
+  "stats": { "myStudents": 72, "mySubjects": 5, "avgAttendance": 87.4, "atRisk": 12, "reportsGenerated": 18 },
+  "attendanceTrend": [
+    { "label": "Apr 22", "s51": 92, "s52": 88, "s53": 90, "s54": 85, "s55": 94 },
+    { "label": "Apr 29", "s51": 91, "s52": 87, "s53": 89, "s54": 84, "s55": 93 },
+    { "label": "May 06", "s51": 90, "s52": 86, "s53": 91, "s54": 83, "s55": 92 },
+    { "label": "May 13", "s51": 93, "s52": 89, "s53": 90, "s54": 86, "s55": 95 },
+    { "label": "May 20", "s51": 92, "s52": 88, "s53": 88, "s54": 82, "s55": 94 },
+    { "label": "Jun 03", "s51": 94, "s52": 90, "s53": 92, "s54": 85, "s55": 96 }
+  ],
+  "performanceDistribution": [
+    { "name": "Excellent (>=9)", "value": 18, "color": "#5B3FD9" },
+    { "name": "Good (7-9)", "value": 30, "color": "#3B82F6" },
+    { "name": "Average (5-7)", "value": 16, "color": "#E8A93B" },
+    { "name": "Needs Improvement (<5)", "value": 8, "color": "#E5484D" }
+  ],
+  "atRiskReasons": {
+    "S007": "Attendance 62%, 2 backlogs, CGPA trending down for 2 semesters",
+    "S008": "Attendance 68%, 3 backlogs, missed 2 IA assessments",
+    "S009": "Attendance 70%, 2 backlogs, low quiz scores in last 3 tests",
+    "S010": "Attendance 65%, 3 backlogs, flagged by counselor for engagement",
+    "S011": "Attendance 72%, 2 backlogs, declining assignment submissions"
+  },
+  "questionBanks": [
+    { "id": "QB1", "name": "21IS51_QP1.pdf" },
+    { "id": "QB2", "name": "21IS51_QP2.pdf" },
+    { "id": "QB3", "name": "21IS51_QP3.pdf" }
+  ]
+}
