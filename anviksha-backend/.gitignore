@@ -8,3 +8,4 @@ scripts/completeness_report.txt
 scripts/generated_credentials.csv
 .venv/
 venv/
+db_backups/
