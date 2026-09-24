@@ -11,6 +11,7 @@ import { api } from "@/lib/api";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { AIInsightCard } from "@/components/ui/AIInsightCard";
 import { LiveAttendanceSection } from "@/components/hod-intelligence/LiveAttendanceSection";
+import { DepartmentHealthSnapshot } from "@/components/hod-intelligence/DepartmentHealthSnapshot";
 
 export default function HodDashboard() {
   const [me, setMe] = useState<any>(null);
@@ -70,6 +71,8 @@ export default function HodDashboard() {
           <StatCard label="Active" value={stats.active_students} icon={Activity} tone="success" delay={0.05} onClick={openActive} link="View by batch →" />
           <StatCard label="Faculty" value={stats.total_faculty} icon={Users} tone="info" delay={0.1} onClick={openFaculty} link="View list →" />
         </div>
+
+        <DepartmentHealthSnapshot cgpaBySemester={stats.cgpa_by_semester} />
 
         <LiveAttendanceSection />
 

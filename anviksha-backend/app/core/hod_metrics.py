@@ -527,3 +527,106 @@ def faculty_detail(db: Session, department_id: int, faculty_id: int) -> dict:
         "alerts": alerts,
         "status": faculty_status(len(alerts)),
     }
+
+
+# ---------------------------------------------------------------------------
+# Department Health Snapshot (Phase 3) — a pure rollup of already-computed
+# values. No new business rule is introduced here except the one new
+# department-scoped "pending documents" query Phase 0 confirmed didn't
+# already exist anywhere (admin.py's version is always global).
+# ---------------------------------------------------------------------------
+
+def department_at_risk_detail(db: Session, department_id: int) -> dict:
+    """Real at-risk count + the real student list behind it — reuses
+    at_risk_from_students, the exact same HOD-facing definition already used
+    by /hod/ask-ai and /hod/insight (see Phase 0 section D)."""
+    active_students = db.query(Student).filter(Student.department_id == department_id, Student.status == "active").all()
+    at_risk = at_risk_from_students(active_students)
+    students = [{
+        "student_id": s.id, "name": s.name, "usn": s.usn, "semester": s.semester,
+        "backlogs": s.backlogs or 0, "attendance_pct": s.attendance_pct,
+        "reason": "Backlogs + Attendance" if (s.backlogs or 0) > 0 and (s.attendance_pct is not None and s.attendance_pct < 75)
+        else ("Backlogs" if (s.backlogs or 0) > 0 else "Attendance"),
+    } for s in at_risk]
+    return {
+        "count": len(at_risk), "students": students,
+        "basis": {
+            "sources": ["students"], "filters": {"department_id": department_id},
+            "numerator": len(at_risk), "denominator": len(active_students), "record_count": len(active_students),
+        },
+        "explanation": f"Real backlog and attendance fields checked across {len(active_students)} active department students: {len(at_risk)} have a real backlog on record, or real attendance below 75%.",
+    }
+
+
+def department_pending_documents(db: Session, department_id: int) -> dict:
+    """Real pending DocumentRequest count for this department — no
+    department-scoped version of this existed anywhere before (Phase 0,
+    section D: admin.py's version is always global); this is new, following
+    the same join(Student).filter(Student.department_id==...) pattern
+    hod.py already uses for Placement."""
+    from app.models.models import DocumentRequest
+
+    rows = (
+        db.query(DocumentRequest, Student.name)
+        .join(Student, Student.id == DocumentRequest.student_id)
+        .filter(Student.department_id == department_id, DocumentRequest.status == "Pending")
+        .all()
+    )
+    return {
+        "count": len(rows),
+        "requests": [{
+            "id": r.id, "student_id": r.student_id, "student_name": name, "type": r.type,
+            "purpose": r.purpose, "requested_date": str(r.requested_date),
+        } for r, name in rows],
+        "basis": {
+            "sources": ["document_requests", "students"], "filters": {"department_id": department_id, "status": "Pending"},
+            "numerator": len(rows), "denominator": None, "record_count": len(rows),
+        },
+        "explanation": f"{len(rows)} real DocumentRequest row(s) with status='Pending' for students in this department.",
+    }
+
+
+def department_avg_cgpa(db: Session, department_id: int) -> dict:
+    """Real average CGPA across this department's active students — the
+    exact same computation already used by /hod/ask-ai and /hod/insight
+    (Student.cgpa is a pure stored field; never computed here, only
+    averaged, per Phase 0 section D)."""
+    active_students = db.query(Student).filter(Student.department_id == department_id, Student.status == "active").all()
+    scored = [s.cgpa for s in active_students if s.cgpa is not None]
+    if not scored:
+        return metric(
+            value=None, status="unavailable", display="Not available",
+            basis={"sources": ["students"], "filters": {"department_id": department_id}, "numerator": None, "denominator": None, "record_count": 0},
+            explanation="No active student in this department has a real CGPA on record yet.",
+            reason_unavailable="No Student.cgpa values are populated for this department's active students.",
+        )
+    avg = round(sum(scored) / len(scored), 2)
+    return metric(
+        value=avg, status="available", display=f"{avg}",
+        basis={
+            "sources": ["students"], "filters": {"department_id": department_id},
+            "numerator": round(sum(scored), 2), "denominator": len(scored), "record_count": len(active_students),
+        },
+        explanation=f"Average of {len(scored)} real Student.cgpa value(s) out of {len(active_students)} active department students (students with no CGPA on record are excluded, not treated as 0).",
+    )
+
+
+def department_health_snapshot(db: Session, department_id: int) -> dict:
+    """The Phase 3 rollup card — today's attendance (Phase 1), at-risk count
+    (existing HOD formula), average CGPA (existing stored field), and
+    pending documents (new, department-scoped). Every field is itself a
+    full D1 metric so the same 'How is this calculated?' affordance works
+    here as everywhere else."""
+    attendance = today_attendance_headline(db, department_id)
+    at_risk_detail = department_at_risk_detail(db, department_id)
+    at_risk_metric = metric(
+        value=at_risk_detail["count"], status="available", display=str(at_risk_detail["count"]),
+        basis=at_risk_detail["basis"], explanation=at_risk_detail["explanation"],
+    )
+    avg_cgpa = department_avg_cgpa(db, department_id)
+    docs = department_pending_documents(db, department_id)
+    docs_metric = metric(
+        value=docs["count"], status="available", display=str(docs["count"]),
+        basis=docs["basis"], explanation=docs["explanation"],
+    )
+    return {"attendance_today": attendance, "at_risk": at_risk_metric, "avg_cgpa": avg_cgpa, "pending_documents": docs_metric}

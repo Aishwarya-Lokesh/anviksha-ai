@@ -276,3 +276,23 @@ Every new endpoint in this feature will call this exact function — never re-im
 **Validation:** `compileall` clean, `pytest` 8/8, `tsc --noEmit` clean, `next build` clean (43/43 routes, new `/hod/faculty-monitoring` route present), backend starts cleanly, new routes appear in `/docs`.
 
 ## Phase 2 status: COMPLETE. Committed. Proceeding to Phase 3.
+
+---
+
+## PHASE 3 — Department Health Snapshot (rollup) — COMPLETE
+
+**Backend additions** (all in `app/core/hod_metrics.py`, no new files needed): `department_at_risk_detail` (reuses `at_risk_from_students`), `department_pending_documents` (new — Phase 0 confirmed no department-scoped version existed; admin.py's is always global — follows the exact `join(Student).filter(department_id==...)` pattern already used by `hod.py`'s own `/placements`), `department_avg_cgpa` (reuses the stored `Student.cgpa` field, same computation already used by `/hod/ask-ai`/`/hod/insight`), `department_health_snapshot` (the rollup, D1 contract on all four fields). New endpoints: `GET /hod/intelligence/health-snapshot`, `GET /hod/intelligence/at-risk-detail`, `GET /hod/intelligence/pending-documents`.
+
+**Real bug caught and fixed before commit**: `department_pending_documents` initially tried `r.student.name` — `DocumentRequest` has no `student` relationship defined on the model (only `student_id`), so this 500'd immediately when tested against the real DB. Fixed to a joined query returning `(DocumentRequest, Student.name)` tuples.
+
+**Real-data verification**: `at_risk: 3` matches Phase 2's independently-computed number exactly (same reused function, different caller — consistency confirmed); `avg_cgpa: 8.16` (144 real active students with a CGPA on record); `pending_documents: 1`, matching the single real `DocumentRequest` row found in Phase 0 investigation (student "DEEPTHI R", "Bonafide Certificate", requested 2026-08-15) — spot-checked directly against the row.
+
+**Frontend**: `components/hod-intelligence/DepartmentHealthSnapshot.tsx` — 4 clickable tiles. "Attendance" scrolls to the existing Phase 1 section on the same page (added `id="live-attendance"` to that Card — the only edit to `LiveAttendanceSection.tsx`). "At-Risk" and "Pending Documents" open new small modals (none existed before on the HOD side, per spec's "no new pages unless none exists" — these are modals, not new pages). "Average CGPA" opens a modal fed entirely by `stats.cgpa_by_semester` — a field the existing `/hod/stats` endpoint *already computes and returns*, but the current dashboard UI never renders (it reads a non-existent `cgpa_by_batch` instead — the pre-existing bug from Phase 0 section B). This is pure reuse of already-existing, already-computed, already-fetched data — zero new backend code for that one tile.
+
+**Edits to existing files**: `app/hod/page.tsx` (+2 lines: import + `<DepartmentHealthSnapshot cgpaBySemester={stats.cgpa_by_semester} />`), `LiveAttendanceSection.tsx` (+1 attribute: `id="live-attendance"`).
+
+**Tests**: `tests/test_hod_health_snapshot.py` — 3 new tests (department isolation on the rollup, at-risk student list never leaks cross-department, role-guard 403). Full suite: **11/11 passing.**
+
+**Validation**: `compileall` clean, `pytest` 11/11, `tsc --noEmit` clean, `next build` clean (43/43 routes).
+
+## Phase 3 status: COMPLETE. Committed. Proceeding to Phase 4.

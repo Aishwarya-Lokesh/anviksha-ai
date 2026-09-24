@@ -103,3 +103,35 @@ def alerts(db: Session = Depends(get_db), user: User = Depends(require_role("hod
 
     dept = _department_or_403(user, db)
     return {"department": dept.name, "alerts": department_alerts(db, dept.id)}
+
+
+# ---------------------------------------------------------------------------
+# Phase 3 — Department Health Snapshot (rollup)
+# ---------------------------------------------------------------------------
+
+@router.get("/health-snapshot")
+def health_snapshot(db: Session = Depends(get_db), user: User = Depends(require_role("hod"))):
+    """Today's attendance %, at-risk count, average CGPA, pending documents —
+    a pure rollup of already-computed values (Phase 1's attendance headline,
+    the existing HOD at-risk formula, the existing stored CGPA field, and
+    one new department-scoped documents-pending query)."""
+    from app.core.hod_metrics import department_health_snapshot
+
+    dept = _department_or_403(user, db)
+    return {"department": dept.name, **department_health_snapshot(db, dept.id)}
+
+
+@router.get("/at-risk-detail")
+def at_risk_detail(db: Session = Depends(get_db), user: User = Depends(require_role("hod"))):
+    from app.core.hod_metrics import department_at_risk_detail
+
+    dept = _department_or_403(user, db)
+    return {"department": dept.name, **department_at_risk_detail(db, dept.id)}
+
+
+@router.get("/pending-documents")
+def pending_documents(db: Session = Depends(get_db), user: User = Depends(require_role("hod"))):
+    from app.core.hod_metrics import department_pending_documents
+
+    dept = _department_or_403(user, db)
+    return {"department": dept.name, **department_pending_documents(db, dept.id)}

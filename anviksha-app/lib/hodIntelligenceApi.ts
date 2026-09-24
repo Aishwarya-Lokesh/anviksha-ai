@@ -34,4 +34,8 @@ export const hodIntelligenceApi = {
   facultyTable: (search?: string) => requestJson(`/hod/intelligence/faculty${search ? `?search=${encodeURIComponent(search)}` : ""}`),
   facultyDetail: (facultyId: number) => requestJson(`/hod/intelligence/faculty/${facultyId}`),
   alerts: () => requestJson("/hod/intelligence/alerts"),
+
+  healthSnapshot: () => requestJson("/hod/intelligence/health-snapshot"),
+  atRiskDetail: () => requestJson("/hod/intelligence/at-risk-detail"),
+  pendingDocuments: () => requestJson("/hod/intelligence/pending-documents"),
 };

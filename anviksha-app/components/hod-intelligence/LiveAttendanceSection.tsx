@@ -25,7 +25,7 @@ export function LiveAttendanceSection() {
   const [tab, setTab] = useState<"table" | "heatmap">("table");
 
   return (
-    <Card hover>
+    <Card hover id="live-attendance">
       <div className="flex items-center justify-between mb-1">
         <SectionTitle title="Live Daily Attendance" subtitle="Real, department-scoped — today's submitted sessions only" />
         <div className="flex items-center gap-2 text-[11px] text-muted shrink-0">
