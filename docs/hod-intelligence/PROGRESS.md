@@ -322,3 +322,27 @@ Every new endpoint in this feature will call this exact function — never re-im
 **Validation**: `compileall` clean, `pytest` 16/16, `tsc --noEmit` clean, `next build` clean (44/44 routes, new `/hod/assessment-analytics` present), dev server confirmed serving all HOD routes after restart.
 
 ## Phase 4 status: COMPLETE. Committed. Proceeding to Phase 5.
+
+---
+
+## PHASE 5 — Placement Funnel — COMPLETE
+
+**Design decision**: extended the existing `/hod/placements` page (additive new section) instead of creating a separate "Placement Funnel" page. A page for this exact domain already existed — a new nav item would only fragment one concept across two places, following the same precedent Phases 1/3 set (extend an existing page additively when one already covers the domain, per the spirit of A9).
+
+**Noted, not fixed**: the existing `/hod/placements` page already has its own "Compare Batches" section calling `api.hodPlacementBatches()`/`api.hodPlacementComparison()` — both hit backend endpoints that don't exist (Phase 0 finding, section B), so that section is currently silently broken (empty list, section never renders since it gates on `placementBatches.length >= 2`). This is a pre-existing bug, unrelated to this feature; left untouched per A1/the Phase 0 decision to not fix unrelated pre-existing mismatches. The new, real "Cycle Comparison" built in this phase sits alongside it and actually works.
+
+**Backend additions** (`app/core/hod_metrics.py`): `department_placement_funnel` (real 2-stage funnel — Total tracked → Placed; Phase 0 confirmed no richer stage data exists anywhere in `Placement`), `department_placement_tiers` (reuses the newly-extracted `classify_ctc_tiers`), `department_placement_cycle_comparison` (real per-passed-out-year comparison, only rendered when ≥2 real cycles have data — exactly the spec's fallback condition). New endpoints: `GET /hod/intelligence/placement/funnel`, `/placement/tiers`, `/placement/cycle-comparison`.
+
+**Reuse, verified byte-identical**: extracted the CTC-tier classification (previously inline only in `admin.py`, duplicated nowhere else per Phase 0) into `app/core/placement_rules.py` (`parse_ctc_lpa`, `classify_ctc_tiers`), then re-pointed `admin.py`'s `placement_dashboard` at it. **Verified with a real before/after capture**: stashed the refactor, hit the real `/admin/placements` endpoint, restored the refactor, hit it again — the two real JSON responses compared **byte-for-byte identical** (`before == after: True`) before committing.
+
+**Real-data verification**: `GET /hod/intelligence/placement/funnel` → `Tracked: 136, Placed: 120 (88.2%)`. `GET /hod/intelligence/placement/tiers` → `Regular: 36, Dream: 8, Super Dream: 35` (79 classifiable). `GET /hod/intelligence/placement/cycle-comparison` → 4 real cohorts with genuinely useful data (2022: 1 tracked/0 placed; 2024: 54/40, 74.1%; 2025: 37/36, 97.3%, avg 7.0 LPA; 2026: 42/42, 100%, avg 11.7 LPA) — a real, informative cycle comparison, not the "insufficient data" fallback, since this department genuinely has 4+ years of real placement history.
+
+**"Eligible but not applied" — confirmed NOT POSSIBLE**, not built: `Placement` has no application-stage field of any kind (Phase 0, section H) — there's no way to distinguish "eligible but didn't apply" from "eligible, applied, not yet placed" in this schema.
+
+**New frontend**: `components/hod-intelligence/PlacementFunnelSection.tsx`, added to the existing `app/hod/placements/page.tsx` (+2 lines: import + `<PlacementFunnelSection />`, nothing existing touched). Reuses the existing `DonutChart` and Phase 4's `HorizontalBarChart` — no new chart types needed.
+
+**Tests**: `tests/test_hod_placement_funnel.py` — 4 new tests (2-stage funnel + department isolation, CTC-tier reuse correctness, cycle-comparison fallback message, role-guard 403). Full suite: **20/20 passing.**
+
+**Validation**: `compileall` clean, `pytest` 20/20, `tsc --noEmit` clean, `next build` clean (44/44 routes).
+
+## Phase 5 status: COMPLETE. Committed. Proceeding to Phase 6 (stretch).

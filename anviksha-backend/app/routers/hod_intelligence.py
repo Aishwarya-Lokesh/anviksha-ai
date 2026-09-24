@@ -167,3 +167,33 @@ def section_comparison(subject_id: int, db: Session = Depends(get_db), user: Use
 
     dept = _department_or_403(user, db)
     return {"department": dept.name, **department_section_comparison(db, dept.id, subject_id)}
+
+
+# ---------------------------------------------------------------------------
+# Phase 5 — Placement Funnel
+# ---------------------------------------------------------------------------
+
+@router.get("/placement/funnel")
+def placement_funnel(passed_out_year: Optional[int] = None, db: Session = Depends(get_db), user: User = Depends(require_role("hod"))):
+    """A real 2-stage funnel — the schema has no richer stage data (Phase 0
+    section H)."""
+    from app.core.hod_metrics import department_placement_funnel
+
+    dept = _department_or_403(user, db)
+    return {"department": dept.name, **department_placement_funnel(db, dept.id, passed_out_year)}
+
+
+@router.get("/placement/tiers")
+def placement_tiers(passed_out_year: Optional[int] = None, db: Session = Depends(get_db), user: User = Depends(require_role("hod"))):
+    from app.core.hod_metrics import department_placement_tiers
+
+    dept = _department_or_403(user, db)
+    return {"department": dept.name, **department_placement_tiers(db, dept.id, passed_out_year)}
+
+
+@router.get("/placement/cycle-comparison")
+def placement_cycle_comparison(db: Session = Depends(get_db), user: User = Depends(require_role("hod"))):
+    from app.core.hod_metrics import department_placement_cycle_comparison
+
+    dept = _department_or_403(user, db)
+    return {"department": dept.name, **department_placement_cycle_comparison(db, dept.id)}

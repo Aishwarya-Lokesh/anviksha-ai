@@ -11,6 +11,7 @@ import { api } from "@/lib/api";
 import { downloadExcel } from "@/lib/fileGen";
 import { useToast } from "@/components/ui/Toaster";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
+import { PlacementFunnelSection } from "@/components/hod-intelligence/PlacementFunnelSection";
 
 export default function HodPlacementsPage() {
   const [data, setData] = useState<any>(null);
@@ -209,6 +210,8 @@ export default function HodPlacementsPage() {
             )}
           </Card>
         )}
+
+        <PlacementFunnelSection />
       </div>
     </>
   );

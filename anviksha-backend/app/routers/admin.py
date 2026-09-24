@@ -410,22 +410,16 @@ def placement_dashboard(
     all_batches_with_data = sorted({r.student.batch for r in db.query(Placement).join(Student).all()})
 
     # real average CTC where numeric parsing is possible (e.g. "11 LPA" -> 11) — never fabricated, just parsed from real text
-    import re as _re
-    ctc_values = []
-    for r in rows:
-        if r.ctc:
-            m = _re.search(r"(\d+(\.\d+)?)", r.ctc)
-            if m:
-                ctc_values.append(float(m.group(1)))
+    from app.core.placement_rules import parse_ctc_lpa, classify_ctc_tiers
+    ctc_values = [v for v in (parse_ctc_lpa(r.ctc) for r in rows) if v is not None]
     avg_ctc_lpa = round(sum(ctc_values) / len(ctc_values), 1) if ctc_values else None
     highest_ctc_lpa = max(ctc_values) if ctc_values else None
 
-    # Real offer-tier classification by real CTC value — Regular < 6 LPA,
-    # Dream 6-10 LPA, Super Dream > 10 LPA. Only classifiable for records
-    # with a real parsed CTC — never guessed for records without one.
-    regular_by_ctc = sum(1 for v in ctc_values if v < 6)
-    dream_by_ctc = sum(1 for v in ctc_values if 6 <= v <= 10)
-    super_dream_by_ctc = sum(1 for v in ctc_values if v > 10)
+    # Real offer-tier classification by real CTC value — extracted to
+    # app/core/placement_rules.py so app/routers/hod_intelligence.py can
+    # reuse the exact same rule instead of a second copy of it.
+    tiers = classify_ctc_tiers(ctc_values)
+    regular_by_ctc, dream_by_ctc, super_dream_by_ctc = tiers["regular"], tiers["dream"], tiers["super_dream"]
 
     # top companies by real count, only where company data exists
     from collections import Counter

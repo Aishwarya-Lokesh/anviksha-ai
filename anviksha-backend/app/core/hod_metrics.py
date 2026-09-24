@@ -793,3 +793,89 @@ def department_section_comparison(db: Session, department_id: int, subject_id: i
             "status": "available" if pass_rate is not None else "unavailable",
         })
     return {"status": "available", "sections": sections, "subject_code": subject.code, "subject_name": subject.name, "semester": subject.semester}
+
+
+# ---------------------------------------------------------------------------
+# Placement Funnel (Phase 5)
+# ---------------------------------------------------------------------------
+
+def department_placement_funnel(db: Session, department_id: int, passed_out_year: Optional[int] = None) -> dict:
+    """A real 2-stage funnel (Total tracked -> Placed) — this is genuinely
+    all the schema supports (Phase 0, section H: Placement has only a
+    `placed` boolean + a `placement_type` category, no Applied/Shortlisted/
+    Interviewed stage exists anywhere). A richer funnel would mean
+    inventing intermediate stages the data doesn't have."""
+    from app.models.models import Placement
+
+    q = db.query(Placement).join(Student, Student.id == Placement.student_id).filter(Student.department_id == department_id)
+    if passed_out_year:
+        q = q.filter(Student.admission_year == passed_out_year - 4, Student.status == "passed_out")
+    rows = q.all()
+    total = len(rows)
+    placed = sum(1 for r in rows if r.placed)
+    if total == 0:
+        return {
+            "status": "unavailable", "stages": [], "reason_unavailable": "No real Placement records found for this department (and filter, if given).",
+        }
+    return {
+        "status": "available",
+        "stages": [
+            {"stage": "Tracked", "count": total, "pct_of_first": 100.0},
+            {"stage": "Placed", "count": placed, "pct_of_first": round(placed / total * 100, 1)},
+        ],
+        "explanation": f"Real funnel from {total} real Placement record(s) for this department: {placed} marked placed=True. This is a 2-stage funnel because the real schema has no Applied/Shortlisted/Interviewed stage — only placed/not-placed is tracked.",
+    }
+
+
+def department_placement_tiers(db: Session, department_id: int, passed_out_year: Optional[int] = None) -> dict:
+    """Offer tiers donut — reuses classify_ctc_tiers, the exact same rule
+    admin.py's placement_dashboard uses (Part A4)."""
+    from app.models.models import Placement
+    from app.core.placement_rules import parse_ctc_lpa, classify_ctc_tiers
+
+    q = db.query(Placement).join(Student, Student.id == Placement.student_id).filter(Student.department_id == department_id, Placement.placed == True)
+    if passed_out_year:
+        q = q.filter(Student.admission_year == passed_out_year - 4, Student.status == "passed_out")
+    rows = q.all()
+    ctc_values = [v for v in (parse_ctc_lpa(r.ctc) for r in rows) if v is not None]
+    if not ctc_values:
+        return {"status": "unavailable", "tiers": None, "reason_unavailable": "No real, parseable CTC value found for any placed student in this department (and filter, if given)."}
+    return {"status": "available", "tiers": classify_ctc_tiers(ctc_values)}
+
+
+def department_placement_cycle_comparison(db: Session, department_id: int) -> dict:
+    """Compares real passed-out cohorts (graduation years) against each
+    other — only if at least 2 real cycles have Placement data, per the
+    spec's explicit fallback message."""
+    from app.models.models import Placement
+    from app.core.placement_rules import parse_ctc_lpa
+
+    rows = (
+        db.query(Placement, Student.admission_year)
+        .join(Student, Student.id == Placement.student_id)
+        .filter(Student.department_id == department_id, Student.status == "passed_out", Student.admission_year.isnot(None))
+        .all()
+    )
+    by_year: dict = {}
+    for placement, admission_year in rows:
+        year = admission_year + 4
+        by_year.setdefault(year, []).append(placement)
+
+    cycles_with_data = [y for y, placements in by_year.items() if placements]
+    if len(cycles_with_data) < 2:
+        return {
+            "status": "unavailable", "cycles": [],
+            "reason_unavailable": "Historical cycle comparison will appear when sufficient cycle data is available.",
+        }
+
+    cycles = []
+    for year in sorted(by_year.keys()):
+        placements = by_year[year]
+        placed = sum(1 for p in placements if p.placed)
+        ctc_values = [v for v in (parse_ctc_lpa(p.ctc) for p in placements) if v is not None]
+        cycles.append({
+            "passed_out_year": year, "total": len(placements), "placed": placed,
+            "placement_pct": round(placed / len(placements) * 100, 1) if placements else None,
+            "avg_ctc_lpa": round(sum(ctc_values) / len(ctc_values), 1) if ctc_values else None,
+        })
+    return {"status": "available", "cycles": cycles}

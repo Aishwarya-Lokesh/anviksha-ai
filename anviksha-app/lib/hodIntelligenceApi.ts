@@ -42,4 +42,8 @@ export const hodIntelligenceApi = {
   passRateOutliers: () => requestJson("/hod/intelligence/assessment/pass-rate-outliers"),
   bloomCoverage: () => requestJson("/hod/intelligence/assessment/bloom-coverage"),
   sectionComparison: (subjectId: number) => requestJson(`/hod/intelligence/assessment/section-comparison?subject_id=${subjectId}`),
+
+  placementFunnel: (passedOutYear?: number) => requestJson(`/hod/intelligence/placement/funnel${passedOutYear ? `?passed_out_year=${passedOutYear}` : ""}`),
+  placementTiers: (passedOutYear?: number) => requestJson(`/hod/intelligence/placement/tiers${passedOutYear ? `?passed_out_year=${passedOutYear}` : ""}`),
+  placementCycleComparison: () => requestJson("/hod/intelligence/placement/cycle-comparison"),
 };
