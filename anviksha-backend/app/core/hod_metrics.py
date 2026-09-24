@@ -630,3 +630,166 @@ def department_health_snapshot(db: Session, department_id: int) -> dict:
         basis=docs["basis"], explanation=docs["explanation"],
     )
     return {"attendance_today": attendance, "at_risk": at_risk_metric, "avg_cgpa": avg_cgpa, "pending_documents": docs_metric}
+
+
+# ---------------------------------------------------------------------------
+# Assessment Intelligence (Phase 4)
+# ---------------------------------------------------------------------------
+
+# NEW RULE — no pass/fail threshold exists anywhere in this codebase (Phase 0,
+# section D: confirmed via exhaustive search). This is the one new rule this
+# feature introduces, documented here rather than silently assumed: 40% of a
+# student's available real internal (IA) marks, expressed as a fraction of
+# max_marks — the standard VTU internal-assessment passing convention. Only
+# ever applied to students who have at least one real Marks row for the
+# subject; a student with none is excluded from the pass-rate population
+# entirely, never counted as a fail.
+PASS_THRESHOLD_PCT = 40.0
+
+# NEW RULE — "meaningful outlier" for pass-rate outliers: a subject whose
+# real pass rate differs from the real department-wide average pass rate by
+# more than this many percentage points. Documented threshold, not a
+# guessed one; can be revisited once real Marks data exists to calibrate
+# against.
+PASS_RATE_OUTLIER_THRESHOLD_PP = 15.0
+
+
+def _subject_pass_rate(db: Session, subject_id: int, student_ids: list):
+    """Real pass rate for one subject, among students who have at least one
+    real Marks row for it. Returns (pass_rate_pct, students_with_marks,
+    students_passed) — students_with_marks is None if literally no student
+    has any Marks row for this subject yet (status must be 'unavailable',
+    never a fabricated 0%)."""
+    if not student_ids:
+        return None, 0, 0
+    rows = db.query(Marks).filter(Marks.subject_id == subject_id, Marks.student_id.in_(student_ids)).all()
+    if not rows:
+        return None, 0, 0
+    by_student: dict = {}
+    for r in rows:
+        by_student.setdefault(r.student_id, []).append(r)
+    passed = 0
+    counted = 0
+    for sid, marks_rows in by_student.items():
+        scored = [(r.marks_obtained, r.max_marks or 100) for r in marks_rows if r.marks_obtained is not None]
+        if not scored:
+            continue
+        total_obtained = sum(m for m, _ in scored)
+        total_max = sum(mx for _, mx in scored)
+        if total_max == 0:
+            continue
+        counted += 1
+        if (total_obtained / total_max * 100) >= PASS_THRESHOLD_PCT:
+            passed += 1
+    if counted == 0:
+        return None, 0, 0
+    return round(passed / counted * 100, 1), counted, passed
+
+
+def department_pass_rate_outliers(db: Session, department_id: int) -> dict:
+    """Subject pass rate vs. department average — real 'meaningful' outliers
+    only (>15 percentage points from the real average), subjects only, never
+    a ranked list of teacher names (Part A5)."""
+    subjects = db.query(Subject).filter(Subject.department_id == department_id, Subject.semester.isnot(None)).all()
+    per_subject = []
+    for s in subjects:
+        rows = db.query(Student.id).filter(Student.semester == s.semester, Student.department_id == department_id, Student.status == "active").all()
+        student_ids = [r[0] for r in rows]
+        pass_rate, counted, passed = _subject_pass_rate(db, s.id, student_ids)
+        if pass_rate is not None:
+            per_subject.append({"subject_id": s.id, "subject_code": s.code, "subject_name": s.name, "semester": s.semester, "pass_rate": pass_rate, "students_counted": counted, "students_passed": passed})
+
+    if not per_subject:
+        return {
+            "status": "unavailable", "outliers": [], "department_avg_pass_rate": None,
+            "reason_unavailable": "Marks data unavailable.",
+            "explanation": f"No subject in this department has any real Marks row yet, so no pass rate can be computed (pass threshold: {PASS_THRESHOLD_PCT}% of available internal marks).",
+        }
+
+    dept_avg = round(sum(r["pass_rate"] for r in per_subject) / len(per_subject), 1)
+    outliers = [r for r in per_subject if abs(r["pass_rate"] - dept_avg) > PASS_RATE_OUTLIER_THRESHOLD_PP]
+    outliers.sort(key=lambda r: abs(r["pass_rate"] - dept_avg), reverse=True)
+    return {
+        "status": "available", "outliers": outliers, "department_avg_pass_rate": dept_avg,
+        "explanation": (
+            f"Real pass rate (>= {PASS_THRESHOLD_PCT}% of available internal marks) computed for "
+            f"{len(per_subject)} real subject(s) with at least one real Marks row; department average is "
+            f"{dept_avg}%. Subjects shown differ from that average by more than {PASS_RATE_OUTLIER_THRESHOLD_PP} percentage points."
+        ),
+    }
+
+
+def department_bloom_coverage(db: Session, department_id: int) -> dict:
+    """'Bloom's Taxonomy Coverage' — question COUNT/percentage per level,
+    never called performance (Phase 0, section G: no link exists anywhere
+    from a real score to a specific question's Bloom's level). Scoped to
+    real subject_folders that match this department's own real Subject
+    codes — QuestionBankChunk has no department_id field at all, so this is
+    the only honest way to keep this department-isolated once a second
+    department's own question bank exists (today there's only one
+    department in the live data, but the query doesn't assume that)."""
+    from app.models.models import QuestionBankChunk
+
+    dept_codes = {s.code for s in db.query(Subject.code).filter(Subject.department_id == department_id).all()}
+    if not dept_codes:
+        return {"status": "unavailable", "levels": [], "untagged_count": 0, "reason_unavailable": "No real subjects on record for this department."}
+
+    rows = db.query(QuestionBankChunk).filter(QuestionBankChunk.subject_folder.in_(dept_codes)).all()
+    if not rows:
+        return {
+            "status": "unavailable", "levels": [], "untagged_count": 0,
+            "reason_unavailable": "No question-bank content is tagged to a real subject code in this department yet.",
+        }
+
+    tagged = [r for r in rows if r.bloom_level]
+    untagged_count = len(rows) - len(tagged)
+    counts: dict = {}
+    for r in tagged:
+        counts[r.bloom_level] = counts.get(r.bloom_level, 0) + 1
+    total_tagged = len(tagged)
+    levels = [
+        {"level": level, "count": count, "pct": round(count / total_tagged * 100, 1) if total_tagged else None}
+        for level, count in sorted(counts.items(), key=lambda kv: -kv[1])
+    ]
+    return {
+        "status": "available" if levels else "unavailable", "levels": levels, "untagged_count": untagged_count,
+        "total_chunks": len(rows), "total_tagged": total_tagged,
+        "explanation": (
+            f"{len(rows)} real question-bank chunk(s) tagged to this department's real subject codes; "
+            f"{total_tagged} have a real Bloom's level classification ({untagged_count} do not and are excluded "
+            f"from the percentages shown). This counts question CONTENT, not student performance — no data links "
+            f"a real score to a specific question's Bloom's level (see Phase 0 section G)."
+        ),
+    }
+
+
+def department_section_comparison(db: Session, department_id: int, subject_id: int) -> dict:
+    """Grouped comparison across real sections of the SAME subject and
+    semester — real student count + real average mark or pass rate,
+    whichever the data supports. Never mixes subjects or semesters."""
+    subject = db.query(Subject).filter(Subject.id == subject_id, Subject.department_id == department_id).first()
+    if not subject or not subject.semester:
+        return {"status": "unavailable", "sections": [], "reason_unavailable": "Subject not found in your department, or has no real semester on record."}
+
+    students = db.query(Student).filter(Student.semester == subject.semester, Student.department_id == department_id, Student.status == "active").all()
+    has_section_data = any(s.section for s in students)
+    if not has_section_data:
+        return {
+            "status": "unavailable", "sections": [], "subject_code": subject.code, "subject_name": subject.name, "semester": subject.semester,
+            "reason_unavailable": "No student in this subject's semester has a real section on record yet.",
+        }
+
+    by_section: dict = {}
+    for s in students:
+        by_section.setdefault(s.section or "Unassigned", []).append(s)
+
+    sections = []
+    for section, group in sorted(by_section.items()):
+        student_ids = [s.id for s in group]
+        pass_rate, counted, passed = _subject_pass_rate(db, subject_id, student_ids)
+        sections.append({
+            "section": section, "student_count": len(group),
+            "pass_rate": pass_rate, "students_with_marks": counted,
+            "status": "available" if pass_rate is not None else "unavailable",
+        })
+    return {"status": "available", "sections": sections, "subject_code": subject.code, "subject_name": subject.name, "semester": subject.semester}

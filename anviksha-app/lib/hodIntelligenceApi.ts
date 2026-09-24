@@ -38,4 +38,8 @@ export const hodIntelligenceApi = {
   healthSnapshot: () => requestJson("/hod/intelligence/health-snapshot"),
   atRiskDetail: () => requestJson("/hod/intelligence/at-risk-detail"),
   pendingDocuments: () => requestJson("/hod/intelligence/pending-documents"),
+
+  passRateOutliers: () => requestJson("/hod/intelligence/assessment/pass-rate-outliers"),
+  bloomCoverage: () => requestJson("/hod/intelligence/assessment/bloom-coverage"),
+  sectionComparison: (subjectId: number) => requestJson(`/hod/intelligence/assessment/section-comparison?subject_id=${subjectId}`),
 };

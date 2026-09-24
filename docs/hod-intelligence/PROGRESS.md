@@ -296,3 +296,29 @@ Every new endpoint in this feature will call this exact function — never re-im
 **Validation**: `compileall` clean, `pytest` 11/11, `tsc --noEmit` clean, `next build` clean (43/43 routes).
 
 ## Phase 3 status: COMPLETE. Committed. Proceeding to Phase 4.
+
+---
+
+## PHASE 4 — Assessment Intelligence — COMPLETE (3 of 4 sub-features; 1 corrected to NOT POSSIBLE)
+
+**Correction to the Phase 0 feasibility matrix, discovered while implementing this phase**: Phase 0 originally marked "Repeat-offender subjects" as FULL ("reusing Student.backlogs directly"). On closer inspection while building it, this was too optimistic: `Student.backlogs` is a single stored integer with **zero subject-level attribution anywhere in the schema** — there is no way to know which specific subject(s) a given backlog came from, only a student's total count. Cross-referencing backlogs to "repeat-offender subjects" would require fabricating a subject attribution the data doesn't have. **Corrected classification: NOT POSSIBLE.** Not built; the assessment-analytics page states this plainly instead of silently omitting it.
+
+**New rules introduced (Phase 0 confirmed nothing existed to reuse)**:
+- `PASS_THRESHOLD_PCT = 40.0` — a student passes a subject if their available real IA marks sum to ≥40% of available max_marks (standard VTU internal-assessment convention). A student with zero Marks rows for a subject is excluded from that subject's pass-rate population entirely — never counted as a fail.
+- `PASS_RATE_OUTLIER_THRESHOLD_PP = 15.0` — a subject is a "meaningful outlier" if its real pass rate differs from the real department average by more than 15 percentage points.
+
+**Real data reality**: the live `Marks` table has zero rows (Phase 0 finding), so pass-rate outliers and section comparison correctly report `"unavailable"` / `"Marks data unavailable."` against the real DB right now — this is honest, not broken. **Since the real DB can't exercise the pass-rate math at all, verified the logic itself with a synthetic isolated-test-DB case** (the one A2-sanctioned exception): two subjects, one scoring 100% pass rate and one 0%, confirmed the department average (50%) and outlier detection (both flagged, since 50pp > 15pp threshold) compute correctly; also confirmed a student with zero Marks rows is excluded from the population rather than counted as a fail.
+
+**Bloom's Coverage is real and demonstrable today**: `QuestionBankChunk` has no `department_id` field at all, so — to stay honestly department-isolated for when a second department's own question bank exists — coverage is scoped to chunks whose `subject_folder` matches this department's own real `Subject.code` values (only 3 of 9 real folders match: `BCS501`, `BPOPS103`, `FSD`, giving 106 real chunks, 69 of them Bloom's-tagged). Verified against the real DB: `Understand 46.4%, Apply 26.1%, Remember 24.6%, Create 2.9%` (sums to 100.0%, correct), `37 untagged` chunks correctly excluded from the percentages and reported separately. Explicitly labeled "Coverage," never "performance," in both the API response and the UI.
+
+**Backend additions** (`app/core/hod_metrics.py`): `_subject_pass_rate`, `department_pass_rate_outliers`, `department_bloom_coverage`, `department_section_comparison`. New endpoints: `GET /hod/intelligence/assessment/pass-rate-outliers`, `GET /hod/intelligence/assessment/bloom-coverage`, `GET /hod/intelligence/assessment/section-comparison?subject_id=`.
+
+**New frontend**: `app/hod/assessment-analytics/page.tsx` (new page + new nav item in `app/hod/layout.tsx`), `components/charts/hod-intelligence/HorizontalBarChart.tsx` (the one genuinely new chart type Part D2 calls for — Recharts `layout="vertical"`, still Recharts, no new library). Bloom's coverage reuses the existing, previously-unused `StudentRadarChart` component. Section comparison includes a real subject picker (reusing the existing `/hod/subjects` endpoint).
+
+**Tests**: `tests/test_hod_assessment_intelligence.py` — 5 new tests, including the synthetic pass-rate-math verification described above, department isolation for Bloom's coverage and section comparison, and role-guard 403. Full suite: **16/16 passing.**
+
+**Operational note (not a code defect)**: mid-phase, the long-running frontend dev server (active for hours across this whole session) entered a stuck state where even pre-existing routes 404'd. Confirmed this was a dev-server artifact, not a real regression, by checking that `next build` (the authoritative correctness check) had already succeeded cleanly with all 44 routes; a full dev-server restart (clearing `.next`) resolved it and all routes including the new one now serve correctly.
+
+**Validation**: `compileall` clean, `pytest` 16/16, `tsc --noEmit` clean, `next build` clean (44/44 routes, new `/hod/assessment-analytics` present), dev server confirmed serving all HOD routes after restart.
+
+## Phase 4 status: COMPLETE. Committed. Proceeding to Phase 5.

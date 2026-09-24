@@ -135,3 +135,35 @@ def pending_documents(db: Session = Depends(get_db), user: User = Depends(requir
 
     dept = _department_or_403(user, db)
     return {"department": dept.name, **department_pending_documents(db, dept.id)}
+
+
+# ---------------------------------------------------------------------------
+# Phase 4 — Assessment Intelligence
+# ---------------------------------------------------------------------------
+
+@router.get("/assessment/pass-rate-outliers")
+def pass_rate_outliers(db: Session = Depends(get_db), user: User = Depends(require_role("hod"))):
+    """Subject pass rate vs. department average — subjects only, never a
+    ranked list of teacher names."""
+    from app.core.hod_metrics import department_pass_rate_outliers
+
+    dept = _department_or_403(user, db)
+    return {"department": dept.name, **department_pass_rate_outliers(db, dept.id)}
+
+
+@router.get("/assessment/bloom-coverage")
+def bloom_coverage(db: Session = Depends(get_db), user: User = Depends(require_role("hod"))):
+    """Question COUNT/percentage per Bloom's level — coverage, never
+    performance (no data links a real score to a question's Bloom's level)."""
+    from app.core.hod_metrics import department_bloom_coverage
+
+    dept = _department_or_403(user, db)
+    return {"department": dept.name, **department_bloom_coverage(db, dept.id)}
+
+
+@router.get("/assessment/section-comparison")
+def section_comparison(subject_id: int, db: Session = Depends(get_db), user: User = Depends(require_role("hod"))):
+    from app.core.hod_metrics import department_section_comparison
+
+    dept = _department_or_403(user, db)
+    return {"department": dept.name, **department_section_comparison(db, dept.id, subject_id)}

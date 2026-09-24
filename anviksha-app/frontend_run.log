@@ -420,3 +420,53 @@ Import trace for requested module:
  GET / 200 in 6606ms
  ○ Compiling /login ...
  ✓ Compiled /login in 835ms (1497 modules)
+ ✓ Compiled in 9.9s (1576 modules)
+ ✓ Compiled in 3.1s (1576 modules)
+ ✓ Compiled in 1547ms (1576 modules)
+ ✓ Compiled in 2.2s (1576 modules)
+ ✓ Compiled in 1602ms (1576 modules)
+ ✓ Compiled in 1235ms (1576 modules)
+ ✓ Compiled in 2.6s (1576 modules)
+ ✓ Compiled in 2.9s (1576 modules)
+ ✓ Compiled in 4.8s (1576 modules)
+ ✓ Compiled in 2.2s (1585 modules)
+ ✓ Compiled in 3.4s (1571 modules)
+ ✓ Compiled in 3s (1585 modules)
+ ✓ Compiled in 3.6s (2797 modules)
+ ✓ Compiled in 2.3s (1585 modules)
+ ○ Compiling /hod/faculty-monitoring ...
+ ✓ Compiled /hod/faculty-monitoring in 11.4s (2815 modules)
+ GET /hod/faculty-monitoring 200 in 13795ms
+ ✓ Compiled in 4.9s (2786 modules)
+ ✓ Compiled in 2.2s (1588 modules)
+ ✓ Compiled in 1747ms (1588 modules)
+ ✓ Compiled in 1856ms (1588 modules)
+ ✓ Compiled in 1717ms (1588 modules)
+ ✓ Compiled in 1603ms (1588 modules)
+ ✓ Compiled in 3.3s (1588 modules)
+ ✓ Compiled in 2.3s (1588 modules)
+ ✓ Compiled in 3s (1590 modules)
+ ✓ Compiled in 2.8s (1590 modules)
+ ✓ Compiled in 2.1s (1576 modules)
+ ✓ Compiled in 7.7s (2802 modules)
+ ✓ Compiled in 4.1s (1590 modules)
+ ✓ Compiled in 1194ms (1590 modules)
+ ○ Compiling /hod/assessment-analytics ...
+ ✓ Compiled /hod/assessment-analytics in 4.2s (2821 modules)
+ ○ Compiling /_not-found ...
+ ✓ Compiled /_not-found in 2.5s (2810 modules)
+ ○ Compiling /_error ...
+ ✓ Compiled /_error in 7.8s (3034 modules)
+ GET /hod/assessment-analytics 404 in 15242ms
+ GET /hod/assessment-analytics 404 in 123ms
+ HEAD /hod/assessment-analytics 404 in 119ms
+ ○ Compiling /hod/faculty-monitoring ...
+ ✓ Compiled /hod/faculty-monitoring in 1327ms (1276 modules)
+ GET /hod/faculty-monitoring 200 in 2423ms
+ ○ Compiling /hod ...
+ ✓ Compiled /hod in 1477ms (1291 modules)
+ GET /hod 404 in 1850ms
+ GET /hod/assessment-analytics 404 in 171ms
+ GET /hod/faculty-monitoring 200 in 172ms
+ GET /hod 404 in 164ms
+[?25h
