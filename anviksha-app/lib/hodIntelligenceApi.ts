@@ -29,4 +29,9 @@ async function requestJson(path: string, options: RequestInit = {}) {
 export const hodIntelligenceApi = {
   attendanceToday: () => requestJson("/hod/intelligence/attendance/today"),
   attendanceTrend: (days: number = 14) => requestJson(`/hod/intelligence/attendance/trend?days=${days}`),
+
+  facultyOverview: () => requestJson("/hod/intelligence/faculty/overview"),
+  facultyTable: (search?: string) => requestJson(`/hod/intelligence/faculty${search ? `?search=${encodeURIComponent(search)}` : ""}`),
+  facultyDetail: (facultyId: number) => requestJson(`/hod/intelligence/faculty/${facultyId}`),
+  alerts: () => requestJson("/hod/intelligence/alerts"),
 };

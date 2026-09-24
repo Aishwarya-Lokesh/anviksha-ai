@@ -63,8 +63,13 @@ def two_department_seed(db_session):
     hod_b = m.User(email="hod.b@test.local", hashed_password="x", role="hod", department_id=dept_b.id)
     db.add_all([hod_a, hod_b])
 
-    subject_a = m.Subject(code="TESTA101", name="Dept A Subject", department_id=dept_a.id, semester=3)
-    subject_b = m.Subject(code="TESTB101", name="Dept B Subject", department_id=dept_b.id, semester=3)
+    faculty_a = m.Faculty(name="Faculty A", department_id=dept_a.id, designation="Assistant Professor")
+    faculty_b = m.Faculty(name="Faculty B", department_id=dept_b.id, designation="Assistant Professor")
+    db.add_all([faculty_a, faculty_b])
+    db.flush()
+
+    subject_a = m.Subject(code="TESTA101", name="Dept A Subject", department_id=dept_a.id, semester=3, faculty_id=faculty_a.id)
+    subject_b = m.Subject(code="TESTB101", name="Dept B Subject", department_id=dept_b.id, semester=3, faculty_id=faculty_b.id)
     db.add_all([subject_a, subject_b])
     db.flush()
 
@@ -74,7 +79,7 @@ def two_department_seed(db_session):
     db.add_all([student_a1, student_a2, student_b1])
     db.flush()
 
-    session_a = m.AttendanceSession(subject_id=subject_a.id, date=date.today())
+    session_a = m.AttendanceSession(subject_id=subject_a.id, date=date.today(), marked_by_faculty_id=faculty_a.id)
     db.add(session_a)
     db.flush()
     db.add_all([
@@ -85,6 +90,7 @@ def two_department_seed(db_session):
 
     return {
         "dept_a": dept_a, "dept_b": dept_b, "hod_a": hod_a, "hod_b": hod_b,
+        "faculty_a": faculty_a, "faculty_b": faculty_b,
         "subject_a": subject_a, "subject_b": subject_b,
     }
 

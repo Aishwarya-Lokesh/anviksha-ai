@@ -30,7 +30,7 @@ from typing import Optional
 from sqlalchemy import and_, case, func
 from sqlalchemy.orm import Session
 
-from app.models.models import AttendanceRecord, AttendanceSession, Student, Subject
+from app.models.models import AttendanceRecord, AttendanceSession, Faculty, Marks, Student, Subject, TeachingAssignment
 
 # Phase 2+ (Faculty Monitoring) reuses app.routers.teacher's own
 # _matching_student_ids / _teacher_student_ids_for_subject helpers directly
@@ -260,3 +260,270 @@ def attendance_trend(db: Session, department_id: int, days: int = 14) -> list:
             points.append({"date": d.isoformat(), "pct": None, "status": "pending", "severity": "neutral"})
         d += timedelta(days=1)
     return points
+
+
+# ---------------------------------------------------------------------------
+# Faculty Monitoring & Faculty Alerts (Phase 2) — objective activity only.
+# No score, no ranking, no "best/worst faculty" anywhere below.
+# ---------------------------------------------------------------------------
+
+def _faculty_teaching_context(db: Session, faculty_id: int) -> list:
+    """Real (subject_id, batch, semester, section) this faculty member
+    teaches — from their own real TeachingAssignments when any exist, else
+    falls back to Subject.faculty_id (batch-blind), exactly mirroring the
+    same fallback already established in
+    app.routers.teacher._teacher_student_ids. Never re-implements a
+    different rule for 'what a faculty teaches'."""
+    assignments = db.query(TeachingAssignment).filter(TeachingAssignment.faculty_id == faculty_id, TeachingAssignment.passed_out == False, TeachingAssignment.subject_id.isnot(None)).all()
+    if assignments:
+        return [{"subject_id": a.subject_id, "batch": a.batch, "semester": a.semester, "section": a.section} for a in assignments]
+    subjects = db.query(Subject).filter(Subject.faculty_id == faculty_id).all()
+    return [{"subject_id": s.id, "batch": None, "semester": s.semester, "section": None} for s in subjects]
+
+
+def _students_for_context(db: Session, ctx: dict) -> list:
+    """Real students for one teaching-context entry — reuses the exact same
+    section-aware matching rule as Phase 1/teacher.py (see
+    _matching_student_ids), never a new one."""
+    from app.routers.teacher import _matching_student_ids
+
+    if ctx["batch"] and ctx["semester"]:
+        fake_assignment = TeachingAssignment(batch=ctx["batch"], semester=ctx["semester"], section=ctx["section"])
+        return _matching_student_ids(db, [fake_assignment])
+    if not ctx["semester"]:
+        return []
+    rows = db.query(Student.id).filter(Student.semester == ctx["semester"], Student.status == "active").all()
+    return [r[0] for r in rows]
+
+
+def _missing_attendance_alerts_for_faculty(db: Session, faculty: Faculty, contexts: list) -> list:
+    """'Attendance record pending for {Subject} ({Sem}-{Sec})' — fires ONLY
+    when this exact faculty member has a real history of recording
+    attendance for that subject (proving it's an actively-tracked class,
+    never inventing a schedule for one that's never been recorded) AND has
+    not recorded a session for it today. See docs/hod-intelligence/
+    PROGRESS.md Phase 0 section J for why this rule exists instead of a
+    timetable-based one (no timetable data exists anywhere)."""
+    target = _today()
+    alerts = []
+    for ctx in contexts:
+        subject = db.query(Subject).filter(Subject.id == ctx["subject_id"]).first()
+        if not subject:
+            continue
+        history_count = db.query(AttendanceSession).filter(AttendanceSession.subject_id == subject.id, AttendanceSession.marked_by_faculty_id == faculty.id).count()
+        if history_count == 0:
+            continue  # never recorded for this subject at all — not an "expected" session, nothing to flag
+        today_count = db.query(AttendanceSession).filter(AttendanceSession.subject_id == subject.id, AttendanceSession.marked_by_faculty_id == faculty.id, AttendanceSession.date == target).count()
+        if today_count > 0:
+            continue
+        alerts.append({
+            "type": "missing_attendance",
+            "message": f"Attendance record pending for {subject.code} (Sem {ctx['semester']}{'-' + ctx['section'] if ctx['section'] else ''})",
+            "faculty_id": faculty.id, "faculty_name": faculty.name, "subject_id": subject.id, "subject_code": subject.code,
+            "basis": {
+                "sources": ["attendance_sessions"],
+                "filters": {"faculty_id": faculty.id, "subject_id": subject.id, "date": target.isoformat()},
+                "numerator": history_count, "denominator": None, "record_count": history_count,
+            },
+            "explanation": f"{faculty.name} has recorded real attendance for {subject.code} {history_count} time(s) before, but not yet today ({target.isoformat()}).",
+        })
+    return alerts
+
+
+def _pending_marks_alerts_for_faculty(db: Session, faculty: Faculty, contexts: list) -> list:
+    """'Internal marks entry pending for {Subject}' — an assessment is
+    considered to exist for a (subject, exam_type) the moment at least one
+    real Marks row exists for it; enrolled students still missing that
+    exam_type's row are the pending count."""
+    alerts = []
+    for ctx in contexts:
+        subject = db.query(Subject).filter(Subject.id == ctx["subject_id"]).first()
+        if not subject:
+            continue
+        students = _students_for_context(db, ctx)
+        if not students:
+            continue
+        existing_exam_types = {r[0] for r in db.query(Marks.exam_type).filter(Marks.subject_id == subject.id).distinct().all()}
+        for exam_type in sorted(existing_exam_types):
+            entered_ids = {r[0] for r in db.query(Marks.student_id).filter(Marks.subject_id == subject.id, Marks.exam_type == exam_type).all()}
+            missing = [sid for sid in students if sid not in entered_ids]
+            if not missing:
+                continue
+            alerts.append({
+                "type": "pending_marks",
+                "message": f"Internal marks entry pending for {subject.code} ({exam_type}) — {len(missing)} student(s)",
+                "faculty_id": faculty.id, "faculty_name": faculty.name, "subject_id": subject.id, "subject_code": subject.code,
+                "basis": {
+                    "sources": ["marks", "students"],
+                    "filters": {"subject_id": subject.id, "exam_type": exam_type},
+                    "numerator": len(students) - len(missing), "denominator": len(students), "record_count": len(entered_ids),
+                },
+                "explanation": f"{exam_type} marks for {subject.code} have started being entered ({len(entered_ids)} of {len(students)} real students so far) but {len(missing)} student(s) still have no {exam_type} record.",
+            })
+    return alerts
+
+
+def faculty_alerts(db: Session, faculty: Faculty) -> list:
+    """Every open alert for one faculty member — objective, DB-grounded,
+    never a fabricated deadline. See the two helpers above for exactly what
+    fires and why."""
+    contexts = _faculty_teaching_context(db, faculty.id)
+    return _missing_attendance_alerts_for_faculty(db, faculty, contexts) + _pending_marks_alerts_for_faculty(db, faculty, contexts)
+
+
+def faculty_status(alert_count: int) -> str:
+    """'Up to Date' (zero open alerts) or 'Pending' (at least one). 'Attention
+    Required' is never used anywhere in this feature — it would require a
+    DB-established deadline that has actually passed, and no deadline data
+    of any kind exists in this schema (Phase 0, item J)."""
+    return "up_to_date" if alert_count == 0 else "pending"
+
+
+def department_faculty_overview(db: Session, department_id: int) -> dict:
+    """The Phase 2.2 overview metrics — only those Phase 0 marked
+    computable. Every count here is a plain, real, department-scoped
+    aggregate; no faculty ranking or score is computed anywhere."""
+    faculty_rows = db.query(Faculty).filter(Faculty.department_id == department_id).all()
+    faculty_ids = [f.id for f in faculty_rows]
+    subjects = db.query(Subject).filter(Subject.department_id == department_id).all()
+    taught_subject_ids = {s.id for s in subjects if s.faculty_id}
+    faculty_with_subjects = {s.faculty_id for s in subjects if s.faculty_id}
+
+    sessions_recorded = db.query(AttendanceSession).join(Subject, Subject.id == AttendanceSession.subject_id).filter(Subject.department_id == department_id).count()
+
+    all_alerts = []
+    all_student_ids = set()
+    for f in faculty_rows:
+        contexts = _faculty_teaching_context(db, f.id)
+        all_alerts.extend(_missing_attendance_alerts_for_faculty(db, f, contexts))
+        all_alerts.extend(_pending_marks_alerts_for_faculty(db, f, contexts))
+        for ctx in contexts:
+            all_student_ids.update(_students_for_context(db, ctx))
+
+    active_dept_students = db.query(Student).filter(Student.department_id == department_id, Student.status == "active").all()
+    students_in_faculty_subjects = [s for s in active_dept_students if s.id in all_student_ids] if all_student_ids else []
+    at_risk = at_risk_from_students(students_in_faculty_subjects) if students_in_faculty_subjects else []
+
+    return {
+        "total_faculty": len(faculty_rows),
+        "faculty_with_assigned_subjects": len(faculty_with_subjects),
+        "subjects_being_taught": len(taught_subject_ids),
+        "sessions_recorded": sessions_recorded,
+        "pending_attendance_alerts": sum(1 for a in all_alerts if a["type"] == "missing_attendance"),
+        "pending_marks_alerts": sum(1 for a in all_alerts if a["type"] == "pending_marks"),
+        "students_in_faculty_subjects": len(students_in_faculty_subjects),
+        "at_risk_students_in_faculty_subjects": len(at_risk),
+    }
+
+
+def department_faculty_table(db: Session, department_id: int, search: str = None) -> list:
+    """One row per real faculty member in this department — no ranking, no
+    score column; default order is by name. `search` matches name, real
+    subject code, or vtu_teacher_id."""
+    q = db.query(Faculty).filter(Faculty.department_id == department_id)
+    faculty_rows = q.order_by(Faculty.name).all()
+
+    rows = []
+    for f in faculty_rows:
+        contexts = _faculty_teaching_context(db, f.id)
+        subject_ids = [c["subject_id"] for c in contexts]
+        subjects = db.query(Subject).filter(Subject.id.in_(subject_ids)).all() if subject_ids else []
+        if search:
+            needle = search.lower()
+            haystack = f.name.lower() + " " + (f.vtu_teacher_id or "").lower() + " " + " ".join(s.code.lower() for s in subjects)
+            if needle not in haystack:
+                continue
+
+        sessions = db.query(AttendanceSession).filter(AttendanceSession.subject_id.in_(subject_ids), AttendanceSession.marked_by_faculty_id == f.id).all() if subject_ids else []
+        last_updated = max((s.date for s in sessions), default=None)
+        alerts = _missing_attendance_alerts_for_faculty(db, f, contexts) + _pending_marks_alerts_for_faculty(db, f, contexts)
+
+        student_ids = set()
+        for ctx in contexts:
+            student_ids.update(_students_for_context(db, ctx))
+        at_risk_count = len(at_risk_from_students(db.query(Student).filter(Student.id.in_(student_ids), Student.status == "active").all())) if student_ids else 0
+
+        # marks_status must reflect whether real Marks data actually exists
+        # for this faculty's subjects — NOT just whether they have subjects
+        # assigned. Real Marks rows are empty department-wide right now, and
+        # that must show as "unavailable", never as a false "available".
+        has_any_marks = bool(subject_ids) and db.query(Marks).filter(Marks.subject_id.in_(subject_ids)).first() is not None
+        if any(a["type"] == "pending_marks" for a in alerts):
+            marks_status = "pending"
+        elif has_any_marks:
+            marks_status = "available"
+        else:
+            marks_status = "unavailable"
+
+        rows.append({
+            "faculty_id": f.id, "name": f.name, "vtu_teacher_id": f.vtu_teacher_id, "designation": f.designation,
+            "assigned_subjects": [s.code for s in subjects],
+            "batches_semesters_sections": [{"batch": c["batch"], "semester": c["semester"], "section": c["section"]} for c in contexts],
+            "sessions_recorded": len(sessions),
+            "attendance_last_updated": last_updated.isoformat() if last_updated else None,
+            "marks_status": marks_status,
+            "student_count": len(student_ids),
+            "at_risk_students": at_risk_count,
+            "open_alert_count": len(alerts),
+            "status": faculty_status(len(alerts)),
+        })
+    return rows
+
+
+def department_alerts(db: Session, department_id: int) -> list:
+    """Every open alert across every real faculty member in this department —
+    powers the Faculty Alerts tab. Same two rule functions as everywhere
+    else; nothing new is computed here."""
+    faculty_rows = db.query(Faculty).filter(Faculty.department_id == department_id).all()
+    alerts = []
+    for f in faculty_rows:
+        contexts = _faculty_teaching_context(db, f.id)
+        alerts.extend(_missing_attendance_alerts_for_faculty(db, f, contexts))
+        alerts.extend(_pending_marks_alerts_for_faculty(db, f, contexts))
+    return alerts
+
+
+def faculty_detail(db: Session, department_id: int, faculty_id: int) -> dict:
+    """Full detail view for one faculty member — 404 if they don't belong to
+    the caller's own department, even if the ID is otherwise valid."""
+    f = db.query(Faculty).filter(Faculty.id == faculty_id, Faculty.department_id == department_id).first()
+    if not f:
+        return None
+
+    contexts = _faculty_teaching_context(db, f.id)
+    per_subject = []
+    for ctx in contexts:
+        subject = db.query(Subject).filter(Subject.id == ctx["subject_id"]).first()
+        if not subject:
+            continue
+        students = _students_for_context(db, ctx)
+        sessions = db.query(AttendanceSession).filter(AttendanceSession.subject_id == subject.id, AttendanceSession.marked_by_faculty_id == f.id).all()
+        marks_rows = db.query(Marks).filter(Marks.subject_id == subject.id, Marks.student_id.in_(students)).all() if students else []
+        scored = [m.marks_obtained for m in marks_rows if m.marks_obtained is not None]
+        avg_marks = round(sum(scored) / len(scored), 1) if scored else None
+        active_students = db.query(Student).filter(Student.id.in_(students), Student.status == "active").all() if students else []
+        at_risk_count = len(at_risk_from_students(active_students))
+
+        # Real subject attendance %, averaged across this subject's real students — reused, not re-implemented.
+        from app.routers.teacher import _real_subject_attendance_pct
+        pct_values = [p for p in (_real_subject_attendance_pct(db, sid, subject.id) for sid in students) if p is not None]
+        avg_attendance = round(sum(pct_values) / len(pct_values), 1) if pct_values else None
+
+        per_subject.append({
+            "subject_id": subject.id, "subject_code": subject.code, "subject_name": subject.name,
+            "batch": ctx["batch"], "semester": ctx["semester"], "section": ctx["section"],
+            "student_count": len(students),
+            "sessions_recorded": len(sessions),
+            "avg_internal_marks": avg_marks, "marks_status": "available" if scored else "unavailable",
+            "avg_attendance_pct": avg_attendance, "attendance_status": "available" if pct_values else "unavailable",
+            "at_risk_count": at_risk_count,
+        })
+
+    alerts = _missing_attendance_alerts_for_faculty(db, f, contexts) + _pending_marks_alerts_for_faculty(db, f, contexts)
+    return {
+        "faculty_id": f.id, "name": f.name, "designation": f.designation, "email": f.email,
+        "vtu_teacher_id": f.vtu_teacher_id, "extra_work": f.extra_work,
+        "subjects": per_subject,
+        "alerts": alerts,
+        "status": faculty_status(len(alerts)),
+    }

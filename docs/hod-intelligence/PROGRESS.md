@@ -245,3 +245,34 @@ Every new endpoint in this feature will call this exact function — never re-im
 - Regression smoke-check (fresh JWTs minted per role, real DB): teacher `/teacher/dashboard-stats` → 200, admin `/admin/stats` → 200, student `/student/dashboard` → 200, HOD's pre-existing `/hod/stats` and `/hod/placements` → 200 (untouched, unaffected). Cross-role check: teacher JWT against the new `/hod/intelligence/attendance/today` → 403 (role guard confirmed working end-to-end, not just in the isolated test).
 
 ## Phase 1 status: COMPLETE. Committed. Proceeding to Phase 2.
+
+---
+
+## PHASE 2 — Faculty Monitoring & Faculty Alerts — COMPLETE
+
+**Skipped sub-feature (documented, not silently dropped)**: "Syllabus Progress" is not built — Phase 0 item I confirmed no syllabus/coverage data exists anywhere. "Delayed Academic Activities" alert type is not built — Phase 0 item J confirmed no deadline data exists. The faculty status tier "Attention Required" is never produced — the UI states this explicitly ("'Attention Required' is not used here...").
+
+**Design simplification (documented)**: the spec's nav map lists "Teaching Activity / Attendance Updates / Assessment-Marks Status / Pending Tasks" as four separate items under Faculty Monitoring. Built instead as one faculty table whose columns cover exactly those four concerns per real faculty member (assigned subjects + sessions recorded = teaching activity; attendance last updated = attendance updates; marks status = assessment status; open alert count = pending tasks) — avoids splitting one coherent, already-narrow real dataset across four near-empty pages. "Faculty Alerts" is kept as its own distinct tab exactly as specified.
+
+**Backend additions (all in the existing new files, no new files needed):**
+- `app/core/hod_metrics.py`: `_faculty_teaching_context` (real TeachingAssignment when it exists, else Subject.faculty_id fallback — mirrors teacher.py's own fallback, not a new rule), `_students_for_context` (reuses `_matching_student_ids` via a transient, non-persisted `TeachingAssignment` object — no new student-matching rule), `_missing_attendance_alerts_for_faculty` / `_pending_marks_alerts_for_faculty` (the two new, explicitly-documented alert rules from Phase 0 section J), `faculty_status`, `department_faculty_overview`, `department_faculty_table`, `department_alerts`, `faculty_detail`.
+- `app/routers/hod_intelligence.py`: `GET /hod/intelligence/faculty/overview`, `GET /hod/intelligence/faculty` (search), `GET /hod/intelligence/faculty/{id}` (404 cross-department), `GET /hod/intelligence/alerts`.
+
+**Real bug caught during real-data testing (fixed before commit)**: `department_faculty_table`'s `marks_status` initially read `"available"` whenever a faculty had ANY assigned subject, regardless of whether any real `Marks` row existed — against the real DB (zero `Marks` rows department-wide) this would have shown "Available" for every faculty member, a direct violation of A3. Fixed to check for a real `Marks` row's existence before ever reporting "available"; now correctly reports "unavailable" for all 16 real faculty (verified against the live DB below).
+
+**Real-data verification** (via the real `hod.ise@anviksha.ai` account):
+- `GET /hod/intelligence/faculty/overview` → `{total_faculty: 16, faculty_with_assigned_subjects: 16, subjects_being_taught: 60, sessions_recorded: 2, pending_attendance_alerts: 1, pending_marks_alerts: 0, students_in_faculty_subjects: 139, at_risk_students_in_faculty_subjects: 3}` — every number traced back to real rows (spot-checked below).
+- `GET /hod/intelligence/alerts` → exactly one real alert: `"Attendance record pending for BIS703 (Sem 7-A)"` for Dr. Girish S C (faculty_id 7) — manually verified against the real DB: `AttendanceSession` has exactly 2 real rows, both for `subject_id=64` (BIS703) marked by `faculty_id=7`, dated 2026-08-14/15, and zero dated today (2026-09-24) — the rule fired exactly as designed, on real data, not a synthetic example.
+- `GET /hod/intelligence/faculty/7` (Dr. Girish S C) → real per-subject detail: `avg_attendance_pct: 98.6` (reused `_real_subject_attendance_pct`; spot-checked directly against `AttendanceRecord` rows: session 2026-08-15 = 70/70 present, session 2026-08-14 = 68/70 present → 138/140 = 98.57% ≈ 98.6%, matches exactly), `marks_status: "unavailable"` (correct — 0 real Marks rows), `at_risk_count: 3`.
+- `GET /hod/intelligence/faculty/999999` → 404 (invalid ID, correctly rejected).
+
+**New frontend:**
+- `app/hod/layout.tsx` — one new nav item ("Faculty Monitoring"), inserted after the existing "Faculty Workload" item; nothing renamed or removed.
+- `app/hod/faculty-monitoring/page.tsx` — the new page: overview stat cards, searchable faculty table (default-sorted by name, no ranking/score column anywhere), Faculty Alerts tab, and a faculty-detail modal (reusing the existing `CenterModal` pattern).
+- `lib/hodIntelligenceApi.ts` — 4 new client functions added to the same dedicated file from Phase 1.
+
+**Tests added:** `tests/test_hod_faculty_monitoring.py` — 5 new tests (department isolation for overview/table, cross-department 404 on faculty detail, no ranking fields present, alert shape sanity, role-guard 403 for teacher). Full suite: **8/8 passing.**
+
+**Validation:** `compileall` clean, `pytest` 8/8, `tsc --noEmit` clean, `next build` clean (43/43 routes, new `/hod/faculty-monitoring` route present), backend starts cleanly, new routes appear in `/docs`.
+
+## Phase 2 status: COMPLETE. Committed. Proceeding to Phase 3.
