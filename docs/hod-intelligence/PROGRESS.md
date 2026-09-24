@@ -205,3 +205,43 @@ Every new endpoint in this feature will call this exact function — never re-im
 ---
 
 ## Phase 0 status: COMPLETE. Proceeding directly into Phase 1 per user's override of the ⛔ STOP marker.
+
+---
+
+## PHASE 1 — Shared foundations + Live Daily Attendance — COMPLETE
+
+**New backend files:**
+- `app/core/hod_metrics.py` — D1 metric contract (`metric()`), `_today()`, severity thresholds (`attendance_severity`, reusing the app's own existing 50%/75% attendance thresholds from teacher.py/hod.py rather than inventing new ones), `at_risk_from_students()` (extracted, byte-identical, for Phase 2/3 reuse), and the attendance query helpers: `today_attendance_headline`, `today_attendance_breakdown`, `today_attendance_heatmap`, `attendance_trend`. Two grouped aggregate SQL queries total for the `/attendance/today` endpoint (`_expected_subjects_with_enrollment`, `_session_aggregates_for_date`) — no N+1.
+- `app/routers/hod_intelligence.py` — new router, prefix `/hod/intelligence`, reuses `require_role("hod")` and `hod.py`'s existing `_department_or_403` (imported, not duplicated). Endpoints: `GET /attendance/today`, `GET /attendance/trend`.
+- `tests/conftest.py`, `tests/test_hod_intelligence_isolation.py` — isolated in-memory-SQLite test DB (never the real DB), seeding two synthetic departments. 3 tests: department isolation (today + trend), and role-guard (teacher/student → 403, unauthenticated → 401).
+
+**Edits to existing backend files:**
+- `app/main.py` — one import + one `include_router` line for the new router.
+- `requirements.txt` — added `pytest==8.3.3`, `httpx==0.28.1` (dev/test-only; no runtime behavior change).
+
+**New frontend files:**
+- `lib/hodIntelligenceApi.ts` — thin client for the two new endpoints (zero new lines in the existing `lib/api.ts`).
+- `hooks/useLiveRefresh.ts` — the one shared refresh strategy (D5): 45s poll, refetch-on-focus, pause-when-hidden, "last updated" tracking.
+- `components/ui/MetricExplain.tsx` — the shared "How is this calculated?" popover (D1).
+- `components/charts/hod-intelligence/severity.ts` — the one D3 severity→colour map, using the app's real existing theme tokens (`success #1F9D55`, `warning #E8A93B`, `danger #E5484D`).
+- `components/charts/hod-intelligence/AttendanceHeatmap.tsx` — new Section×Subject heatmap (CSS-grid table with severity colours — Recharts has no heatmap primitive; still "Recharts only" for actual charts, per D2).
+- `components/hod-intelligence/LiveAttendanceSection.tsx` — the Phase 1 section itself: headline, 14-day trend (reusing the existing `TrendLineChart`), breakdown table / heatmap toggle.
+
+**Edits to existing frontend files:**
+- `app/hod/page.tsx` — one new import + one new `<LiveAttendanceSection />` line, inserted between the existing stat-cards row and the existing "Students — Active vs Passed Out" card. No existing card, chart, modal, or state was touched, reordered, or removed.
+
+**Real-data verification (against the live DB, via a JWT minted for the real `hod.ise@anviksha.ai` account — no password was read or changed):**
+- `GET /hod/intelligence/attendance/today` → headline correctly `status: "pending"`, `display: "Pending"` (real DB has zero AttendanceSession rows dated 2026-09-24) — proves A3 ("missing is not zero") against real data, not just theory. Breakdown correctly lists 23 real subjects with real enrollment across semesters 4 and 7 (the only two semesters with active enrolled students right now), all "Pending"; zero-enrollment subjects (semesters 1/2/3/5/6/8) correctly excluded. Heatmap correctly collapses to one "All Sections" column since (per Phase 0) no student in the real DB has any section value.
+- `GET /hod/intelligence/attendance/trend?days=14` → all 14 days `status: "pending"` (the DB's only 2 ever-recorded sessions are dated 2026-08-14/15, outside this window) — a real, honest empty trend, not a fabricated flat line.
+- Isolation test suite: 3/3 passed (synthetic two-department DB — the real DB only has one department, so this could not be proven against real data and required the isolated fixture, exactly as the spec anticipated).
+
+**Validation results:**
+- `python -m compileall app` — clean.
+- `pytest tests/` — 3 passed.
+- `python -m alembic current` / `heads` — both `b2c3d4e5f6a7`, no pending migration (Phase 1 needed none).
+- `npx tsc --noEmit` — clean, zero errors.
+- `next build` — succeeds, all 42 routes (including `/hod`) build and prerender cleanly.
+- `next lint` — no ESLint config exists anywhere in this project (confirmed via the interactive "How would you like to configure ESLint?" prompt on first run) — this is a pre-existing gap, not something introduced by this feature; skipped rather than silently scaffolding new lint tooling/config as an unrelated architecture change. `next build`'s own type/syntax checking covers the equivalent ground.
+- Regression smoke-check (fresh JWTs minted per role, real DB): teacher `/teacher/dashboard-stats` → 200, admin `/admin/stats` → 200, student `/student/dashboard` → 200, HOD's pre-existing `/hod/stats` and `/hod/placements` → 200 (untouched, unaffected). Cross-role check: teacher JWT against the new `/hod/intelligence/attendance/today` → 403 (role guard confirmed working end-to-end, not just in the isolated test).
+
+## Phase 1 status: COMPLETE. Committed. Proceeding to Phase 2.

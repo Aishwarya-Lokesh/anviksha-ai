@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
 
-from app.routers import auth, student, teacher, admin, notifications, search, hod, question_paper
+from app.routers import auth, student, teacher, admin, notifications, search, hod, question_paper, hod_intelligence
 
 app = FastAPI(title="Anviksha AI — Phase 2 Backend", version="0.2.0")
 
@@ -46,6 +46,7 @@ app.include_router(notifications.router)
 app.include_router(search.router)
 app.include_router(hod.router)
 app.include_router(question_paper.router)
+app.include_router(hod_intelligence.router)
 
 
 @app.get("/")
