@@ -9,7 +9,7 @@ import { PillNav } from "@/components/ui/Tabs";
 import { MetricExplain } from "@/components/ui/MetricExplain";
 import { hodIntelligenceApi } from "@/lib/hodIntelligenceApi";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
-import { Users, BookOpen, ClipboardList, AlertTriangle, Search, Bell } from "lucide-react";
+import { Users, BookOpen, ClipboardList, AlertTriangle, Search, Bell, Sparkles } from "lucide-react";
 
 /**
  * Phase 2 — Faculty Monitoring & Faculty Alerts. New page, new nav item
@@ -26,6 +26,7 @@ export default function FacultyMonitoringPage() {
   const [alerts, setAlerts] = useState<any[] | null>(null);
   const [selectedFacultyId, setSelectedFacultyId] = useState<number | null>(null);
   const [detail, setDetail] = useState<any>(null);
+  const [facultyBriefing, setFacultyBriefing] = useState<any>(null);
 
   useEffect(() => {
     hodIntelligenceApi.facultyOverview().then(setOverview).catch(() => setOverview({}));
@@ -47,8 +48,10 @@ export default function FacultyMonitoringPage() {
   useEffect(() => {
     if (selectedFacultyId != null) {
       hodIntelligenceApi.facultyDetail(selectedFacultyId).then(setDetail).catch(() => setDetail(null));
+      hodIntelligenceApi.facultyBriefing(selectedFacultyId).then(setFacultyBriefing).catch(() => setFacultyBriefing(null));
     } else {
       setDetail(null);
+      setFacultyBriefing(null);
     }
   }, [selectedFacultyId]);
 
@@ -177,6 +180,13 @@ export default function FacultyMonitoringPage() {
               {detail.vtu_teacher_id && <Badge tone="neutral">{detail.vtu_teacher_id}</Badge>}
               <Badge tone={detail.status === "up_to_date" ? "success" : "warning"}>{detail.status === "up_to_date" ? "Up to Date" : "Pending"}</Badge>
             </div>
+
+            {facultyBriefing?.briefing && (
+              <div className="p-3 rounded-xl bg-brand-light flex gap-2">
+                <Sparkles size={14} className="text-brand shrink-0 mt-0.5" />
+                <p className="text-xs text-ink leading-relaxed">{facultyBriefing.briefing}</p>
+              </div>
+            )}
 
             <div>
               <div className="text-xs font-semibold text-muted mb-2">Teaching activity by subject</div>

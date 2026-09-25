@@ -46,4 +46,7 @@ export const hodIntelligenceApi = {
   placementFunnel: (passedOutYear?: number) => requestJson(`/hod/intelligence/placement/funnel${passedOutYear ? `?passed_out_year=${passedOutYear}` : ""}`),
   placementTiers: (passedOutYear?: number) => requestJson(`/hod/intelligence/placement/tiers${passedOutYear ? `?passed_out_year=${passedOutYear}` : ""}`),
   placementCycleComparison: () => requestJson("/hod/intelligence/placement/cycle-comparison"),
+
+  briefing: () => requestJson("/hod/intelligence/briefing"),
+  facultyBriefing: (facultyId: number) => requestJson(`/hod/intelligence/faculty/${facultyId}/briefing`),
 };

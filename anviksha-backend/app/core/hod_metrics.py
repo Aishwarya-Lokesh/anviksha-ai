@@ -24,6 +24,8 @@ dozens of rows would be unreadable rather than useful — the full contract is
 reserved for card-level aggregate metrics, exactly where "how is this
 calculated?" is actually a question worth answering.
 """
+import re
+import time
 from datetime import date, timedelta
 from typing import Optional
 
@@ -879,3 +881,160 @@ def department_placement_cycle_comparison(db: Session, department_id: int) -> di
             "avg_ctc_lpa": round(sum(ctc_values) / len(ctc_values), 1) if ctc_values else None,
         })
     return {"status": "available", "cycles": cycles}
+
+
+# ---------------------------------------------------------------------------
+# AI Department Briefing & Faculty Insights (Phase 6, stretch)
+# ---------------------------------------------------------------------------
+
+_BRIEFING_CACHE_TTL_SECONDS = 300  # short TTL so this never hammers Groq on every 30-60s dashboard poll
+_briefing_cache: dict = {}  # {department_id: (monotonic_time, result_dict)} — in-memory only, no new table
+
+
+def _numbers_in(*values) -> set:
+    """Every real numeric value appearing anywhere in the given values —
+    the whitelist a generated briefing's own numbers must be drawn from."""
+    found = set()
+    for v in values:
+        if isinstance(v, (int, float)):
+            found.add(round(float(v), 1))
+            found.add(round(float(v)))
+        elif isinstance(v, str):
+            for m in re.findall(r"\d+\.?\d*", v):
+                try:
+                    found.add(round(float(m), 1))
+                    found.add(round(float(m)))
+                except ValueError:
+                    continue
+    return found
+
+
+def _validate_generated_numbers(text: str, allowed_numbers: set) -> bool:
+    """Every number in the generated text must match a real number from the
+    input facts (within rounding). A completely fabricated number fails
+    this check and triggers the deterministic fallback."""
+    found_in_text = [float(m) for m in re.findall(r"\d+\.?\d*", text)]
+    for n in found_in_text:
+        if round(n, 1) not in allowed_numbers and round(n) not in allowed_numbers:
+            return False
+    return True
+
+
+_JUDGMENTAL_WORDS = ("best", "worst", "top performer", "outperform", "ranked", "excellent teacher", "poor teacher", "compared to")
+
+
+def _validate_no_judgmental_language(text: str) -> bool:
+    lower = text.lower()
+    return not any(w in lower for w in _JUDGMENTAL_WORDS)
+
+
+def _department_briefing_facts(db: Session, department_id: int) -> dict:
+    """Every fact this briefing is allowed to reference — pulled directly
+    from the same functions every other part of this feature already uses,
+    never recomputed differently."""
+    attendance = today_attendance_headline(db, department_id)
+    at_risk = department_at_risk_detail(db, department_id)
+    avg_cgpa = department_avg_cgpa(db, department_id)
+    docs = department_pending_documents(db, department_id)
+    faculty_overview = department_faculty_overview(db, department_id)
+    return {
+        "today_attendance": attendance["explanation"],
+        "at_risk_students": at_risk["explanation"],
+        "average_cgpa": avg_cgpa["explanation"],
+        "pending_documents": docs["explanation"],
+        "total_faculty": faculty_overview["total_faculty"],
+        "subjects_being_taught": faculty_overview["subjects_being_taught"],
+        "pending_attendance_alerts": faculty_overview["pending_attendance_alerts"],
+        "pending_marks_alerts": faculty_overview["pending_marks_alerts"],
+    }
+
+
+def _deterministic_department_briefing(facts: dict) -> str:
+    """Template-generated fallback built directly from the same D1
+    `explanation` fields shown on every card — used whenever the AI isn't
+    connected, or its output fails numeric/language validation."""
+    return (
+        f"{facts['today_attendance']} {facts['at_risk_students']} {facts['average_cgpa']} "
+        f"{facts['pending_documents']} Across {facts['total_faculty']} real faculty member(s) teaching "
+        f"{facts['subjects_being_taught']} real subject(s), there are currently {facts['pending_attendance_alerts']} "
+        f"attendance-record alert(s) and {facts['pending_marks_alerts']} pending-marks alert(s) open."
+    )
+
+
+def department_briefing(db: Session, department_id: int, force_refresh: bool = False) -> dict:
+    """The Phase 6 AI Department Briefing — grounded strictly in real,
+    already-computed facts, with a deterministic fallback (built from the
+    same explanation strings) whenever the AI isn't connected or its output
+    fails validation. Cached per department for 5 minutes so repeated
+    dashboard polling never re-calls Groq every 30-60s."""
+    from app.core.llm_client import generate_grounded_briefing, is_configured
+
+    cached = _briefing_cache.get(department_id)
+    if cached and not force_refresh and (time.monotonic() - cached[0]) < _BRIEFING_CACHE_TTL_SECONDS:
+        return cached[1]
+
+    facts = _department_briefing_facts(db, department_id)
+    facts_text = "\n".join(f"- {k}: {v}" for k, v in facts.items())
+    allowed_numbers = _numbers_in(*facts.values())
+
+    if is_configured():
+        result = generate_grounded_briefing(facts_text, faculty_level=False)
+        if result.get("connected") and not result.get("error") and result.get("briefing"):
+            text = result["briefing"]
+            if _validate_generated_numbers(text, allowed_numbers) and _validate_no_judgmental_language(text):
+                out = {"briefing": text, "source": "ai", "connected": True, "facts_used": facts}
+                _briefing_cache[department_id] = (time.monotonic(), out)
+                return out
+    # Fell through: not connected, AI call failed, or validation failed — deterministic, never fabricated.
+    out = {"briefing": _deterministic_department_briefing(facts), "source": "deterministic", "connected": is_configured(), "facts_used": facts}
+    _briefing_cache[department_id] = (time.monotonic(), out)
+    return out
+
+
+def faculty_briefing(db: Session, department_id: int, faculty_id: int) -> dict:
+    """Same grounding/validation/fallback pattern as the department
+    briefing, scoped to one real faculty member's own real activity."""
+    from app.core.llm_client import generate_grounded_briefing, is_configured
+
+    detail = faculty_detail(db, department_id, faculty_id)
+    if not detail:
+        return None
+
+    cache_key = ("faculty", faculty_id)
+    cached = _briefing_cache.get(cache_key)
+    if cached and (time.monotonic() - cached[0]) < _BRIEFING_CACHE_TTL_SECONDS:
+        return cached[1]
+
+    sessions_total = sum(s["sessions_recorded"] for s in detail["subjects"])
+    marks_available_subjects = sum(1 for s in detail["subjects"] if s["marks_status"] == "available")
+    total_subjects = len(detail["subjects"])
+    marks_pct = round(marks_available_subjects / total_subjects * 100, 1) if total_subjects else None
+
+    facts = {
+        "faculty_name": detail["name"],
+        "sessions_recorded": sessions_total,
+        "open_alerts": len(detail["alerts"]),
+        "subjects_with_marks_data": marks_available_subjects,
+        "total_subjects": total_subjects,
+        "marks_available_pct": marks_pct if marks_pct is not None else "not available",
+    }
+    facts_text = "\n".join(f"- {k}: {v}" for k, v in facts.items())
+    allowed_numbers = _numbers_in(*facts.values())
+
+    deterministic = (
+        f"{detail['name']} has recorded attendance for {sessions_total} real session(s) across {total_subjects} real subject(s); "
+        f"{len(detail['alerts'])} item(s) are currently open; internal marks data is available for "
+        f"{marks_pct if marks_pct is not None else 'no'}{'%' if marks_pct is not None else ''} of their subjects."
+    )
+
+    if is_configured():
+        result = generate_grounded_briefing(facts_text, faculty_level=True)
+        if result.get("connected") and not result.get("error") and result.get("briefing"):
+            text = result["briefing"]
+            if _validate_generated_numbers(text, allowed_numbers) and _validate_no_judgmental_language(text):
+                out = {"briefing": text, "source": "ai", "connected": True, "facts_used": facts}
+                _briefing_cache[cache_key] = (time.monotonic(), out)
+                return out
+    out = {"briefing": deterministic, "source": "deterministic", "connected": is_configured(), "facts_used": facts}
+    _briefing_cache[cache_key] = (time.monotonic(), out)
+    return out

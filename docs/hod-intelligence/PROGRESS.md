@@ -346,3 +346,29 @@ Every new endpoint in this feature will call this exact function — never re-im
 **Validation**: `compileall` clean, `pytest` 20/20, `tsc --noEmit` clean, `next build` clean (44/44 routes).
 
 ## Phase 5 status: COMPLETE. Committed. Proceeding to Phase 6 (stretch).
+
+---
+
+## PHASE 6 (stretch) — AI Department Briefing & Faculty Insights — COMPLETE
+
+**Reused the existing AI layer exactly as required**: no new AI dependency or provider. `app/core/llm_client.py` gained one new function, `generate_grounded_briefing`, using the exact same `_call_with_fallback` retry/fallback pattern every other AI feature in this app already uses, and the exact same `is_configured()` fail-closed check.
+
+**Grounding pipeline, implemented as specified**:
+1. Backend computes real metrics first (`_department_briefing_facts` / the equivalent faculty-level facts dict), reusing the exact same functions every other phase's endpoints already call — never recomputed differently.
+2. Those facts (not raw DB access) are the only thing passed to the LLM, with a strict system prompt (`BRIEFING_SYSTEM_PROMPT` / `FACULTY_BRIEFING_SYSTEM_PROMPT`) that forbids inventing numbers/names/events, requires saying "not available" for anything marked so, and explicitly forbids ranking/judgmental language about faculty.
+3. **Post-generation validation, for real**: `_validate_generated_numbers` extracts every number in the AI's output and rejects it unless each one matches a real number from the input facts (within rounding); `_validate_no_judgmental_language` rejects ranking/judgmental words. Either failure falls back to a deterministic, template-built briefing constructed directly from the same explanation strings shown on every metric card — never a second attempt, never a fabricated stand-in.
+4. Cached in-memory per department (and per faculty) for a 5-minute TTL — no new DB table — so the existing 45s dashboard poll never re-calls Groq on every tick.
+
+**Verified against the real DB, with the real Groq connection**: `GET /hod/intelligence/briefing` returned a real, AI-generated, correctly-grounded paragraph citing exactly the department's real numbers (16 faculty, 60 subjects, 1 pending attendance alert, 3 at-risk students, 1 pending document) with no fabricated figures and no ranking language. `GET /hod/intelligence/faculty/7/briefing` (Dr. Girish S C, the one real faculty member with an actual alert) returned a real, grounded, non-judgmental summary ("...recorded 2 teaching sessions... 1 open alert... 0.0% marks availability").
+
+**Since real data can't reliably force a validation failure on demand, added direct unit tests for the validation functions themselves** (`tests/test_hod_briefing_validation.py`): confirmed a fabricated number is correctly rejected, a real one is correctly accepted, and judgmental words ("best", "outperformed") are correctly rejected while a neutral factual sentence passes.
+
+**New frontend**: `components/hod-intelligence/DepartmentBriefingCard.tsx` (added to the existing `/hod` dashboard — additive, doesn't touch or replace the pre-existing `AIInsightCard`, which is a different, simpler, already-existing insight) with an expandable "Data used" panel showing the exact facts the briefing was grounded in, per the spec's explicit UI requirement. Faculty-level insight added inside the existing Faculty Detail modal on the Faculty Monitoring page.
+
+**Tests**: `tests/test_hod_briefing_validation.py` (4 pure unit tests) + `tests/test_hod_briefing_endpoints.py` (3 tests: department-scoped grounding, cross-department 404, role-guard 403). Full suite: **27/27 passing.**
+
+**Known limitation, noted honestly**: these tests may make a real Groq API call if `GROQ_API_KEY` is configured in the test-running environment (there is no mocking layer for LLM calls anywhere in this codebase's existing conventions — none existed before this feature either) — this makes the relevant tests slightly slower and dependent on real network/API availability, though they still pass either way (AI path or deterministic-fallback path).
+
+**Validation**: `compileall` clean, `pytest` 27/27, `tsc --noEmit` clean, `next build` clean (44/44 routes).
+
+## Phase 6 status: COMPLETE. Committed. All 6 phases done — proceeding to final validation + report.

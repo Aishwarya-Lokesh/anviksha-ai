@@ -197,3 +197,31 @@ def placement_cycle_comparison(db: Session = Depends(get_db), user: User = Depen
 
     dept = _department_or_403(user, db)
     return {"department": dept.name, **department_placement_cycle_comparison(db, dept.id)}
+
+
+# ---------------------------------------------------------------------------
+# Phase 6 (stretch) — AI Department Briefing & Faculty Insights
+# ---------------------------------------------------------------------------
+
+@router.get("/briefing")
+def briefing(db: Session = Depends(get_db), user: User = Depends(require_role("hod"))):
+    """Grounded strictly in real, already-computed facts (see
+    app.core.hod_metrics.department_briefing) — falls back to a
+    deterministic, template-built briefing whenever the AI isn't connected
+    or its generated output fails numeric/language validation. Cached 5
+    minutes per department so dashboard polling doesn't hit Groq repeatedly."""
+    from app.core.hod_metrics import department_briefing
+
+    dept = _department_or_403(user, db)
+    return {"department": dept.name, **department_briefing(db, dept.id)}
+
+
+@router.get("/faculty/{faculty_id}/briefing")
+def faculty_briefing_endpoint(faculty_id: int, db: Session = Depends(get_db), user: User = Depends(require_role("hod"))):
+    from app.core.hod_metrics import faculty_briefing
+
+    dept = _department_or_403(user, db)
+    result = faculty_briefing(db, dept.id, faculty_id)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Faculty not found in your department")
+    return result

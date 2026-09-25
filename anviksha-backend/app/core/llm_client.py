@@ -302,6 +302,47 @@ def generate_dashboard_insight(context: str, role: str = "student") -> dict:
         return {"insight": None, "connected": True, "error": True, "message": f"AI request failed: {error}"}
 
 
+BRIEFING_SYSTEM_PROMPT = """You are Anviksha AI, writing a short department intelligence briefing for a Head of Department at GSSS Institute of Engineering and Technology for Women. You will be given a list of REAL FACTS, each already computed from real data. Follow these rules exactly:
+- Use ONLY the numbers, names, and statements given in REAL FACTS below. Never invent a number, name, subject, or event that isn't there.
+- For anything marked "not available" or "pending" in the facts, say so plainly (e.g. "not available yet") — never guess a value or treat it as zero.
+- Write 3-5 plain-prose sentences: what's going well, what needs attention, and one concrete recommendation grounded in the real facts given.
+- This is about the DEPARTMENT's real activity, never an individual faculty member's performance, ranking, or a comparison between faculty members. Do not use words like "best", "worst", "top", "outperform", "compared to", or rank anyone.
+- No headings, no bullet points, no markdown.
+
+REAL FACTS:
+{facts}"""
+
+FACULTY_BRIEFING_SYSTEM_PROMPT = """You are Anviksha AI, writing a short, objective activity summary for one faculty member's real teaching record. You will be given REAL FACTS already computed from real data. Follow these rules exactly:
+- Use ONLY the numbers and names given in REAL FACTS. Never invent one.
+- For anything marked "not available", say so plainly.
+- Write 1-3 plain-prose sentences describing real, observable activity only (sessions recorded, records pending, marks status) — this is monitoring, not evaluation.
+- Never rank this faculty member against anyone else, never use words like "best", "worst", "excellent", "poor", or any judgmental/performance language about them as a person or teacher.
+- No headings, no bullet points, no markdown.
+
+REAL FACTS:
+{facts}"""
+
+
+def generate_grounded_briefing(facts: str, faculty_level: bool = False) -> dict:
+    """Understand -> Diagnose -> Recommend for the department (or a short
+    objective activity summary for one faculty member when faculty_level is
+    True), grounded ONLY in the real facts string passed in. Post-generation
+    numeric validation happens in app.core.hod_metrics (every number in the
+    output must trace back to the input facts) — this function only makes
+    the grounded call itself, using the exact same fallback/retry pattern as
+    every other AI feature here. Fails closed with connected=False when the
+    AI isn't configured."""
+    if not is_configured():
+        return {"briefing": None, "connected": False}
+    try:
+        prompt_template = FACULTY_BRIEFING_SYSTEM_PROMPT if faculty_level else BRIEFING_SYSTEM_PROMPT
+        prompt = prompt_template.format(facts=facts or "(no facts available)")
+        response = _call_with_fallback(Groq(api_key=os.environ["GROQ_API_KEY"]), [{"role": "user", "content": prompt}])
+        return {"briefing": response.choices[0].message.content.strip(), "connected": True}
+    except Exception as error:
+        return {"briefing": None, "connected": True, "error": True, "message": f"AI request failed: {error}"}
+
+
 def generate_notes(topic: str, style_instructions: str, context: str = "") -> dict:
     if not is_configured():
         return {"notes": "", "connected": False, "message": "The AI Notes Generator isn't connected yet — no API key has been configured."}
