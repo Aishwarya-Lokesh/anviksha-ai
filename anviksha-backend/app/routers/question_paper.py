@@ -17,18 +17,13 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.core.security import require_role
 from app.core.content_extraction import extract_document_pages
+from app.core.file_storage import upload_file
 from app.core.question_paper_gen import generate_paper_sets
 from app.models.models import QuestionPaperDocument, QuestionPaper, User
 
 router = APIRouter(prefix="/teacher/question-paper", tags=["question-paper"])
 
 ALLOWED_EXTENSIONS = {"pdf", "docx"}
-
-
-def _upload_dir() -> str:
-    path = os.path.join(os.path.dirname(__file__), "..", "..", "data_raw", "teacher_uploads", "question_paper")
-    os.makedirs(path, exist_ok=True)
-    return path
 
 
 @router.post("/upload")
@@ -46,18 +41,26 @@ async def upload_question_paper_document(
 
     safe_name = re.sub(r"[^A-Za-z0-9_.]", "_", file.filename)
     stored_name = f"{document_kind}_{int(datetime.utcnow().timestamp() * 1000)}_{safe_name}"
-    dest_path = os.path.join(_upload_dir(), stored_name)
     contents = await file.read()
     if not contents:
         raise HTTPException(status_code=400, detail="The selected file is empty.")
-    with open(dest_path, "wb") as f:
-        f.write(contents)
 
+    # extract_document_pages' .txt branch needs a real path (the other
+    # formats accept an in-memory stream) — a short-lived temp file covers
+    # every format uniformly without touching content_extraction.py.
+    import tempfile
+    with tempfile.NamedTemporaryFile(suffix=f".{ext}", delete=False) as tmp:
+        tmp.write(contents)
+        tmp_path = tmp.name
     try:
-        pages = extract_document_pages(dest_path, file.filename)
+        pages = extract_document_pages(tmp_path, file.filename)
         text = "\n".join(p["text"] for p in pages)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Could not read this file's real content: {str(e)}")
+    finally:
+        os.remove(tmp_path)
+
+    upload_file(f"teacher_uploads/question_paper/{stored_name}", contents)
 
     doc = QuestionPaperDocument(
         faculty_id=user.faculty_id, kind=document_kind, filename=file.filename,

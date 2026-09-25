@@ -1,15 +1,22 @@
 "use client";
 
-// Use the IPv4 loopback address by default.  On some Windows/Chrome setups
-// `localhost` resolves to IPv6 (`::1`) first, while the local FastAPI server
-// is listening on IPv4 only, causing otherwise healthy API calls to fail.
+// Use the IPv4 loopback address by default in LOCAL DEVELOPMENT only. On
+// some Windows/Chrome setups `localhost` resolves to IPv6 (`::1`) first,
+// while the local FastAPI server is listening on IPv4 only, causing
+// otherwise healthy API calls to fail. In production, a missing
+// NEXT_PUBLIC_API_BASE must never silently fall back to a loopback address
+// (every visitor's own browser would try to reach 127.0.0.1 and every
+// feature would fail with no obvious cause) — it fails loudly instead.
 const configuredApiBase = process.env.NEXT_PUBLIC_API_BASE;
-export const API_BASE =
-  !configuredApiBase ||
-  configuredApiBase === "http://localhost:8000" ||
-  configuredApiBase === "http://127.0.0.1:8000"
-    ? "http://127.0.0.1:8000"
-    : configuredApiBase;
+const isLocalValue = configuredApiBase === "http://localhost:8000" || configuredApiBase === "http://127.0.0.1:8000";
+
+if (!configuredApiBase && process.env.NODE_ENV === "production") {
+  throw new Error(
+    "NEXT_PUBLIC_API_BASE is not set. In production this must point at the real deployed backend URL — it will never fall back to a local address."
+  );
+}
+
+export const API_BASE = !configuredApiBase || isLocalValue ? "http://127.0.0.1:8000" : configuredApiBase;
 
 const TOKEN_KEY = "anviksha_access_token";
 const ROLE_KEY = "anviksha_role";

@@ -234,20 +234,18 @@ async def upload_profile_photo(file: UploadFile = File(...), db: Session = Depen
     if len(contents) > 5 * 1024 * 1024:
         raise HTTPException(status_code=400, detail="Image too large (max 5MB)")
 
-    import re as _re
+    from app.core.file_storage import upload_file, delete_file
+
     ext = file.filename.rsplit(".", 1)[-1].lower()
     stored_name = f"{s.usn}_photo.{ext}"
-    upload_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data_raw", "profile_photos")
-    os.makedirs(upload_dir, exist_ok=True)
 
     # remove any previous photo with a different extension for this student
     if s.photo_url:
-        old_path = os.path.join(upload_dir, os.path.basename(s.photo_url))
-        if os.path.exists(old_path):
-            os.remove(old_path)
+        old_name = os.path.basename(s.photo_url)
+        if old_name != stored_name:
+            delete_file(f"profile_photos/{old_name}")
 
-    with open(os.path.join(upload_dir, stored_name), "wb") as f:
-        f.write(contents)
+    upload_file(f"profile_photos/{stored_name}", contents)
 
     s.photo_url = f"/profile-photos/{stored_name}"
     db.commit()
@@ -377,6 +375,8 @@ async def add_achievement(
     if type not in ("Hackathon", "Certificate", "Project", "Activity"):
         raise HTTPException(status_code=400, detail="Invalid achievement type")
 
+    from app.core.file_storage import upload_file
+
     cert_stored_name = None
     if certificate and type in ("Hackathon", "Certificate", "Activity"):
         ext = os.path.splitext(certificate.filename)[1].lower()
@@ -385,9 +385,8 @@ async def add_achievement(
         contents = await certificate.read()
         if len(contents) > MAX_FILE_SIZE:
             raise HTTPException(status_code=400, detail="File too large (max 10MB)")
-        stored_name, dest_path = _save_upload(certificate, f"{type.lower()}")
-        with open(dest_path, "wb") as f:
-            f.write(contents)
+        stored_name, _ = _save_upload(certificate, f"{type.lower()}")
+        upload_file(f"achievement_uploads/{stored_name}", contents)
         cert_stored_name = stored_name
 
     image_names = []
@@ -401,9 +400,8 @@ async def add_achievement(
             contents = await img.read()
             if len(contents) > MAX_FILE_SIZE:
                 raise HTTPException(status_code=400, detail="Image too large (max 10MB)")
-            stored_name, dest_path = _save_upload(img, "project_img")
-            with open(dest_path, "wb") as f:
-                f.write(contents)
+            stored_name, _ = _save_upload(img, "project_img")
+            upload_file(f"achievement_uploads/{stored_name}", contents)
             image_names.append(stored_name)
 
     a = Achievement(
@@ -466,6 +464,8 @@ async def reupload_achievement_file(
     if not a:
         raise HTTPException(status_code=404, detail="Achievement not found or not yours")
 
+    from app.core.file_storage import upload_file
+
     if certificate:
         ext = os.path.splitext(certificate.filename)[1].lower()
         if ext not in ALLOWED_CERT_EXT:
@@ -473,9 +473,8 @@ async def reupload_achievement_file(
         contents = await certificate.read()
         if len(contents) > MAX_FILE_SIZE:
             raise HTTPException(status_code=400, detail="File too large (max 10MB)")
-        stored_name, dest_path = _save_upload(certificate, a.type.lower())
-        with open(dest_path, "wb") as f:
-            f.write(contents)
+        stored_name, _ = _save_upload(certificate, a.type.lower())
+        upload_file(f"achievement_uploads/{stored_name}", contents)
         a.certificate_url = stored_name
         a.certificate_type = "ai_generated_demo"
 
@@ -490,9 +489,8 @@ async def reupload_achievement_file(
             contents = await img.read()
             if len(contents) > MAX_FILE_SIZE:
                 raise HTTPException(status_code=400, detail="Image too large (max 10MB)")
-            stored_name, dest_path = _save_upload(img, "project_img")
-            with open(dest_path, "wb") as f:
-                f.write(contents)
+            stored_name, _ = _save_upload(img, "project_img")
+            upload_file(f"achievement_uploads/{stored_name}", contents)
             image_names.append(stored_name)
         a.images = _json.dumps(image_names)
 
@@ -506,17 +504,13 @@ def delete_achievement(achievement_id: int, db: Session = Depends(get_db), user:
     a = db.query(Achievement).filter(Achievement.id == achievement_id, Achievement.student_id == user.student_id).first()
     if not a:
         raise HTTPException(status_code=404, detail="Achievement not found")
-    # remove associated files from disk, not just the DB record
-    upload_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data_raw", "achievement_uploads")
+    # remove associated files from storage, not just the DB record
+    from app.core.file_storage import delete_file
     if a.certificate_url:
-        fpath = os.path.join(upload_dir, a.certificate_url)
-        if os.path.exists(fpath):
-            os.remove(fpath)
+        delete_file(f"achievement_uploads/{a.certificate_url}")
     if a.images:
         for img in _json.loads(a.images):
-            fpath = os.path.join(upload_dir, img)
-            if os.path.exists(fpath):
-                os.remove(fpath)
+            delete_file(f"achievement_uploads/{img}")
     db.delete(a)
     db.commit()
     return {"message": "Deleted"}
@@ -610,7 +604,8 @@ async def upload_certificate(
     A genuine re-upload always makes the record real (is_demo=False) — an
     actual uploaded file is never a placeholder, even if it started as one."""
     from app.models.models import CertificateFile
-    import os, re
+    from app.core.file_storage import upload_file
+    import re
 
     if not file:
         raise HTTPException(status_code=400, detail="No file provided")
@@ -621,12 +616,8 @@ async def upload_certificate(
     safe_name = re.sub(r"[^A-Za-z0-9_.]", "_", file.filename)
     stored_name = f"{student.usn}_{int(datetime.utcnow().timestamp())}_{safe_name}"
 
-    upload_dir = os.path.join(os.path.dirname(__file__), "..", "..", "data_raw", "real_mooc_certs")
-    os.makedirs(upload_dir, exist_ok=True)
-    dest_path = os.path.join(upload_dir, stored_name)
     contents = await file.read()
-    with open(dest_path, "wb") as f:
-        f.write(contents)
+    upload_file(f"real_mooc_certs/{stored_name}", contents)
 
     if certificate_id:
         c = db.query(CertificateFile).filter(CertificateFile.id == certificate_id, CertificateFile.student_id == user.student_id).first()

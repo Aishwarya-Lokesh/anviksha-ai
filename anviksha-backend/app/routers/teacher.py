@@ -832,6 +832,8 @@ async def upload_style_reference(
     for this output type."""
     from app.models.models import StyleReference
     from app.core.content_extraction import extract_ppt_style, extract_notes_style
+    from app.core.file_storage import upload_file
+    import io
     import json as _json
 
     ext = file.filename.lower().rsplit(".", 1)[-1]
@@ -840,15 +842,15 @@ async def upload_style_reference(
     if output_type == "notes" and ext != "docx":
         raise HTTPException(status_code=400, detail="Please upload a real .docx file for Notes style")
 
-    stored_name, dest_path = _save_teacher_file(file, f"style_{output_type}")
+    stored_name, _ = _save_teacher_file(file, f"style_{output_type}")
     contents = await file.read()
-    with open(dest_path, "wb") as f:
-        f.write(contents)
 
     try:
-        profile = extract_ppt_style(dest_path) if output_type == "ppt" else extract_notes_style(dest_path)
+        profile = extract_ppt_style(io.BytesIO(contents)) if output_type == "ppt" else extract_notes_style(io.BytesIO(contents))
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Could not read this file's real structure: {str(e)}")
+
+    upload_file(f"teacher_uploads/{stored_name}", contents)
 
     ref = StyleReference(
         faculty_id=user.faculty_id, subject_id=subject_id, output_type=output_type,
@@ -897,21 +899,31 @@ async def upload_content_source(
     reports that via chapters_detected=False."""
     from app.models.models import ContentSource
     from app.core.content_extraction import detect_chapters
+    from app.core.file_storage import upload_file
     import json as _json
+    import tempfile
 
     ext = file.filename.lower().rsplit(".", 1)[-1]
     if ext not in ("pdf", "docx", "txt", "pptx"):
         raise HTTPException(status_code=400, detail="Please upload a real .pdf or .docx textbook file")
 
-    stored_name, dest_path = _save_teacher_file(file, "textbook")
+    stored_name, _ = _save_teacher_file(file, "textbook")
     contents = await file.read()
-    with open(dest_path, "wb") as f:
-        f.write(contents)
 
+    # detect_chapters' .txt branch needs a real path (the other formats
+    # accept an in-memory stream) — a short-lived temp file covers every
+    # format uniformly without touching content_extraction.py.
+    with tempfile.NamedTemporaryFile(suffix=f".{ext}", delete=False) as tmp:
+        tmp.write(contents)
+        tmp_path = tmp.name
     try:
-        result = detect_chapters(dest_path, file.filename)
+        result = detect_chapters(tmp_path, file.filename)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Could not read this file's real content: {str(e)}")
+    finally:
+        os.remove(tmp_path)
+
+    upload_file(f"teacher_uploads/{stored_name}", contents)
 
     source = ContentSource(
         faculty_id=user.faculty_id, subject_id=subject_id, filename=file.filename,
@@ -1180,9 +1192,13 @@ def generate_styled_content(payload: StyledGenerationRequest, db: Session = Depe
         # content_extraction.extract_images_from_pdf.
         if source.filename.lower().endswith(".pdf"):
             import base64
-            source_path = os.path.join(os.path.dirname(__file__), "..", "..", "data_raw", "teacher_uploads", source.stored_filename)
+            import io
+            from app.core.file_storage import get_file
             try:
-                images_by_page = extract_images_from_pdf(source_path) if os.path.exists(source_path) else {}
+                source_bytes = get_file(f"teacher_uploads/{source.stored_filename}")
+                images_by_page = extract_images_from_pdf(io.BytesIO(source_bytes))
+            except FileNotFoundError:
+                images_by_page = {}
             except Exception:
                 images_by_page = {}
             for chunk in selected_chunks:

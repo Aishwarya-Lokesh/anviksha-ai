@@ -5,12 +5,14 @@ download" style word) are treated as export requests; everything else
 falls back to the normal text chat answer. The exported rows are always
 real, freshly-queried data scoped exactly like the rest of that role's
 chat context - never fabricated."""
-import os
+import io
 import re
 from datetime import datetime
 
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
+
+from app.core.file_storage import upload_file
 
 EXPORT_KEYWORDS = ("list", "export", "excel", "spreadsheet", "download", "report", ".xlsx")
 PLACEMENT_KEYWORDS = ("placement", "placed", "company", "ctc")
@@ -22,14 +24,11 @@ def is_export_request(question: str) -> bool:
     return any(word in lower for word in EXPORT_KEYWORDS)
 
 
-def _exports_dir() -> str:
-    path = os.path.join(os.path.dirname(__file__), "..", "..", "data_raw", "generated_exports")
-    os.makedirs(path, exist_ok=True)
-    return path
-
-
 def write_xlsx(rows: list[dict], sheet_name: str, filename_prefix: str) -> tuple[str, str]:
-    """Writes real rows to a real .xlsx file. Returns (stored_filename, absolute_path)."""
+    """Writes real rows to a real .xlsx file, stored so it survives a
+    restart/redeploy (see app.core.file_storage). Returns (stored_filename,
+    stored_filename) — the second value is kept only for backward-compatible
+    unpacking at call sites that discard it."""
     wb = Workbook()
     ws = wb.active
     ws.title = sheet_name[:31] or "Report"
@@ -50,9 +49,10 @@ def write_xlsx(rows: list[dict], sheet_name: str, filename_prefix: str) -> tuple
 
     safe_prefix = re.sub(r"[^A-Za-z0-9_]", "_", filename_prefix)[:40]
     stored_name = f"{safe_prefix}_{int(datetime.utcnow().timestamp() * 1000)}.xlsx"
-    path = os.path.join(_exports_dir(), stored_name)
-    wb.save(path)
-    return stored_name, path
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    upload_file(f"generated_exports/{stored_name}", buffer.getvalue(), content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    return stored_name, stored_name
 
 
 def build_teacher_export(db, students: list, question: str) -> tuple[list[dict], str, str]:
