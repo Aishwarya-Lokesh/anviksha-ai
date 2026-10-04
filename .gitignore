@@ -1,0 +1,11 @@
+.env
+.env.local
+**/scripts/generated_credentials.csv
+*.db
+venv/
+__pycache__/
+*.pyc
+node_modules/
+.next/
+*.zip
+*.log
