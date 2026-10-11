@@ -378,6 +378,8 @@ class User(Base):
     faculty_id = Column(Integer, ForeignKey("faculty.id"), nullable=True)
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)  # for "hod" role
     hod_title = Column(String, nullable=True)  # e.g. "Head of Department, ISE"
+    display_name = Column(String, nullable=True)  # for accounts with no student/faculty record behind them (admin, HOD)
+    photo_url = Column(String, nullable=True)     # profile photo for staff accounts; a student's lives on the student record
 
 
 class StyleReference(Base):
