@@ -202,6 +202,10 @@ def _matching_student_ids(db: Session, assignments: list) -> list:
         if not a.batch:
             continue
         cond = and_(Student.batch == a.batch, Student.semester == a.semester)
+        # A class belongs to one department: without this, every other
+        # department's students in the same batch and semester would be included.
+        if a.department_id:
+            cond = and_(cond, Student.department_id == a.department_id)
         if a.section:
             has_section_data = db.query(Student.id).filter(Student.batch == a.batch, Student.semester == a.semester, Student.section.isnot(None)).first() is not None
             if has_section_data:
@@ -1819,13 +1823,22 @@ class CounselingBulkIn(BaseModel):
     student_ids: Optional[list] = None  # restrict to this subset of the matched class; all of them if omitted
 
 
+def _counseling_reply_fields(n: CounselingNote) -> dict:
+    return {
+        "reply_status": n.reply_status, "reply_description": n.reply_description,
+        "replied_at": str(n.replied_at) if n.replied_at else None,
+        "teacher_reply": n.teacher_reply,
+        "teacher_replied_at": str(n.teacher_replied_at) if n.teacher_replied_at else None,
+    }
+
+
 @router.get("/counseling/{student_id}")
 def get_counseling_notes(student_id: int, db: Session = Depends(get_db), user: User = Depends(require_role("teacher"))):
     """This teacher's own notes for this student only — a different
     teacher's private counseling notes for the same student are never
     shown here."""
     rows = db.query(CounselingNote).filter(CounselingNote.student_id == student_id, CounselingNote.faculty_id == user.faculty_id).order_by(CounselingNote.date.desc()).all()
-    return [{"id": n.id, "note": n.note, "date": str(n.date)} for n in rows]
+    return [{"id": n.id, "note": n.note, "date": str(n.date), **_counseling_reply_fields(n)} for n in rows]
 
 
 @router.post("/counseling")
@@ -1865,7 +1878,7 @@ def counseling_history(db: Session = Depends(get_db), user: User = Depends(requi
     out = []
     for n in rows:
         student = db.query(Student).filter(Student.id == n.student_id).first()
-        out.append({"id": n.id, "note": n.note, "date": str(n.date), "student_name": student.name if student else "Unknown", "student_usn": student.usn if student else None})
+        out.append({"id": n.id, "note": n.note, "date": str(n.date), "student_name": student.name if student else "Unknown", "student_usn": student.usn if student else None, **_counseling_reply_fields(n)})
     return out
 
 
