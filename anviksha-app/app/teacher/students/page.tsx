@@ -58,10 +58,10 @@ export default function MyStudentsPage() {
       <div className="p-4 md:p-8 space-y-6">
         <Card hover>
           <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
-            <div className="flex items-center gap-3">
-              <div className="relative">
+            <div className="flex items-center flex-wrap gap-3 min-w-0">
+              <div className="relative w-full sm:w-64">
                 <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or USN..." className="pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand/30 w-64" />
+                <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by name or USN..." className="pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-brand/30 w-full" />
               </div>
               <select value={batch} onChange={(e) => setBatch(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none">
                 <option value="">All active batches</option>
