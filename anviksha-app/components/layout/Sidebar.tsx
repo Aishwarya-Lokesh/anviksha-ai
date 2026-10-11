@@ -7,6 +7,7 @@ import { Sparkles, LogOut, Menu, X, PanelLeftClose, PanelLeftOpen } from "lucide
 import { LucideIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { clearAuth } from "@/lib/api";
+import { clearProfile } from "@/lib/useProfile";
 
 // `short` is the label used in the mobile bottom bar, where there is room for one word.
 export type NavItem = { key: string; label: string; short?: string; href: string; icon: LucideIcon };
@@ -92,20 +93,27 @@ function NavList({
 function UserFooter({
   userName,
   userMeta,
+  photoUrl,
   compact,
   onLogout,
 }: {
   userName: string;
   userMeta: string;
+  photoUrl?: string | null;
   compact?: boolean;
   onLogout: () => void;
 }) {
   return (
     <div className="p-3">
       <div className={`bg-white/[0.04] border border-white/[0.06] rounded-xl p-3 flex items-center gap-3 mb-1 ${compact ? "justify-center px-0" : ""}`}>
-        <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-sm font-bold shrink-0 shadow-[0_2px_8px_rgba(91,63,217,0.4)]">
-          {userName.charAt(0).toUpperCase()}
-        </div>
+        {photoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={photoUrl} alt="" className="w-9 h-9 rounded-full object-cover shrink-0 border border-white/20" />
+        ) : (
+          <div className="w-9 h-9 rounded-full bg-brand flex items-center justify-center text-sm font-bold shrink-0 shadow-[0_2px_8px_rgba(91,63,217,0.4)]">
+            {userName.charAt(0).toUpperCase()}
+          </div>
+        )}
         {!compact && (
           <div className="min-w-0">
             <div className="text-sm font-semibold truncate">{userName}</div>
@@ -131,11 +139,13 @@ export function Sidebar({
   navItems,
   userName,
   userMeta,
+  photoUrl,
   roleLabel,
 }: {
   navItems: NavItem[];
   userName: string;
   userMeta: string;
+  photoUrl?: string | null;
   roleLabel: string;
 }) {
   const pathname = usePathname();
@@ -183,6 +193,7 @@ export function Sidebar({
 
   const handleLogout = () => {
     clearAuth();
+    clearProfile();
     router.push("/");
   };
 
@@ -212,7 +223,7 @@ export function Sidebar({
           </button>
         </div>
         <NavList navItems={navItems} pathname={pathname} compact={collapsed} layoutId="sidebar-active" />
-        <UserFooter userName={userName} userMeta={userMeta} compact={collapsed} onLogout={handleLogout} />
+        <UserFooter userName={userName} userMeta={userMeta} photoUrl={photoUrl} compact={collapsed} onLogout={handleLogout} />
       </aside>
 
       {/* Mobile / tablet: bottom navigation */}
@@ -287,7 +298,7 @@ export function Sidebar({
                 layoutId="drawer-active"
                 onNavigate={() => setDrawerOpen(false)}
               />
-              <UserFooter userName={userName} userMeta={userMeta} onLogout={handleLogout} />
+              <UserFooter userName={userName} userMeta={userMeta} photoUrl={photoUrl} onLogout={handleLogout} />
             </motion.aside>
           </div>
         )}

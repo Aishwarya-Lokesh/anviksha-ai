@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { NavItem } from "@/components/layout/Sidebar";
 import { AppShell } from "@/components/layout/AppShell";
-import { api } from "@/lib/api";
+import type { QuickAction } from "@/components/layout/CommandPalette";
 import {
   LayoutDashboard, Users, GraduationCap, UserCog, BookOpen, FileStack,
-  ClipboardList, BarChart3, ListChecks, Bot, Briefcase,
+  ClipboardList, BarChart3, ListChecks, Bot, Briefcase, UserCircle
 } from "lucide-react";
 
 const navItems: NavItem[] = [
@@ -20,17 +19,19 @@ const navItems: NavItem[] = [
   { key: "reports", label: "Reports & Statistics", href: "/admin/reports", icon: BarChart3 },
   { key: "logs", label: "Activity Logs", href: "/admin/logs", icon: ListChecks },
   { key: "assistant", label: "Ask Anviksha AI", href: "/admin/assistant", icon: Bot },
+  { key: "profile", label: "My Profile", href: "/admin/profile", icon: UserCircle },
+];
+
+const quickActions: QuickAction[] = [
+  { label: "Add a student", href: "/admin/users?action=add-student", keywords: "new create user" },
+  { label: "Add a faculty member", href: "/admin/users?action=add-faculty", keywords: "new create teacher" },
+  { label: "Review document requests", href: "/admin/documents", keywords: "approve reject bonafide" },
+  { label: "Run a report", href: "/admin/reports", keywords: "statistics query export" },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const [meta, setMeta] = useState("Administrator");
-
-  useEffect(() => {
-    api.me().then((d) => setMeta(d.email || "Administrator")).catch(() => {});
-  }, []);
-
   return (
-    <AppShell role="admin" roleLabel="Admin" navItems={navItems} userName="Admin" userMeta={meta}>
+    <AppShell role="admin" roleLabel="Admin" navItems={navItems} quickActions={quickActions}>
       {children}
     </AppShell>
   );

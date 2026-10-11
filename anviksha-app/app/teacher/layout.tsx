@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { NavItem } from "@/components/layout/Sidebar";
 import { AppShell } from "@/components/layout/AppShell";
-import { api } from "@/lib/api";
+import type { QuickAction } from "@/components/layout/CommandPalette";
 import {
   LayoutDashboard, Users, CalendarCheck, FileQuestion, Presentation,
-  BarChart3, HeartHandshake, ClipboardList, Bot, ClipboardCheck, NotebookPen,
+  BarChart3, HeartHandshake, ClipboardList, Bot, ClipboardCheck, NotebookPen, UserCircle
 } from "lucide-react";
 
 const navItems: NavItem[] = [
@@ -21,18 +20,20 @@ const navItems: NavItem[] = [
   { key: "counseling", label: "Student Counseling", href: "/teacher/counseling", icon: HeartHandshake },
   { key: "reports", label: "Reports", href: "/teacher/reports", icon: ClipboardList },
   { key: "assistant", label: "Ask Anviksha AI", href: "/teacher/assistant", icon: Bot },
+  { key: "profile", label: "My Profile", href: "/teacher/profile", icon: UserCircle },
+];
+
+const quickActions: QuickAction[] = [
+  { label: "Generate a PPT", href: "/teacher/ppt-generator", keywords: "slides presentation powerpoint" },
+  { label: "Create a question paper", href: "/teacher/question-paper", keywords: "exam IA test" },
+  { label: "Mark attendance", href: "/teacher/attendance", keywords: "present absent" },
+  { label: "Post a note or deadline", href: "/teacher/notes", keywords: "assignment study material" },
+  { label: "Enter IA marks", href: "/teacher/ia-marks", keywords: "internal assessment scores" },
 ];
 
 export default function TeacherLayout({ children }: { children: React.ReactNode }) {
-  const [name, setName] = useState("Teacher");
-  const [meta, setMeta] = useState("Logged in");
-
-  useEffect(() => {
-    api.teacherMe().then((d) => { setName(d.name); setMeta(d.designation || "Faculty"); }).catch(() => {});
-  }, []);
-
   return (
-    <AppShell role="teacher" roleLabel="Teacher" navItems={navItems} userName={name} userMeta={meta}>
+    <AppShell role="teacher" roleLabel="Teacher" navItems={navItems} quickActions={quickActions}>
       {children}
     </AppShell>
   );

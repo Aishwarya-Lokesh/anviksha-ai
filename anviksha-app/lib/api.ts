@@ -142,7 +142,15 @@ async function request(path: string, options: RequestInit = {}) {
 
   if (!res.ok) {
     const body = await res.text();
-    throw new Error(`API ${path} failed: ${res.status} ${body}`);
+    const error = new Error(`API ${path} failed: ${res.status} ${body}`) as Error & { status?: number; detail?: string };
+    error.status = res.status;
+    try {
+      const detail = JSON.parse(body)?.detail;
+      if (typeof detail === "string") error.detail = detail;
+    } catch {
+      // not JSON — no readable explanation to pass on
+    }
+    throw error;
   }
 
   return res.json();
@@ -160,6 +168,30 @@ export const api = {
     }),
 
   me: () => request("/auth/me"),
+
+  accountProfile: () => request("/auth/profile"),
+
+  updateAccountProfile: (payload: Record<string, string>) =>
+    request("/auth/profile", { method: "PATCH", body: JSON.stringify(payload) }),
+
+  changePassword: (currentPassword: string, newPassword: string) =>
+    request("/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+    }),
+
+  uploadAccountPhoto: async (file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    const headers: Record<string, string> = {};
+    if (getToken()) headers["Authorization"] = `Bearer ${getToken()}`;
+    const res = await fetch(`${API_BASE}/auth/profile/photo`, { method: "POST", body: fd, headers });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || "Photo upload failed");
+    }
+    return res.json();
+  },
 
   // =========================================================
   // ADMIN

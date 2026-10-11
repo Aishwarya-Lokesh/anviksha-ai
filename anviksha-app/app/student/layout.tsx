@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { NavItem } from "@/components/layout/Sidebar";
 import { AppShell } from "@/components/layout/AppShell";
-import { api } from "@/lib/api";
+import type { QuickAction } from "@/components/layout/CommandPalette";
 import {
   LayoutDashboard, User, TrendingUp, CalendarCheck, Award, FileText,
   BookOpen, HeartHandshake, Bot, Briefcase,
@@ -23,16 +22,16 @@ const navItems: NavItem[] = [
   { key: "assistant", label: "Ask Anviksha AI", href: "/student/assistant", icon: Bot },
 ];
 
+const quickActions: QuickAction[] = [
+  { label: "Add an achievement", href: "/student/achievements?action=add", keywords: "certificate hackathon project upload" },
+  { label: "Request a document", href: "/student/documents?action=new", keywords: "bonafide transcript certificate" },
+  { label: "Build my resume", href: "/student/resume", keywords: "cv download pdf" },
+  { label: "Ask Anviksha AI", href: "/student/assistant", keywords: "chat assistant help" },
+];
+
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
-  const [name, setName] = useState("Student");
-  const [meta, setMeta] = useState("Student");
-
-  useEffect(() => {
-    api.studentDashboard().then((d) => { setName(d.name); setMeta(d.usn || "Student"); }).catch(() => {});
-  }, []);
-
   return (
-    <AppShell role="student" roleLabel="Student" navItems={navItems} userName={name} userMeta={meta}>
+    <AppShell role="student" roleLabel="Student" navItems={navItems} quickActions={quickActions}>
       {children}
     </AppShell>
   );

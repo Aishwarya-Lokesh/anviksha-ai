@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { NavItem } from "@/components/layout/Sidebar";
 import { AppShell } from "@/components/layout/AppShell";
-import { api } from "@/lib/api";
-import { LayoutDashboard, GraduationCap, Users, Briefcase, Bot, ClipboardCheck, BarChart3 } from "lucide-react";
+import type { QuickAction } from "@/components/layout/CommandPalette";
+import { LayoutDashboard, GraduationCap, Users, Briefcase, Bot, ClipboardCheck, BarChart3, UserCircle } from "lucide-react";
 
 const navItems: NavItem[] = [
   { key: "dashboard", label: "Dashboard", href: "/hod", icon: LayoutDashboard },
@@ -14,18 +13,19 @@ const navItems: NavItem[] = [
   { key: "assessment-analytics", label: "Assessment Analytics", href: "/hod/assessment-analytics", icon: BarChart3 },
   { key: "placements", label: "Placement Analytics", href: "/hod/placements", icon: Briefcase },
   { key: "assistant", label: "Ask Anviksha AI", href: "/hod/assistant", icon: Bot },
+  { key: "profile", label: "My Profile", href: "/hod/profile", icon: UserCircle },
+];
+
+const quickActions: QuickAction[] = [
+  { label: "Compare placement across batches", href: "/hod/placements", keywords: "placed package companies" },
+  { label: "Review faculty workload", href: "/hod/faculty", keywords: "subjects extra work" },
+  { label: "Check today's attendance", href: "/hod", keywords: "live classes" },
+  { label: "Ask Anviksha AI", href: "/hod/assistant", keywords: "chat assistant department" },
 ];
 
 export default function HodLayout({ children }: { children: React.ReactNode }) {
-  const [name, setName] = useState("Head of Department");
-  const [meta, setMeta] = useState("Department");
-
-  useEffect(() => {
-    api.hodMe().then((d) => { setName(d.title || "Head of Department"); setMeta(d.department || "Department"); }).catch(() => {});
-  }, []);
-
   return (
-    <AppShell role="hod" roleLabel="HOD" navItems={navItems} userName={name} userMeta={meta}>
+    <AppShell role="hod" roleLabel="HOD" navItems={navItems} quickActions={quickActions}>
       {children}
     </AppShell>
   );
