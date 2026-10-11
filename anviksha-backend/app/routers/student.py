@@ -192,6 +192,42 @@ def _student_dict(s: Student) -> dict:
         "data_status": s.data_status, "linkedin": s.linkedin, "github": s.github, "skills": s.skills,
         "resume_link": s.resume_link, "semester_sgpa": s.semester_sgpa,
         "profile_score": s.profile_score, "photo_url": s.photo_url,
+        "resume_file_url": f"/resume-files/{s.resume_file}" if s.resume_file else None,
+        "education": s.education or [],
+    }
+
+
+def _achievement_summary(db: Session, student: Student) -> dict:
+    """What the dashboard's Profile Score and Achievements cards show. The
+    score is the Student Excellence Score, from the same shared calculation
+    the Excellence Score page and Teacher > Performance use, so the three can
+    never disagree."""
+    from app.core.scoring import (
+        calculate_achievement_points, calculate_cgpa_points,
+        CERT_POINTS, HACKATHON_PARTICIPATE_POINTS, HACKATHON_WIN_BONUS, PROJECT_POINTS,
+    )
+    rows = db.query(Achievement).filter(Achievement.student_id == student.id).order_by(Achievement.id.desc()).all()
+
+    def points(a: Achievement) -> int:
+        if a.type == "Certificate":
+            return CERT_POINTS
+        if a.type == "Hackathon":
+            return HACKATHON_PARTICIPATE_POINTS + (HACKATHON_WIN_BONUS if a.won else 0)
+        if a.type == "Project":
+            return PROJECT_POINTS
+        return 0
+
+    breakdown = calculate_achievement_points(db, student.id)
+    return {
+        "profile_score": calculate_cgpa_points(student.cgpa)["cgpa_points"] + breakdown["total_achievement_points"],
+        "achievements_count": len(rows),
+        "achievements_breakdown": {
+            "certificates": breakdown["certificate_count"], "projects": breakdown["project_count"],
+            "hackathons": breakdown["hackathon_count"], "activities": sum(1 for a in rows if a.type == "Activity"),
+        },
+        "achievement_items": [{
+            "id": a.id, "title": a.title, "type": a.type, "year": a.year, "won": bool(a.won), "points": points(a),
+        } for a in rows],
     }
 
 
@@ -202,7 +238,9 @@ def dashboard(
     user: User = Depends(require_role("student")),
 ):
     s = db.query(Student).filter(Student.id == user.student_id).first()
-    record = _student_dict(s)
+    if not s:
+        raise HTTPException(status_code=404, detail="Student record not found")
+    record = {**_student_dict(s), **_achievement_summary(db, s)}
     return apply_demo_mask(record, demo_mode)
 
 
@@ -524,10 +562,22 @@ def documents(db: Session = Depends(get_db), user: User = Depends(require_role("
 
 @router.get("/placement")
 def my_placement(db: Session = Depends(get_db), user: User = Depends(require_role("student"))):
-    p = db.query(Placement).filter(Placement.student_id == user.student_id).first()
-    if not p:
-        return {"available": False, "note": "No placement record found for this student."}
-    return {"available": True, "placed": p.placed, "placement_type": p.placement_type, "resume_link": p.resume_link, "company": p.company, "ctc": p.ctc}
+    from app.core import placement_stats
+
+    records = placement_stats.student_records(db, user.student_id)
+    offers = records["placements"]
+    any_row = db.query(Placement).filter(Placement.student_id == user.student_id).first()
+    if not any_row:
+        return {"available": False, "note": "No placement record found for this student.", "placements": [], "internships": records["internships"]}
+    # The headline offer is the best-paid one; every offer is listed alongside.
+    best = max(offers, key=lambda o: o["package_lpa"] or 0, default=None)
+    return {
+        "available": True, "placed": bool(offers), "placement_type": any_row.placement_type,
+        "resume_link": any_row.resume_link,
+        "company": best["company"] if best else None, "ctc": best["ctc"] if best else None,
+        "offer_type": best["offer_type"] if best else None, "status": best["status"] if best else None,
+        "placements": offers, "internships": records["internships"],
+    }
 
 
 @router.get("/courses")
@@ -542,14 +592,21 @@ def my_counseling(db: Session = Depends(get_db), user: User = Depends(require_ro
     this was previously 100% mock data and never showed real teacher notes."""
     from app.models.models import CounselingNote, Faculty
     rows = db.query(CounselingNote).filter(CounselingNote.student_id == user.student_id).order_by(CounselingNote.date.desc()).all()
+    faculty = {f.id: f for f in db.query(Faculty).filter(Faculty.id.in_({n.faculty_id for n in rows})).all()} if rows else {}
     mentor = None
-    if rows:
-        f = db.query(Faculty).filter(Faculty.id == rows[0].faculty_id).first()
-        if f:
-            mentor = {"name": f.name, "designation": f.designation}
+    if rows and rows[0].faculty_id in faculty:
+        f = faculty[rows[0].faculty_id]
+        mentor = {"name": f.name, "designation": f.designation}
     return {
         "mentor": mentor,
-        "notes": [{"date": str(n.date), "note": n.note} for n in rows],
+        "notes": [{
+            "id": n.id, "date": str(n.date), "note": n.note,
+            "teacher_name": faculty[n.faculty_id].name if n.faculty_id in faculty else None,
+            "reply_status": n.reply_status, "reply_description": n.reply_description,
+            "replied_at": str(n.replied_at) if n.replied_at else None,
+            "teacher_reply": n.teacher_reply,
+            "teacher_replied_at": str(n.teacher_replied_at) if n.teacher_replied_at else None,
+        } for n in rows],
     }
 
 
@@ -650,7 +707,25 @@ def delete_certificate(certificate_id: int, db: Session = Depends(get_db), user:
 def my_internships(db: Session = Depends(get_db), user: User = Depends(require_role("student"))):
     from app.models.models import Internship
     rows = db.query(Internship).filter(Internship.student_id == user.student_id).all()
-    return [{"company": r.company, "duration": r.duration_text, "stipend": r.stipend or "Not Available"} for r in rows]
+
+    def duration(r: Internship):
+        if r.duration_text:
+            return r.duration_text
+        if r.start_date and r.end_date:
+            return f"{r.start_date:%d %b %Y} – {r.end_date:%d %b %Y}"
+        return None
+
+    def stipend(r: Internship):
+        if r.stipend_per_month is not None:
+            return f"\u20b9{int(r.stipend_per_month):,} / month"
+        return r.stipend or "Not Available"
+
+    return [{
+        "id": r.id, "company": r.company_ref.name if r.company_ref else r.company, "role": r.role,
+        "duration": duration(r), "stipend": stipend(r),
+        "stipend_per_month": float(r.stipend_per_month) if r.stipend_per_month is not None else None,
+        "status": r.status, "verified": bool(r.verified),
+    } for r in rows]
 
 
 @router.get("/attendance")
