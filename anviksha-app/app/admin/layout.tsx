@@ -1,7 +1,9 @@
 "use client";
 
-import { Sidebar, NavItem } from "@/components/layout/Sidebar";
-import { AuthGuard } from "@/components/ui/AuthGuard";
+import { useEffect, useState } from "react";
+import { NavItem } from "@/components/layout/Sidebar";
+import { AppShell } from "@/components/layout/AppShell";
+import { api } from "@/lib/api";
 import {
   LayoutDashboard, Users, GraduationCap, UserCog, BookOpen, FileStack,
   ClipboardList, BarChart3, ListChecks, Bot, Briefcase,
@@ -9,9 +11,9 @@ import {
 
 const navItems: NavItem[] = [
   { key: "dashboard", label: "Dashboard", href: "/admin", icon: LayoutDashboard },
-  { key: "users", label: "Manage Users", href: "/admin/users", icon: UserCog },
-  { key: "students", label: "Student Dataset", href: "/admin/datasets/students", icon: GraduationCap },
-  { key: "faculty", label: "Faculty Dataset", href: "/admin/datasets/faculty", icon: Users },
+  { key: "users", label: "Manage Users", short: "Users", href: "/admin/users", icon: UserCog },
+  { key: "students", label: "Student Dataset", short: "Students", href: "/admin/datasets/students", icon: GraduationCap },
+  { key: "faculty", label: "Faculty Dataset", short: "Faculty", href: "/admin/datasets/faculty", icon: Users },
   { key: "subjects", label: "Subject Dataset", href: "/admin/datasets/subjects", icon: BookOpen },
   { key: "placements", label: "Placement Analytics", href: "/admin/placements", icon: Briefcase },
   { key: "documents", label: "Document Requests", href: "/admin/documents", icon: FileStack },
@@ -21,12 +23,15 @@ const navItems: NavItem[] = [
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const [meta, setMeta] = useState("Administrator");
+
+  useEffect(() => {
+    api.me().then((d) => setMeta(d.email || "Administrator")).catch(() => {});
+  }, []);
+
   return (
-    <AuthGuard requiredRole="admin">
-      <div className="flex bg-surface min-h-screen">
-        <Sidebar navItems={navItems} userName="Admin" userMeta="Super Administrator" roleLabel="Admin" />
-        <div className="flex-1 min-w-0">{children}</div>
-      </div>
-    </AuthGuard>
+    <AppShell role="admin" roleLabel="Admin" navItems={navItems} userName="Admin" userMeta={meta}>
+      {children}
+    </AppShell>
   );
 }

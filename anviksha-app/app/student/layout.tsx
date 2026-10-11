@@ -1,7 +1,9 @@
 "use client";
 
-import { Sidebar, NavItem } from "@/components/layout/Sidebar";
-import { AuthGuard } from "@/components/ui/AuthGuard";
+import { useEffect, useState } from "react";
+import { NavItem } from "@/components/layout/Sidebar";
+import { AppShell } from "@/components/layout/AppShell";
+import { api } from "@/lib/api";
 import {
   LayoutDashboard, User, TrendingUp, CalendarCheck, Award, FileText,
   BookOpen, HeartHandshake, Bot, Briefcase,
@@ -9,8 +11,8 @@ import {
 
 const navItems: NavItem[] = [
   { key: "dashboard", label: "Dashboard", href: "/student", icon: LayoutDashboard },
-  { key: "profile", label: "My Profile", href: "/student/profile", icon: User },
-  { key: "rank", label: "Class Rank", href: "/student/rank", icon: TrendingUp },
+  { key: "profile", label: "My Profile", short: "Profile", href: "/student/profile", icon: User },
+  { key: "rank", label: "Class Rank", short: "Rank", href: "/student/rank", icon: TrendingUp },
   { key: "attendance", label: "Attendance", href: "/student/attendance", icon: CalendarCheck },
   { key: "achievements", label: "Achievements", href: "/student/achievements", icon: Award },
   { key: "placement", label: "Placement", href: "/student/placement", icon: Briefcase },
@@ -22,12 +24,16 @@ const navItems: NavItem[] = [
 ];
 
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
+  const [name, setName] = useState("Student");
+  const [meta, setMeta] = useState("Student");
+
+  useEffect(() => {
+    api.studentDashboard().then((d) => { setName(d.name); setMeta(d.usn || "Student"); }).catch(() => {});
+  }, []);
+
   return (
-    <AuthGuard requiredRole="student">
-      <div className="flex bg-surface min-h-screen">
-        <Sidebar navItems={navItems} userName="Student" userMeta="Logged in" roleLabel="Student" />
-        <div className="flex-1 min-w-0">{children}</div>
-      </div>
-    </AuthGuard>
+    <AppShell role="student" roleLabel="Student" navItems={navItems} userName={name} userMeta={meta}>
+      {children}
+    </AppShell>
   );
 }

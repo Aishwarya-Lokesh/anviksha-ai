@@ -1,34 +1,32 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Sidebar, NavItem } from "@/components/layout/Sidebar";
-import { AuthGuard } from "@/components/ui/AuthGuard";
+import { NavItem } from "@/components/layout/Sidebar";
+import { AppShell } from "@/components/layout/AppShell";
 import { api } from "@/lib/api";
 import { LayoutDashboard, GraduationCap, Users, Briefcase, Bot, ClipboardCheck, BarChart3 } from "lucide-react";
 
 const navItems: NavItem[] = [
   { key: "dashboard", label: "Dashboard", href: "/hod", icon: LayoutDashboard },
-  { key: "students", label: "Department Students", href: "/hod/students", icon: GraduationCap },
-  { key: "faculty", label: "Faculty Workload", href: "/hod/faculty", icon: Users },
-  { key: "faculty-monitoring", label: "Faculty Monitoring", href: "/hod/faculty-monitoring", icon: ClipboardCheck },
+  { key: "students", label: "Department Students", short: "Students", href: "/hod/students", icon: GraduationCap },
+  { key: "faculty", label: "Faculty Workload", short: "Faculty", href: "/hod/faculty", icon: Users },
+  { key: "faculty-monitoring", label: "Faculty Monitoring", short: "Monitoring", href: "/hod/faculty-monitoring", icon: ClipboardCheck },
   { key: "assessment-analytics", label: "Assessment Analytics", href: "/hod/assessment-analytics", icon: BarChart3 },
   { key: "placements", label: "Placement Analytics", href: "/hod/placements", icon: Briefcase },
   { key: "assistant", label: "Ask Anviksha AI", href: "/hod/assistant", icon: Bot },
 ];
 
 export default function HodLayout({ children }: { children: React.ReactNode }) {
-  const [meta, setMeta] = useState("Head of Department");
+  const [name, setName] = useState("Head of Department");
+  const [meta, setMeta] = useState("Department");
 
   useEffect(() => {
-    api.hodMe().then((d) => setMeta(d.department || "Head of Department")).catch(() => {});
+    api.hodMe().then((d) => { setName(d.title || "Head of Department"); setMeta(d.department || "Department"); }).catch(() => {});
   }, []);
 
   return (
-    <AuthGuard requiredRole="hod">
-      <div className="flex bg-surface min-h-screen">
-        <Sidebar navItems={navItems} userName="HOD" userMeta={meta} roleLabel="HOD" />
-        <div className="flex-1 min-w-0">{children}</div>
-      </div>
-    </AuthGuard>
+    <AppShell role="hod" roleLabel="HOD" navItems={navItems} userName={name} userMeta={meta}>
+      {children}
+    </AppShell>
   );
 }
