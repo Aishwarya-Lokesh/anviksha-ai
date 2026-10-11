@@ -8,7 +8,7 @@ import os
 from app.core.database import get_db
 from app.core.security import require_role, get_current_user
 from app.core.demo_mode import apply_demo_mask
-from app.models.models import Student, Achievement, DocumentRequest, User, Placement, CourseCompletion, AttendanceRecord, AttendanceSession, Subject
+from app.models.models import Student, Achievement, DocumentRequest, User, Placement, CourseCompletion, AttendanceRecord, AttendanceSession, Subject, CertificateFile
 from app.models.schemas import AchievementCreate, DocumentRequestCreate, ProfileUpdate
 
 router = APIRouter(prefix="/student", tags=["student"])
@@ -203,9 +203,10 @@ def _achievement_summary(db: Session, student: Student) -> dict:
     the Excellence Score page and Teacher > Performance use, so the three can
     never disagree."""
     from app.core.scoring import (
-        calculate_achievement_points, calculate_cgpa_points,
+        calculate_achievement_points, calculate_cgpa_points, verified_certificate_files,
         CERT_POINTS, HACKATHON_PARTICIPATE_POINTS, HACKATHON_WIN_BONUS, PROJECT_POINTS,
     )
+    cert_files = verified_certificate_files(db, student.id).order_by(CertificateFile.id.desc()).all()
     rows = db.query(Achievement).filter(Achievement.student_id == student.id).order_by(Achievement.id.desc()).all()
 
     def points(a: Achievement) -> int:
@@ -220,14 +221,17 @@ def _achievement_summary(db: Session, student: Student) -> dict:
     breakdown = calculate_achievement_points(db, student.id)
     return {
         "profile_score": calculate_cgpa_points(student.cgpa)["cgpa_points"] + breakdown["total_achievement_points"],
-        "achievements_count": len(rows),
+        "achievements_count": len(rows) + len(cert_files),
         "achievements_breakdown": {
             "certificates": breakdown["certificate_count"], "projects": breakdown["project_count"],
             "hackathons": breakdown["hackathon_count"], "activities": sum(1 for a in rows if a.type == "Activity"),
         },
         "achievement_items": [{
             "id": a.id, "title": a.title, "type": a.type, "year": a.year, "won": bool(a.won), "points": points(a),
-        } for a in rows],
+        } for a in rows] + [{
+            "id": f"cert-{c.id}", "title": c.display_label or "Certificate", "type": "Certificate",
+            "year": c.uploaded_at.year if c.uploaded_at else None, "won": False, "points": CERT_POINTS,
+        } for c in cert_files],
     }
 
 

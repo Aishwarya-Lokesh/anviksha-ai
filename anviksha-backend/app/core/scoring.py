@@ -15,7 +15,7 @@ counted once, with the win bonus added on top).
 """
 
 from sqlalchemy.orm import Session
-from app.models.models import Achievement
+from app.models.models import Achievement, CertificateFile
 
 CERT_POINTS = 50
 HACKATHON_PARTICIPATE_POINTS = 50
@@ -27,7 +27,10 @@ def calculate_achievement_points(db: Session, student_id: int) -> dict:
     """Real, live-computed breakdown — never cached, never hardcoded."""
     achievements = db.query(Achievement).filter(Achievement.student_id == student_id).all()
 
-    cert_count = sum(1 for a in achievements if a.type == "Certificate")
+    # Certificates count from both places they are recorded: ones the student
+    # added as an achievement, and verified certificate files on their record
+    # (e.g. MOOC certificates). Demo/placeholder files never count.
+    cert_count = sum(1 for a in achievements if a.type == "Certificate") + verified_certificate_files(db, student_id).count()
     hackathon_count = sum(1 for a in achievements if a.type == "Hackathon")
     hackathon_won_count = sum(1 for a in achievements if a.type == "Hackathon" and a.won)
     project_count = sum(1 for a in achievements if a.type == "Project")
@@ -46,6 +49,13 @@ def calculate_achievement_points(db: Session, student_id: int) -> dict:
         "project_count": project_count, "project_points": project_points,
         "total_achievement_points": total,
     }
+
+
+def verified_certificate_files(db: Session, student_id: int):
+    return db.query(CertificateFile).filter(
+        CertificateFile.student_id == student_id, CertificateFile.is_demo == False,  # noqa: E712
+        CertificateFile.category == "Certificate",
+    )
 
 
 def calculate_cgpa_points(cgpa) -> dict:

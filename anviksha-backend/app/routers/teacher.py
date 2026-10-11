@@ -1608,7 +1608,10 @@ def attendance_analytics(subject_id: int, date: str, db: Session = Depends(get_d
     absence streak of 4+ sessions — both computed directly from real
     AttendanceSession/AttendanceRecord rows, never simulated."""
     from datetime import timedelta
-    target_date = datetime.strptime(date, "%Y-%m-%d").date()
+    try:
+        target_date = datetime.strptime(date, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Date must be in YYYY-MM-DD format")
     week_start = target_date - timedelta(days=6)
 
     week_sessions = db.query(AttendanceSession).filter(

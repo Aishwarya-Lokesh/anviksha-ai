@@ -122,6 +122,18 @@ def test_dashboard_carries_score_and_achievements(client, campus):
     assert d["profile_score"] == client.get("/student/excellence-score", headers=h["s1"]).json()["total_score"] == 800 + 300
     assert all(i["title"] != "Someone else's" for i in d["achievement_items"])
 
+    # verified certificate files count as certificates; demo files never do
+    db.add_all([
+        m.CertificateFile(student_id=s1.id, filename="real.pdf", display_label="MOOC Certificate", category="Certificate", is_demo=False),
+        m.CertificateFile(student_id=s1.id, filename="demo.pdf", display_label="Placeholder", category="Certificate", is_demo=True),
+        m.CertificateFile(student_id=s1.id, filename="demo-h.pdf", category="Hackathon", is_demo=True),
+    ])
+    db.commit()
+    d = client.get("/student/dashboard", headers=h["s1"]).json()
+    assert d["achievements_count"] == 4 and d["achievements_breakdown"]["certificates"] == 2
+    assert d["profile_score"] == client.get("/student/excellence-score", headers=h["s1"]).json()["total_score"] == 800 + 350
+    assert [i["title"] for i in d["achievement_items"] if str(i["id"]).startswith("cert-")] == ["MOOC Certificate"]
+
 
 # ---------- IA marks ----------
 
@@ -306,3 +318,18 @@ def test_education_saved_and_validated(client, campus):
     assert client.patch("/student/education", headers=h["s1"], json={"education": [{**rows[0], "score": 85}]}).status_code == 400   # cgpa out of 10
     assert client.patch("/student/education", headers=h["s1"], json={"education": [{**rows[0], "year": 1200}]}).status_code == 400
     assert client.patch("/student/education", headers=h["t1"], json={"education": rows}).status_code == 403
+
+
+# ---------- admin document requests ----------
+
+def test_admin_lists_document_requests_with_student_names(client, campus):
+    """This endpoint failed on the live site for every request: the code read
+    a request's student, but the two were never linked."""
+    db = campus["db"]
+    admin = m.User(email="admin@test.local", hashed_password="x", role="admin")
+    db.add_all([admin, m.DocumentRequest(student_id=campus["s1"].id, type="Bonafide Certificate", purpose="Bank loan")])
+    db.commit()
+    r = client.get("/admin/documents", headers=auth_headers(admin.id))
+    assert r.status_code == 200, r.text
+    assert [(d["student_name"], d["type"], d["status"]) for d in r.json()] == [("Asha Rao", "Bonafide Certificate", "Pending")]
+    assert client.get("/admin/documents", headers=campus["h"]["s1"]).status_code == 403

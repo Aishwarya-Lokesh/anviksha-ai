@@ -146,6 +146,8 @@ class DocumentRequest(Base):
     status = Column(String, default="Pending")
     requested_date = Column(DateTime, server_default=func.now())
 
+    student = relationship("Student")
+
 
 class CounselingNote(Base):
     __tablename__ = "counseling_notes"
