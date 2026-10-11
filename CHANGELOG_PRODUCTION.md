@@ -178,3 +178,28 @@ Migration `e6f7a8b9c0d1` (additive): counseling reply columns, resume file and e
 
 ### Not verified
 - Against the live site and real accounts. The browser tests used a stand-in server.
+
+## Anonymous feedback
+
+- **Students** get a Feedback page listing the subjects and teachers they are taught this semester. Each can be rated once on five questions (1–5 stars) with an optional comment.
+- **Teachers** see their own results under Performance & Feedback → Student feedback: overall average, average per question, a rating-over-time chart, and per subject the spread of ratings and the written comments.
+- **HOD** gets a Faculty Feedback page: department average, a faculty comparison chart, every faculty member's rating, and a full breakdown per person. The batch filter and the open faculty member are kept in the address, so the view can be bookmarked and the browser's Back button works.
+- Teachers are notified when new feedback arrives, without being told who sent it.
+- Migration `a8b9c0d1e2f3` (additive): `feedback` and `feedback_submissions`.
+- No feedback has been seeded. Every screen shows an explanatory empty state until students respond.
+
+### How anonymity is kept
+- The answers table has **no student column**. A separate table records only that a student has responded for a subject (so they can respond once); it holds no answers and no time, and nothing links the two.
+- A teacher sees results only once **at least 3 students** have responded, overall and per subject. Below that, they see "2 of 3 responses needed". The HOD sees results from the first response.
+
+### Decisions made (please confirm)
+- **The five questions:** explains concepts clearly; command of the subject; pace and syllabus coverage; helpful with doubts outside class; overall teaching.
+- **The 3-response threshold** before a teacher sees anything.
+- **One response per subject per semester, not editable afterwards.** Because answers are not linked to the student, there is no way to let them edit later.
+- **Feedback is always open.** There is no start or end date an admin controls.
+- **Who a student can rate:** teachers who have set up a class for the student's batch and semester, plus the scheme's allotted teacher for any other subject of that semester. This second rule is needed because only one teacher has set up their classes so far.
+
+### Verified
+- 6 new backend tests: who may rate whom, validation, that no student is stored with the answers, the 3-response threshold, teacher sees only their own, HOD sees only their department (69 pass).
+- Browser test, 40 checks at 1440 px and 360 px: the student form (cannot submit until every question is rated, correct data sent, subject marked submitted), the teacher view in all three states (results, too few responses, none), and the HOD overview, batch filter, drill-down and Back button.
+- All five migrations rehearsed up, down and up again on a scratch copy.
