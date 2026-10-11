@@ -171,6 +171,20 @@ export const api = {
 
   accountProfile: () => request("/auth/profile"),
 
+  // ---- feedback ----
+  studentFeedback: () => request("/student/feedback"),
+
+  submitFeedback: (payload: { subject_id: number; faculty_id: number; ratings: Record<string, number>; comment: string | null }) =>
+    request("/student/feedback", { method: "POST", body: JSON.stringify(payload) }),
+
+  teacherFeedback: () => request("/teacher/feedback"),
+
+  hodFeedback: (batch?: string) =>
+    request(`/hod/feedback${batch ? `?batch=${encodeURIComponent(batch)}` : ""}`),
+
+  hodFacultyFeedback: (facultyId: number, batch?: string) =>
+    request(`/hod/feedback/${facultyId}${batch ? `?batch=${encodeURIComponent(batch)}` : ""}`),
+
   updateAccountProfile: (payload: Record<string, string>) =>
     request("/auth/profile", { method: "PATCH", body: JSON.stringify(payload) }),
 

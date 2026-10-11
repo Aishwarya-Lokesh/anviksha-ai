@@ -10,6 +10,8 @@ import { CenterModal } from "@/components/ui/Modal";
 import { motion } from "framer-motion";
 import { Users, TrendingUp, AlertTriangle, GraduationCap } from "lucide-react";
 import { api } from "@/lib/api";
+import { useSearchParams } from "next/navigation";
+import { TeacherFeedback } from "@/components/feedback/TeacherFeedback";
 
 const MODES = [
   { key: "subject", label: "My Subject" },
@@ -47,6 +49,10 @@ export default function PerformancePage() {
   const [semesters, setSemesters] = useState<number[]>([]);
   const [semester, setSemester] = useState<number | null>(null);
   const [mode, setMode] = useState("achievements");
+  // "Student feedback" can be linked to directly with ?view=feedback
+  const linkedView = useSearchParams().get("view");
+  const [view, setView] = useState(linkedView === "feedback" ? "feedback" : "performance");
+  useEffect(() => { if (linkedView === "feedback") setView("feedback"); }, [linkedView]);
   const [subjects, setSubjects] = useState<any[]>([]);
   const [subjectId, setSubjectId] = useState<number | null>(null);
   const [data, setData] = useState<any>(null);
@@ -85,8 +91,12 @@ export default function PerformancePage() {
 
   return (
     <>
-      <Topbar greeting="Performance & Feedback" subtitle="Dashboard > Performance" avatarLetter="T" />
-      <div className="p-4 md:p-8 space-y-6">
+      <Topbar greeting="Performance & Feedback" subtitle="Dashboard > Performance & Feedback" avatarLetter="T" />
+      <div className="px-4 md:px-8 pt-4 md:pt-6">
+        <PillNav items={[{ key: "performance", label: "Student performance" }, { key: "feedback", label: "Student feedback" }]} active={view} onChange={setView} />
+      </div>
+      {view === "feedback" && <div className="p-4 md:p-8"><TeacherFeedback /></div>}
+      <div className={`p-4 md:p-8 space-y-6 ${view === "feedback" ? "hidden" : ""}`}>
         <div className="flex items-center gap-3 flex-wrap">
           <span className="text-xs font-medium text-muted">Batch:</span>
           <PillNav items={batches.map((b) => ({ key: b, label: `${b} Batch` }))} active={batch} onChange={setBatch} />

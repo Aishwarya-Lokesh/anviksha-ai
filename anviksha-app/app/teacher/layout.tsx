@@ -29,6 +29,7 @@ const quickActions: QuickAction[] = [
   { label: "Mark attendance", href: "/teacher/attendance", keywords: "present absent" },
   { label: "Post a note or deadline", href: "/teacher/notes", keywords: "assignment study material" },
   { label: "Enter IA marks", href: "/teacher/ia-marks", keywords: "internal assessment scores" },
+  { label: "See my student feedback", href: "/teacher/performance?view=feedback", keywords: "ratings review anonymous" },
 ];
 
 export default function TeacherLayout({ children }: { children: React.ReactNode }) {
