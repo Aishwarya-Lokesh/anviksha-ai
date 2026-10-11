@@ -4,7 +4,7 @@ Work happens on the local branch `hardening/phase-1`. Nothing here has been push
 
 ## Phase 0 — Audit
 
-- Added `AUDIT.md`.
+- Wrote an internal audit of the site (kept out of this public repository).
 - Restored `anviksha-app/lib/api.ts` to its committed version. The working copy had an uncommitted `[[ … ]]` wrapped around the whole file, which broke type-check and build. A whitespace-insensitive diff showed no other difference.
 
 ## Phase 1 — Global fixes (in progress)
