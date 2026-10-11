@@ -98,7 +98,7 @@ async function request(path: string, options: RequestInit = {}) {
     });
   } catch (error) {
     throw new Error(
-      `Unable to connect to backend at ${API_BASE}. Make sure the FastAPI backend is running.`
+      "Unable to connect to the server. Check your connection and try again."
     );
   }
 
@@ -325,7 +325,7 @@ export const api = {
       );
     } catch {
       throw new Error(
-        `Unable to connect to backend at ${API_BASE}. Make sure the backend is running.`
+        "Unable to connect to the server. Check your connection and try again."
       );
     }
 
@@ -394,7 +394,7 @@ export const api = {
       );
     } catch {
       throw new Error(
-        `Unable to connect to backend at ${API_BASE}. Make sure the backend is running.`
+        "Unable to connect to the server. Check your connection and try again."
       );
     }
 

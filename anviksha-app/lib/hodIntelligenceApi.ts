@@ -17,7 +17,7 @@ async function requestJson(path: string, options: RequestInit = {}) {
   try {
     res = await fetch(`${API_BASE}${path}`, { ...options, headers });
   } catch {
-    throw new Error(`Unable to connect to backend at ${API_BASE}. Make sure the FastAPI backend is running.`);
+    throw new Error("Unable to connect to the server. Check your connection and try again.");
   }
   if (!res.ok) {
     const body = await res.text();

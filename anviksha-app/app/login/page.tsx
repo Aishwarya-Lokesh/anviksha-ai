@@ -32,7 +32,8 @@ function LoginForm() {
       setAuth(res.access_token, res.role);
       router.push(`/${res.role}`);
     } catch (e: any) {
-      setError("Login failed — check your email/password, and that the backend server is running.");
+      const offline = /Unable to connect/i.test(e?.message || "");
+      setError(offline ? "We couldn't reach the server. Check your connection and try again." : "Incorrect email or password.");
     } finally {
       setLoading(false);
     }
@@ -58,21 +59,18 @@ function LoginForm() {
 
         <div className="space-y-3">
           <div>
-            <label className="text-xs font-medium text-muted mb-1 block">Email</label>
-            <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your.login@anviksha.ai" className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/30" />
+            <label htmlFor="login-email" className="text-xs font-medium text-muted mb-1 block">Email</label>
+            <input id="login-email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your.login@anviksha.ai" className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/30" />
           </div>
           <div>
-            <label className="text-xs font-medium text-muted mb-1 block">Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/30" />
+            <label htmlFor="login-password" className="text-xs font-medium text-muted mb-1 block">Password</label>
+            <input id="login-password" autoComplete="current-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/30" />
           </div>
-          {error && <p className="text-xs text-danger">{error}</p>}
-          <button onClick={submit} disabled={loading} className="w-full bg-brand text-white font-semibold py-2.5 rounded-xl hover:bg-brand-dark transition-colors flex items-center justify-center gap-2 mt-2">
+          {error && <p role="alert" className="text-xs text-danger">{error}</p>}
+          <button onClick={submit} disabled={loading} className="w-full bg-brand text-white font-semibold min-h-[44px] rounded-xl hover:bg-brand-dark disabled:opacity-60 transition-colors flex items-center justify-center gap-2 mt-2">
             <LogIn size={15} /> {loading ? "Signing in..." : "Sign In"}
           </button>
         </div>
-        <p className="text-xs text-muted text-center mt-5">
-          Backend must be running at <code className="bg-gray-100 px-1 rounded">127.0.0.1:8000</code>
-        </p>
       </motion.div>
     </main>
   );
