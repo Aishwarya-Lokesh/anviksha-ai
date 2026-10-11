@@ -181,6 +181,39 @@ class Note(Base):
     assignment = relationship("TeachingAssignment")
 
 
+class Feedback(Base):
+    """One anonymous response about one teacher teaching one subject. There is
+    deliberately no student column: see FeedbackSubmission."""
+    __tablename__ = "feedback"
+    id = Column(Integer, primary_key=True)
+    subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=False, index=True)
+    faculty_id = Column(Integer, ForeignKey("faculty.id"), nullable=False, index=True)
+    batch = Column(String, nullable=True, index=True)
+    semester = Column(Integer, nullable=True)
+    clarity = Column(Integer, nullable=False)     # each 1-5
+    knowledge = Column(Integer, nullable=False)
+    pace = Column(Integer, nullable=False)
+    support = Column(Integer, nullable=False)
+    overall = Column(Integer, nullable=False)
+    comment = Column(Text, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+
+class FeedbackSubmission(Base):
+    """Records only that a student has responded for a subject and teacher in
+    a semester, so they can respond once. It holds no answers and no time, and
+    nothing links a row here to a row in feedback."""
+    __tablename__ = "feedback_submissions"
+    __table_args__ = (
+        UniqueConstraint("student_id", "subject_id", "faculty_id", "semester", name="uq_feedback_once"),
+    )
+    id = Column(Integer, primary_key=True)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False, index=True)
+    subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=False)
+    faculty_id = Column(Integer, ForeignKey("faculty.id"), nullable=False)
+    semester = Column(Integer, nullable=True)
+
+
 class QuestionBankChunk(Base):
     """Chunked, subject-tagged text from ingested question papers — indexed
     into the real TF-IDF retrieval layer (app/core/rag_retrieval.py).
