@@ -135,3 +135,46 @@ Migration `e6f7a8b9c0d1` (additive): counseling reply columns, resume file and e
 ### Verified
 - Type-check and production build pass.
 - All 39 signed-in pages for the four roles opened in a browser at 360 px and 1440 px with the server stubbed to fail: no page crashed and none scrolled sideways.
+
+## Search, profile pages and passwords
+
+### Search (command palette)
+- Opens from the search box in the top bar, from a search button on phones, and with Ctrl/Cmd + K.
+- One box finds pages, quick actions and records. Typing filters pages and actions instantly; records come from the server after a short pause.
+- **What each role can find:**
+  - Student: own achievements and certificates, notes and deadlines for their classes, own subjects, document requests and placements.
+  - Teacher: students in their own classes, their subjects, the notes they posted, their question papers and presentations.
+  - HOD: students, faculty, subjects and recruiters in their department.
+  - Admin: all of those across departments, plus document requests and login accounts.
+- Keyboard navigation (arrows, Enter, Esc), highlighted matches, grouped results, recent searches, and a "no results" state.
+- Choosing a student opens the right list already filtered to them. Quick actions such as "Add an achievement" open the form directly.
+- `GET /search` rewritten. The old version let a teacher search every student, returned nothing for an HOD, and its results could not be clicked.
+
+### Profile pages
+- New profile page for teachers, HODs and admins (`/teacher/profile`, `/hod/profile`, `/admin/profile`), linked from the sidebar and from the avatar in the top bar.
+- Shows the person's record, lets them upload a photo, and edit only what is theirs to edit: a teacher's qualifications; an HOD's display name and title; an admin's display name. Names, USNs, designations and departments stay with the admin screens.
+- The sidebar and top bar now show the signed-in person's real name and photo from one shared source, so a change appears everywhere at once. The four separate per-layout lookups are gone.
+- Migration `f7a8b9c0d1e2` (additive): `display_name` and `photo_url` on login accounts.
+
+### Change password
+- Every role can change their own password from their profile page: current password required, at least 8 characters with letters and numbers. Recorded in the activity log.
+
+### Wording
+- Removed the repeated assurances that data is "real" from about 60 labels and messages.
+
+### Bug found by browser testing and fixed
+- Reopening the search immediately after closing it could keep the previous text in the box.
+
+### Decisions made
+- **Students cannot search for other students.** Search only ever returns a student's own records.
+- **Search matching is "contains", case-insensitive**, on names, USNs, codes and titles. The brief suggested full-text search or `ilike`; with a few hundred rows per table this is fast and behaves the same on both databases. Wildcard characters typed by a user are treated as plain text.
+- **Photo and resume files get a new file name on every upload**, so a browser never keeps showing the old one.
+
+### Verified
+- 8 new backend tests for search scoping per role and for the account endpoints (63 pass).
+- Browser test, 25 checks, at 1440 px and 360 px: opening by keyboard and by button, filtering, grouped server results, highlight, debounce, Enter to open, pre-filtered landing page, recent searches, no-results state, Esc, quick actions, profile edit, and change-password success and failure. Run repeatedly to confirm it is stable.
+- All 42 signed-in pages for the four roles opened at 360 px and 1440 px with the server failing: no crashes, no sideways scrolling.
+- All four migrations rehearsed up, down and up again on a scratch copy.
+
+### Not verified
+- Against the live site and real accounts. The browser tests used a stand-in server.
