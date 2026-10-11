@@ -116,3 +116,22 @@ Migration `e6f7a8b9c0d1` (additive): counseling reply columns, resume file and e
 ### Not verified
 - None of this has run against Postgres or the live site yet.
 - Files attached to notes and uploaded resumes need the storage bucket to survive a server restart.
+
+## Dummy data and developer labels removed
+
+- **Status pills gone:** the "● Live data from backend / ○ Mock data (backend not connected)" label is removed from all 25 pages that had it.
+- **Sample data deleted:** the six JSON files in `anviksha-app/data/` and every import of them. No page can show invented students, faculty, charts or requests any more.
+- **Honest states instead:** pages that used to fall back to sample data now show a loading message, an error with a "Try again" button, or an empty state. New shared components: `components/ui/States.tsx` (`LoadError`, `EmptyState`).
+- **No more pretend saves:** adding, editing or deleting a student or faculty member, saving a profile, saving education and submitting a document request used to report success ("saved locally only") when the request had actually failed. They now show an error and leave the screen unchanged.
+- **Wording:** no user-facing message mentions "backend", "mock", "demo" or "real data" any more.
+- **AI assistant:** the canned-answer code path is removed; the assistant only ever shows what the server returned.
+- **Student document requests** now show the date they were raised.
+
+### Removed because they were fake (flagged for your decision)
+- **Admin dashboard "Dashboard Overview" trend chart and "Students by Department" donut** were drawn from static numbers. Replaced with two real charts: students per batch, and active vs passed-out.
+- **Admin dashboard "System Status: All Systems Operational — last updated just now"** banner was hard-coded text. Removed.
+- **"Import Excel" on the Student and Subject dataset pages.** One only added rows to the screen without saving them; the other only showed a message. Both buttons are removed until a real import exists (planned with the admin work).
+
+### Verified
+- Type-check and production build pass.
+- All 39 signed-in pages for the four roles opened in a browser at 360 px and 1440 px with the server stubbed to fail: no page crashed and none scrolled sideways.
