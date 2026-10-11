@@ -39,6 +39,8 @@ class Student(Base):
     github = Column(String, nullable=True)
     skills = Column(String, nullable=True)
     resume_link = Column(String, nullable=True)
+    resume_file = Column(String, nullable=True)   # stored filename of the uploaded resume, if any
+    education = Column(JSON, nullable=True)       # list of {level, institution, board, score, year} for the Resume Builder
 
     department = relationship("Department", back_populates="students")
 
@@ -53,6 +55,7 @@ class Faculty(Base):
     qualifications = Column(String, nullable=True)
     vtu_teacher_id = Column(String, nullable=True, unique=True)  # real teacher ID from the roster, for traceability
     extra_work = Column(String, nullable=True)  # e.g. "Class Coordinator", "Placement Coordinator", or custom text, editable by HOD
+    extra_work_status = Column(String, nullable=True)  # "pending" | "completed" — set by the teacher it was assigned to
 
     department = relationship("Department", back_populates="faculty")
     subjects = relationship("Subject", back_populates="faculty")
@@ -151,6 +154,31 @@ class CounselingNote(Base):
     faculty_id = Column(Integer, ForeignKey("faculty.id"))
     note = Column(Text, nullable=False)
     date = Column(DateTime, server_default=func.now())
+    # The student's response to the note, and the teacher's follow-up to that.
+    reply_status = Column(String, nullable=True)       # e.g. "Pending" | "In Progress" | "Done"
+    reply_description = Column(Text, nullable=True)
+    replied_at = Column(DateTime, nullable=True)
+    teacher_reply = Column(Text, nullable=True)
+    teacher_replied_at = Column(DateTime, nullable=True)
+
+
+class Note(Base):
+    """A study note or a deadline a teacher posts to one of their classes.
+    Students see it when they belong to that teaching assignment's batch,
+    semester and section."""
+    __tablename__ = "notes"
+    id = Column(Integer, primary_key=True)
+    teaching_assignment_id = Column(Integer, ForeignKey("teaching_assignments.id"), nullable=True)
+    faculty_id = Column(Integer, ForeignKey("faculty.id"), nullable=True)
+    kind = Column(String, nullable=True)       # "note" | "deadline"
+    title = Column(String, nullable=True)
+    description = Column(Text, nullable=True)
+    due_date = Column(String, nullable=True)   # YYYY-MM-DD, deadlines only
+    file_url = Column(String, nullable=True)   # stored filename of the attachment
+    created_at = Column(DateTime, server_default=func.now())
+
+    faculty = relationship("Faculty")
+    assignment = relationship("TeachingAssignment")
 
 
 class QuestionBankChunk(Base):
