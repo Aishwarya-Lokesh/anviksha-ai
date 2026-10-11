@@ -11,6 +11,8 @@ import { LoadError, EmptyState } from "@/components/ui/States";
 import { api, API_BASE } from "@/lib/api";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { FileCheck, Download } from "lucide-react";
+import { ChangePasswordCard } from "@/components/account/AccountPage";
+import { refreshProfile } from "@/lib/useProfile";
 
 function CompletionRing({ value }: { value: number }) {
   const r = 46;
@@ -62,8 +64,9 @@ export default function ProfilePage() {
   const handlePhotoUpload = async (file: File) => {
     setUploadingPhoto(true);
     try {
-      const res = await api.uploadProfilePhoto(file);
+      const res = await api.uploadAccountPhoto(file);
       setProfile((p: any) => ({ ...p, photo_url: res.photo_url }));
+      refreshProfile();   // so the header and sidebar show the new photo straight away
       push("Profile photo updated");
     } catch (e: any) {
       push(e.message || "Photo upload failed", "error");
@@ -216,6 +219,7 @@ export default function ProfilePage() {
             </div>
           )}
         </Card>
+        <ChangePasswordCard />
       </div>
 
       <Drawer open={open} onClose={() => setOpen(false)} title="Edit Profile">
