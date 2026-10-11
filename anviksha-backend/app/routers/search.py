@@ -170,4 +170,9 @@ def global_search(q: str = Query(..., min_length=1, max_length=80), db: Session 
     else:
         groups = []
     groups = [g for g in groups if g["items"]]
-    return {"query": q, "total_results": sum(len(g["items"]) for g in groups), "groups": groups}
+    return {
+        "query": q, "total_results": sum(len(g["items"]) for g in groups), "groups": groups,
+        # The shape the previous search box read. Kept so a browser still holding
+        # the older page (during a deploy, or from its cache) doesn't break.
+        "results": {g["key"]: [{"name": i["title"], "status": i.get("subtitle")} for i in g["items"]] for g in groups},
+    }

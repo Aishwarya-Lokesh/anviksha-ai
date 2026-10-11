@@ -56,6 +56,8 @@ def test_search_treats_wildcards_as_text_and_needs_login(client, campus):  # noq
     h = campus["h"]
     assert client.get("/search?q=%25", headers=h["hod"]).json()["total_results"] == 0   # "%" is not "match everything"
     assert client.get("/search?q=_", headers=h["hod"]).json()["total_results"] == 0
+    legacy = client.get("/search?q=T23", headers=h["hod"]).json()["results"]      # older pages read this shape
+    assert sorted(r["name"] for r in legacy["students"]) == ["Asha Rao", "Bina Kumar"]
     assert client.get("/search?q=a").status_code == 401
     assert client.get("/search?q=", headers=h["hod"]).status_code == 422
 
