@@ -75,3 +75,9 @@ def test_company_spellings_collapse_to_one_name():
     assert canonical_company("  mindsprint   digital ")[0] == "Mindsprint"
     assert canonical_company("Acme  Systems")[0] == "Acme Systems"
     assert canonical_company("ACME systems")[1] == canonical_company("Acme Systems")[1]
+
+
+def test_faculty_role_is_treated_as_teacher():
+    from app.core.security import normalize_role
+    assert normalize_role("faculty") == normalize_role(" Faculty ") == "teacher"
+    assert normalize_role("hod") == "hod"
