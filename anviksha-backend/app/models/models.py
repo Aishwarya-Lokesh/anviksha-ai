@@ -1,8 +1,9 @@
 from sqlalchemy import (
-    Column, Integer, String, Float, Boolean, Date, DateTime, ForeignKey, Text, JSON
+    Column, Integer, String, Float, Boolean, Date, DateTime, ForeignKey, Text, JSON, Numeric,
+    UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func
+from sqlalchemy.sql import func, false
 from app.core.database import Base
 
 
@@ -197,17 +198,67 @@ class TeachingAssignment(Base):
     department = relationship("Department")
 
 
-class Placement(Base):
-    __tablename__ = "placements"
+class Company(Base):
+    """One row per recruiter. name_key is the normalized form (see
+    app.core.placement_matching.company_key) that every import and form goes
+    through, so "DELL", "Dell" and "Dell Technologies" can never become three
+    different companies."""
+    __tablename__ = "companies"
     id = Column(Integer, primary_key=True)
-    student_id = Column(Integer, ForeignKey("students.id"), unique=True)
+    name = Column(String, nullable=False, unique=True)
+    name_key = Column(String, nullable=False, unique=True, index=True)
+    sector = Column(String, nullable=True)
+    logo_url = Column(String, nullable=True)
+    website = Column(String, nullable=True)
+
+
+class PlacementDrive(Base):
+    __tablename__ = "placement_drives"
+    id = Column(Integer, primary_key=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=False)
+    drive_type = Column(String, nullable=True)   # "campus" | "off-campus" | "pool"
+    drive_date = Column(Date, nullable=True)
+    venue = Column(String, nullable=True)
+    batch = Column(String, nullable=True, index=True)  # student entry-year batch, matches Student.batch
+    source_note = Column(String, nullable=True)
+
+    company = relationship("Company")
+
+
+class Placement(Base):
+    """One row per offer. Rows loaded before the companies table existed keep
+    their original free-text company/ctc and may have placed=False (a student
+    recorded as not placed) — those are not offers, so every reader goes
+    through the v_* views, which count only placed rows that weren't declined."""
+    __tablename__ = "placements"
+    __table_args__ = (
+        UniqueConstraint("student_id", "company_id", "offer_type", name="uq_placement_student_company_offer"),
+    )
+    id = Column(Integer, primary_key=True)
+    student_id = Column(Integer, ForeignKey("students.id"), index=True)
     placed = Column(Boolean, default=False)
     placement_type = Column(String, nullable=True)  # "Dream" | "Regular" | None
     resume_link = Column(String, nullable=True)
     company = Column(String, nullable=True)   # real company name, only where the source data actually has it
     ctc = Column(String, nullable=True)       # real package/CTC as given in the source, e.g. "11 LPA"
 
+    usn = Column(String, nullable=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    drive_id = Column(Integer, ForeignKey("placement_drives.id"), nullable=True)
+    role = Column(String, nullable=True)
+    package_lpa = Column(Numeric(6, 2), nullable=True)
+    offer_type = Column(String, nullable=True)   # "full-time" | "PPO" | "internship+PPO"
+    offer_date = Column(Date, nullable=True)
+    status = Column(String, nullable=True)       # "offered" | "accepted" | "joined" | "declined"
+    offer_letter_path = Column(String, nullable=True)
+    verified = Column(Boolean, nullable=False, default=False, server_default=false())
+    source_note = Column(String, nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
     student = relationship("Student")
+    company_ref = relationship("Company")
+    drive = relationship("PlacementDrive")
 
 
 class CourseCompletion(Base):
@@ -224,13 +275,30 @@ class CourseCompletion(Base):
 
 class Internship(Base):
     __tablename__ = "internships"
+    __table_args__ = (
+        UniqueConstraint("student_id", "company_id", "start_date", name="uq_internship_student_company_start"),
+    )
     id = Column(Integer, primary_key=True)
-    student_id = Column(Integer, ForeignKey("students.id"), nullable=False)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False, index=True)
     company = Column(String, nullable=False)
     duration_text = Column(String, nullable=True)  # real text as given, e.g. "May 19th - July 18th"
     stipend = Column(String, nullable=True)  # left null unless a real official figure is provided
 
+    usn = Column(String, nullable=True, index=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True, index=True)
+    role = Column(String, nullable=True)
+    stipend_per_month = Column(Numeric(10, 2), nullable=True)  # INR
+    start_date = Column(Date, nullable=True)
+    end_date = Column(Date, nullable=True)
+    status = Column(String, nullable=True)   # "ongoing" | "completed"
+    mode = Column(String, nullable=True)     # "onsite" | "remote" | "hybrid"
+    certificate_path = Column(String, nullable=True)
+    verified = Column(Boolean, nullable=False, default=False, server_default=false())
+    source_note = Column(String, nullable=True)
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
     student = relationship("Student")
+    company_ref = relationship("Company")
 
 
 class CertificateFile(Base):
