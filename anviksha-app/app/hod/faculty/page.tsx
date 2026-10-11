@@ -49,7 +49,7 @@ export default function HodFacultyPage() {
       setEditing(null);
       loadFaculty();
     } catch {
-      push("Save failed — check backend connection", "error");
+      push("Could not save. Please try again.", "error");
     }
   };
 

@@ -9,15 +9,16 @@ import { useToast } from "@/components/ui/Toaster";
 import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Pencil, Trash2, Search } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import studentsRaw from "@/data/students.json";
-import facultyRaw from "@/data/faculty.json";
+import { LoadError, EmptyState } from "@/components/ui/States";
 import { api } from "@/lib/api";
 
 export default function ManageUsersPage() {
   const searchParams = useSearchParams();
   const [tab, setTab] = useState("students");
-  const [students, setStudents] = useState<any[]>(studentsRaw);
-  const [faculty, setFaculty] = useState<any[]>(facultyRaw);
+  const [students, setStudents] = useState<any[]>([]);
+  const [faculty, setFaculty] = useState<any[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [query, setQuery] = useState("");
   const [liveMode, setLiveMode] = useState(false);
   const [open, setOpen] = useState(false);
@@ -32,12 +33,15 @@ export default function ManageUsersPage() {
     api.adminDepartments().then(setDepartments).catch(() => {});
   }, []);
 
+  const [reloadKey, setReloadKey] = useState(0);
+
   useEffect(() => {
     const params: Record<string, string> = {};
     if (deptFilter) params.department_id = deptFilter;
     if (semFilter) params.semester = semFilter;
-    api.adminStudents(params).then((rows) => { setStudents(rows); setLiveMode(true); }).catch(() => {});
-  }, [deptFilter, semFilter]);
+    setLoadError(false);
+    api.adminStudents(params).then((rows) => { setStudents(rows); setLoaded(true); setLiveMode(true); }).catch(() => setLoadError(true));
+  }, [deptFilter, semFilter, reloadKey]);
 
   useEffect(() => {
     const fetcher = deptFilter ? api.adminFacultyByDept(deptFilter) : api.adminFaculty();
@@ -78,16 +82,16 @@ export default function ManageUsersPage() {
         try {
           const res = await api.adminStudentEdit(editing.id, { usn: editing.usn, name: form.name, batch: form.batch });
           setStudents(students.map((s: any) => (s.id === editing.id ? res : s)));
-          push("Student updated — saved to backend");
-        } catch { push("Backend unreachable — not saved", "error"); }
+          push("Student updated");
+        } catch { push("Could not save the student. Please try again.", "error"); return; }
       } else {
         try {
           const res = await api.adminStudentCreate({ usn: form.usn || `NEW-${Date.now()}`, name: form.name, batch: form.batch });
           setStudents([res, ...students]);
-          push("Student added — saved to backend");
-        } catch {
-          setStudents([{ id: Date.now(), usn: form.usn, name: form.name, batch: form.batch, cgpa: null, backlogs: 0 }, ...students]);
-          push("Backend unreachable — added locally only", "info");
+          push("Student added");
+        } catch (e: any) {
+          push(/already/i.test(e?.message || "") ? "A student with that USN already exists." : "Could not add the student. Please try again.", "error");
+          return;
         }
       }
     } else {
@@ -95,17 +99,14 @@ export default function ManageUsersPage() {
         try {
           const res = await api.adminFacultyEdit(editing.id, { name: form.name, designation: form.designation, email: form.email });
           setFaculty(faculty.map((f: any) => (f.id === editing.id ? res : f)));
-          push("Faculty updated — saved to backend");
-        } catch { push("Backend unreachable — not saved", "error"); }
+          push("Faculty updated");
+        } catch { push("Could not save the faculty member. Please try again.", "error"); return; }
       } else {
         try {
           const res = await api.adminFacultyCreate({ name: form.name, designation: form.designation, email: form.email });
           setFaculty([res, ...faculty]);
-          push("Faculty added — saved to backend");
-        } catch {
-          setFaculty([{ id: Date.now(), ...form }, ...faculty]);
-          push("Backend unreachable — added locally only", "info");
-        }
+          push("Faculty added");
+        } catch { push("Could not add the faculty member. Please try again.", "error"); return; }
       }
     }
     setOpen(false);
@@ -114,26 +115,21 @@ export default function ManageUsersPage() {
   const deleteStudent = async (id: number, name: string) => {
     if (!window.confirm(`Delete ${name}? This cannot be undone.`)) return;
     if (!window.confirm(`Really sure? This permanently removes ${name} and their records.`)) return;
-    try { await api.adminStudentDelete(id); push("Student removed — saved to backend"); }
-    catch { push("Backend unreachable — removed locally only", "info"); }
+    try { await api.adminStudentDelete(id); push("Student removed"); }
+    catch { push("Could not remove the student. Please try again.", "error"); return; }
     setStudents(students.filter((s: any) => s.id !== id));
   };
   const deleteFaculty = async (id: number, name: string) => {
     if (!window.confirm(`Delete ${name}? This cannot be undone.`)) return;
     if (!window.confirm(`Really sure? This permanently removes ${name}.`)) return;
-    try { await api.adminFacultyDelete(id); push("Faculty removed — saved to backend"); }
-    catch { push("Backend unreachable — removed locally only", "info"); }
+    try { await api.adminFacultyDelete(id); push("Faculty removed"); }
+    catch { push("Could not remove the faculty member. Please try again.", "error"); return; }
     setFaculty(faculty.filter((f: any) => f.id !== id));
   };
 
   return (
     <>
       <Topbar greeting="Manage Users" subtitle="Dashboard > Manage Users" avatarLetter="A" />
-      <div className="px-4 md:px-8 pt-4">
-        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${liveMode ? "bg-success/10 text-success" : "bg-warning/10 text-[#9c6b12]"}`}>
-          {liveMode ? "● Live data from backend" : "○ Mock data (backend not connected)"}
-        </span>
-      </div>
       <div className="p-4 md:p-8 space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <PillNav items={[{ key: "students", label: "Students" }, { key: "faculty", label: "Faculty" }]} active={tab} onChange={setTab} />
@@ -157,8 +153,16 @@ export default function ManageUsersPage() {
         </div>
 
         <Card hover>
+          {loadError ? (
+            <LoadError message="We couldn't load users." onRetry={() => setReloadKey((k) => k + 1)} />
+          ) : !loaded ? (
+            <p className="text-sm text-muted text-center py-10">Loading users…</p>
+          ) : (tab === "students" ? filteredStudents : filteredFaculty).length === 0 ? (
+            <EmptyState title={query ? "No one matches your search" : tab === "students" ? "No students yet" : "No faculty yet"} hint={query ? undefined : "Use the Add button above to create the first record."} />
+          ) : (
+          <div className="overflow-x-auto">
           {tab === "students" ? (
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-[760px]">
               <thead>
                 <tr className="text-left text-muted border-b border-gray-100">
                   <th className="py-2.5 font-medium">Name</th><th className="py-2.5 font-medium">USN</th>
@@ -191,7 +195,7 @@ export default function ManageUsersPage() {
               </tbody>
             </table>
           ) : (
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-[560px]">
               <thead>
                 <tr className="text-left text-muted border-b border-gray-100">
                   <th className="py-2.5 font-medium">Name</th><th className="py-2.5 font-medium">Department</th>
@@ -220,6 +224,8 @@ export default function ManageUsersPage() {
                 </AnimatePresence>
               </tbody>
             </table>
+          )}
+          </div>
           )}
         </Card>
       </div>

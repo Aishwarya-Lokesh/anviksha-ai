@@ -22,7 +22,7 @@ export function DashboardSkeleton() {
   );
 }
 
-export function InlineSpinner({ label = "Loading your real data..." }: { label?: string }) {
+export function InlineSpinner({ label = "Loading…" }: { label?: string }) {
   return (
     <div className="flex items-center justify-center gap-2 py-16 text-sm text-muted">
       <motion.div

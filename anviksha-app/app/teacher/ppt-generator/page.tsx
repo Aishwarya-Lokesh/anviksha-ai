@@ -162,7 +162,7 @@ export default function ContentGeneratorPage() {
         push(`Generated using ${res.style_references_used} real style reference(s)`);
       }
     } catch (e: any) {
-      push(e.message || "Backend unreachable", "error");
+      push(e.message || "Could not reach the server. Please try again.", "error");
     }
     setGenerationStage("");
     setLoading(false);

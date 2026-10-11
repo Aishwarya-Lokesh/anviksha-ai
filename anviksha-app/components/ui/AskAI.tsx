@@ -143,12 +143,10 @@ type Msg = { role: "user" | "ai"; text: string; downloadUrl?: string; downloadFi
 
 export function ChatPanel({
   suggestions,
-  mockAnswer,
   askReal,
   initialQuestion,
 }: {
   suggestions: string[];
-  mockAnswer?: (q: string) => string;
   askReal?: (q: string) => Promise<{ answer: string; connected: boolean; download_url?: string; download_filename?: string; chart?: ChartPayload }>;
   initialQuestion?: string;
 }) {
@@ -186,13 +184,10 @@ export function ChatPanel({
         setMessages((m) => [...m, { role: "ai", text: res.answer, downloadUrl: res.download_url, downloadFilename: res.download_filename, chart: res.chart }]);
       } catch {
         setTyping(false);
-        setMessages((m) => [...m, { role: "ai", text: "Couldn't reach the assistant — check backend connection." }]);
+        setMessages((m) => [...m, { role: "ai", text: "I couldn't reach the assistant just now. Please try again in a moment." }]);
       }
-    } else if (mockAnswer) {
-      setTimeout(() => {
-        setTyping(false);
-        setMessages((m) => [...m, { role: "ai", text: mockAnswer(q) }]);
-      }, 1100);
+    } else {
+      setTyping(false);
     }
   };
 
@@ -200,7 +195,7 @@ export function ChatPanel({
     <div className="flex flex-col h-[calc(100vh-140px)]">
       {askReal && !connected && (
         <div className="text-xs bg-warning/10 text-[#9c6b12] rounded-xl p-2.5 mb-3 text-center">
-          AI assistant is unavailable — ask an administrator to check the backend AI configuration.
+          The AI assistant is unavailable right now. Please try again later.
         </div>
       )}
       <div className="flex-1 overflow-y-auto space-y-4 pr-2">

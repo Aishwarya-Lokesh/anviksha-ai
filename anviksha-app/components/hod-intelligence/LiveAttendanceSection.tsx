@@ -37,7 +37,7 @@ export function LiveAttendanceSection() {
       </div>
 
       {today.error && !today.data ? (
-        <p className="text-sm text-danger text-center py-8">Could not load attendance data — check backend connection.</p>
+        <p className="text-sm text-danger text-center py-8">Could not load attendance data. Please try again.</p>
       ) : !today.data ? (
         <div className="animate-pulse h-24 bg-gray-50 rounded-xl" />
       ) : (

@@ -42,7 +42,7 @@ export function AIInsightCard({ fetcher }: { fetcher: () => Promise<{ insight: s
         <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
           <Sparkles size={16} className="text-gray-400" />
         </div>
-        <span>AI insight isn't connected yet — ask an administrator to check the backend AI configuration.</span>
+        <span>AI insights are unavailable right now.</span>
       </Card>
     );
   }

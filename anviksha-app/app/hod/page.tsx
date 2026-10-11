@@ -55,16 +55,11 @@ export default function HodDashboard() {
     setShowFaculty(true);
   };
 
-  if (!stats) return <><Topbar greeting="Head of Department" subtitle="Loading your department's real data..." avatarLetter="H" /><DashboardSkeleton /></>;
+  if (!stats) return <><Topbar greeting="Head of Department" subtitle="Loading your department…" avatarLetter="H" /><DashboardSkeleton /></>;
 
   return (
     <>
       <Topbar greeting={me?.title || "Head of Department"} subtitle={`Department: ${stats.department} — scoped to your department only`} avatarLetter="H" />
-      <div className="px-4 md:px-8 pt-4">
-        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${liveMode ? "bg-success/10 text-success" : "bg-warning/10 text-[#9c6b12]"}`}>
-          {liveMode ? "● Live department data" : "○ Backend not connected"}
-        </span>
-      </div>
       <div className="p-4 md:p-8 space-y-6">
         {liveMode && <AIInsightCard fetcher={api.hodInsight} />}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">

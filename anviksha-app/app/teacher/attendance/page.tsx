@@ -91,7 +91,7 @@ export default function AttendanceUploadPage() {
       api.teacherAttendanceHistory(subject.id).then(setHistory).catch(() => {});
       loadAnalytics(date);
     } catch {
-      push("Backend save failed", "error");
+      push("Could not save attendance. Please try again.", "error");
     }
   };
 
@@ -145,11 +145,6 @@ export default function AttendanceUploadPage() {
   return (
     <>
       <Topbar greeting="Attendance Upload" subtitle="Dashboard > Attendance Upload" avatarLetter="T" />
-      <div className="px-4 md:px-8 pt-4">
-        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${liveMode ? "bg-success/10 text-success" : "bg-warning/10 text-[#9c6b12]"}`}>
-          {liveMode ? "● Real — only your own students, sessions actually saved" : "○ Backend not connected"}
-        </span>
-      </div>
       <div className="p-4 md:p-8 space-y-6">
         <PillNav items={[{ key: "mark", label: "Mark Attendance" }, { key: "history", label: "History" }]} active={tab} onChange={setTab} />
 

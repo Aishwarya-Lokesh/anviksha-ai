@@ -13,7 +13,6 @@ import { useToast } from "@/components/ui/Toaster";
 import { motion, AnimatePresence } from "framer-motion";
 import { Users, BookOpen, AlertTriangle, ClipboardList, Plus, Trash2, Info, X } from "lucide-react";
 import { useRouter } from "next/navigation";
-import teacherData from "@/data/teacherData.json";
 import { api } from "@/lib/api";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 
@@ -105,7 +104,7 @@ export default function TeacherDashboard() {
       push("Marked as completed");
       api.teacherExtraWork().then(setExtraWork).catch(() => {});
     } catch {
-      push("Could not update — check backend connection", "error");
+      push("Could not update. Please try again.", "error");
     }
   };
 
@@ -115,7 +114,7 @@ export default function TeacherDashboard() {
       push("Extra work removed");
       setExtraWork({ extra_work: null, status: null });
     } catch {
-      push("Could not remove — check backend connection", "error");
+      push("Could not remove. Please try again.", "error");
     }
   };
 
@@ -187,7 +186,7 @@ export default function TeacherDashboard() {
         setMarkPassedOut(false);
         loadAll();
       } catch (e: any) {
-        push(e.message || "Could not save — check backend connection", "error");
+        push(e.message || "Could not save. Please try again.", "error");
       }
       return;
     }
@@ -213,7 +212,7 @@ export default function TeacherDashboard() {
       setSubjectStatus("idle");
       loadAll();
     } catch (e: any) {
-      push(e.message || "Could not save — check backend connection", "error");
+      push(e.message || "Could not save. Please try again.", "error");
     }
   };
 
@@ -235,11 +234,6 @@ export default function TeacherDashboard() {
   return (
     <>
       <Topbar greeting={`Welcome back, ${teacherName} 👋`} subtitle="Here's what's happening in your classes today." avatarLetter={teacherName.charAt(0)} />
-      <div className="px-4 md:px-8 pt-4">
-        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${liveMode ? "bg-success/10 text-success" : "bg-warning/10 text-[#9c6b12]"}`}>
-          {liveMode ? "● Real, teacher-scoped data — not college-wide totals" : "○ Mock data (backend not connected)"}
-        </span>
-      </div>
       <div className="p-4 md:p-8 space-y-6">
         {liveMode && <AIInsightCard fetcher={api.teacherInsight} />}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

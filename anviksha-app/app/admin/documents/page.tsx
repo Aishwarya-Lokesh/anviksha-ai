@@ -6,7 +6,7 @@ import { Card, SectionTitle, Badge } from "@/components/ui/Primitives";
 import { useToast } from "@/components/ui/Toaster";
 import { motion } from "framer-motion";
 import { Check, X } from "lucide-react";
-import adminData from "@/data/adminData.json";
+import { LoadError, EmptyState } from "@/components/ui/States";
 import { api } from "@/lib/api";
 
 const toneFor: Record<string, "warning" | "info" | "success" | "danger"> = {
@@ -14,46 +14,41 @@ const toneFor: Record<string, "warning" | "info" | "success" | "danger"> = {
 };
 
 export default function AdminDocumentsPage() {
-  const [requests, setRequests] = useState<any[]>(adminData.recentRequests.map((r, i) => ({ ...r, id: i })));
-  const [liveMode, setLiveMode] = useState(false);
+  const [requests, setRequests] = useState<any[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const { push } = useToast();
 
-  useEffect(() => {
+  const load = () => {
+    setLoadError(false);
     api.adminDocuments()
-      .then((rows) => { setRequests(rows.map((r: any) => ({ ...r, name: r.student_name, date: r.requested_date }))); setLiveMode(true); })
-      .catch(() => setLiveMode(false));
-  }, []);
+      .then((rows) => setRequests(rows.map((r: any) => ({ ...r, name: r.student_name, date: r.requested_date }))))
+      .catch(() => setLoadError(true));
+  };
+  useEffect(load, []);
 
   const update = async (id: number, status: string) => {
-    if (liveMode) {
-      try {
-        await api.adminDocumentUpdate(id, status);
-        setRequests(requests.map((r) => (r.id === id ? { ...r, status } : r)));
-        push(`Request ${status.toLowerCase()} — saved to backend`);
-      } catch {
-        push("Update failed — backend may be unreachable", "error");
-      }
-    } else {
-      setRequests(requests.map((r) => (r.id === id ? { ...r, status } : r)));
-      push(`Request ${status.toLowerCase()} (mock)`, "info");
+    try {
+      await api.adminDocumentUpdate(id, status);
+      setRequests((requests || []).map((r) => (r.id === id ? { ...r, status } : r)));
+      push(status === "Rejected" ? "Request rejected" : "Request approved — marked ready to collect");
+    } catch {
+      push("Could not update the request. Please try again.", "error");
     }
   };
 
   return (
     <>
       <Topbar greeting="Document Requests" subtitle="Dashboard > Document Requests" avatarLetter="A" />
-      <div className="px-4 md:px-8 pt-4">
-        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${liveMode ? "bg-success/10 text-success" : "bg-warning/10 text-[#9c6b12]"}`}>
-          {liveMode ? "● Live data from backend" : "○ Mock data (backend not connected)"}
-        </span>
-      </div>
       <div className="p-4 md:p-8 space-y-6">
         <Card hover>
           <SectionTitle title="Institute-wide Requests" />
-          {requests.length === 0 ? (
-            <div className="text-center py-8 text-sm text-muted">No document requests on record yet.</div>
+          {loadError ? <LoadError message="We couldn't load document requests." onRetry={load} /> : requests === null ? (
+            <p className="text-sm text-muted text-center py-10">Loading requests…</p>
+          ) : requests.length === 0 ? (
+            <EmptyState title="No document requests yet" hint="Requests students raise from their Document Requests page appear here." />
           ) : (
-            <table className="w-full text-sm">
+            <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[620px]">
               <thead>
                 <tr className="text-left text-muted border-b border-gray-100">
                   <th className="py-2.5 font-medium">Student</th><th className="py-2.5 font-medium">Document Type</th><th className="py-2.5 font-medium">Requested On</th>
@@ -70,8 +65,8 @@ export default function AdminDocumentsPage() {
                     <td className="py-3">
                       {r.status === "Pending" ? (
                         <div className="flex gap-2">
-                          <button onClick={() => update(r.id, "Collectable")} className="p-1.5 rounded-lg hover:bg-success/10 text-success"><Check size={15} /></button>
-                          <button onClick={() => update(r.id, "Rejected")} className="p-1.5 rounded-lg hover:bg-danger/10 text-danger"><X size={15} /></button>
+                          <button onClick={() => update(r.id, "Collectable")} aria-label="Approve request" title="Approve" className="p-2.5 rounded-lg hover:bg-success/10 text-success"><Check size={15} /></button>
+                          <button onClick={() => update(r.id, "Rejected")} aria-label="Reject request" title="Reject" className="p-2.5 rounded-lg hover:bg-danger/10 text-danger"><X size={15} /></button>
                         </div>
                       ) : (
                         <span className="text-xs text-muted">—</span>
@@ -81,6 +76,7 @@ export default function AdminDocumentsPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </Card>
       </div>

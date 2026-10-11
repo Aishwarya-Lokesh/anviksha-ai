@@ -4,24 +4,26 @@ import { useEffect, useState } from "react";
 import { Topbar } from "@/components/layout/Topbar";
 import { StatCard } from "@/components/ui/StatCard";
 import { Card, SectionTitle, Badge } from "@/components/ui/Primitives";
-import { TrendLineChart, DonutChart } from "@/components/charts/Charts";
+import { DonutChart, SimpleBarChart } from "@/components/charts/Charts";
 import { AskAIBar } from "@/components/ui/AskAI";
 import { useToast } from "@/components/ui/Toaster";
 import { motion } from "framer-motion";
 import { GraduationCap, Users, BookOpen, FileStack, Activity, UserPlus, UserCog2, BookPlus, Upload, ClipboardList, FileBarChart, ShieldCheck } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
-import adminDataMock from "@/data/adminData.json";
+import { LoadError, EmptyState } from "@/components/ui/States";
+import { DashboardSkeleton } from "@/components/ui/Skeleton";
 
 export default function AdminDashboard() {
   const { push } = useToast();
   const router = useRouter();
-  const [stats, setStats] = useState<any>(adminDataMock.stats);
-  const [liveMode, setLiveMode] = useState(false);
-  const [recentRequests, setRecentRequests] = useState<any[]>(adminDataMock.recentRequests);
-  const { overviewTrend, departmentDistribution } = adminDataMock;
+  const [stats, setStats] = useState<any>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [recentRequests, setRecentRequests] = useState<any[] | null>(null);
+  const [batches, setBatches] = useState<{ label: string; value: number }[] | null>(null);
 
-  useEffect(() => {
+  const load = () => {
+    setLoadError(false);
     api.adminStats()
       .then((s) => {
         setStats({
@@ -30,10 +32,15 @@ export default function AdminDashboard() {
           totalSubjects: s.total_subjects,
           documentRequests: s.pending_document_requests,
           activeUsers: s.active_students,
+          passedOut: s.passed_out_students,
         });
-        setLiveMode(true);
       })
-      .catch(() => setLiveMode(false)); // backend not running — silently stays on mock data
+      .catch(() => setLoadError(true));
+
+    api.adminBatches()
+      .then((b: Record<string, { active: number; passed_out: number; unknown: number }>) =>
+        setBatches(Object.keys(b).sort().map((k) => ({ label: k, value: b[k].active + b[k].passed_out + b[k].unknown }))))
+      .catch(() => setBatches([]));
 
     api.adminDocuments()
       .then((docs: any[]) => {
@@ -43,8 +50,9 @@ export default function AdminDashboard() {
           .map((d: any) => ({ name: d.student_name || "Unknown Student", type: d.type, date: d.requested_date, status: d.status }));
         setRecentRequests(recent);
       })
-      .catch(() => {}); // stays on mock data if backend unreachable
-  }, []);
+      .catch(() => setRecentRequests([]));
+  };
+  useEffect(load, []);
 
   const toneFor: Record<string, "warning" | "info" | "success" | "danger"> = {
     Pending: "warning", Collectable: "info", Collected: "success", Rejected: "danger",
@@ -59,14 +67,12 @@ export default function AdminDashboard() {
     { label: "Generate Report", icon: FileBarChart, href: "/admin/reports" },
   ];
 
+  if (loadError) return <><Topbar greeting="Admin Dashboard" subtitle="Institute overview" avatarLetter="A" /><LoadError message="We couldn't load the dashboard." onRetry={load} /></>;
+  if (!stats) return <><Topbar greeting="Admin Dashboard" subtitle="Loading…" avatarLetter="A" /><DashboardSkeleton /></>;
+
   return (
     <>
       <Topbar greeting="Welcome back, Admin! 👋" subtitle="Here's what's happening in your institute today." avatarLetter="A" />
-      <div className="px-4 md:px-8 pt-4">
-        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${liveMode ? "bg-success/10 text-success" : "bg-warning/10 text-[#9c6b12]"}`}>
-          {liveMode ? "● Live data from backend" : "○ Mock data (backend not connected)"}
-        </span>
-      </div>
       <div className="p-4 md:p-8 space-y-6">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
           <StatCard label="Total Students" value={stats.totalStudents} icon={GraduationCap} tone="brand" delay={0} />
@@ -78,15 +84,25 @@ export default function AdminDashboard() {
 
         <div className="grid lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-2" hover>
-            <SectionTitle title="Dashboard Overview" subtitle="This month" />
-            <TrendLineChart
-              data={overviewTrend}
-              lines={[{ key: "students", color: "#5B3FD9" }, { key: "faculty", color: "#3B82F6" }, { key: "requests", color: "#E8A93B" }]}
-            />
+            <SectionTitle title="Students by Batch" subtitle="Entry year, all statuses" />
+            {batches === null ? (
+              <p className="text-sm text-muted text-center py-16">Loading…</p>
+            ) : batches.length === 0 ? (
+              <EmptyState title="No students on record yet" compact />
+            ) : (
+              <SimpleBarChart data={batches} xKey="label" barKey="value" yLabel="Students" showValues />
+            )}
           </Card>
           <Card hover>
-            <SectionTitle title="Students by Department" />
-            <DonutChart data={departmentDistribution} centerValue={stats.totalStudents} centerLabel="Total" />
+            <SectionTitle title="Student Status" />
+            <DonutChart
+              data={[
+                { name: "Active", value: stats.activeUsers, color: "#1F9D55" },
+                { name: "Passed out", value: stats.passedOut, color: "#6B7280" },
+              ]}
+              centerValue={stats.totalStudents}
+              centerLabel="Total"
+            />
           </Card>
         </div>
 
@@ -94,7 +110,9 @@ export default function AdminDashboard() {
           <Card className="lg:col-span-2" hover>
             <SectionTitle title="Recent Document Requests" />
             <div className="space-y-1">
-              {recentRequests.map((r, i) => (
+              {recentRequests === null && <p className="text-sm text-muted text-center py-8">Loading…</p>}
+              {recentRequests !== null && recentRequests.length === 0 && <EmptyState title="No document requests yet" compact />}
+              {(recentRequests || []).map((r, i) => (
                 <motion.div key={i} initial={{ opacity: 0, x: -8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.06 }} className="flex items-center justify-between p-2.5 rounded-xl hover:bg-gray-50 transition-colors">
                   <div>
                     <div className="text-sm font-medium text-ink">{r.name}</div>
@@ -116,14 +134,6 @@ export default function AdminDashboard() {
               ))}
             </div>
           </Card>
-        </div>
-
-        <div className="bg-navy rounded-2xl p-5 flex items-center gap-4 text-white">
-          <ShieldCheck size={24} className="text-success shrink-0" />
-          <div>
-            <div className="text-sm font-semibold">System Status: All Systems Operational</div>
-            <div className="text-xs text-white/50">Last updated just now</div>
-          </div>
         </div>
 
         <AskAIBar onAsk={(q) => { push(`Opening AI Assistant for: "${q.slice(0, 40)}"`, "info"); router.push(`/admin/assistant?q=${encodeURIComponent(q)}`); }} />

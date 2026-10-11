@@ -61,7 +61,7 @@ export default function IaMarksPage() {
       setRows(updated);
       setEdits({});
     } catch {
-      push("Save failed — check backend connection", "error");
+      push("Could not save. Please try again.", "error");
     }
     setSaving(false);
   };

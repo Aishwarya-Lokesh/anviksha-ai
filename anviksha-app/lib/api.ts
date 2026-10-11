@@ -799,7 +799,7 @@ export const api = {
       );
 
       throw new Error(
-        `Cannot connect to the Anviksha backend at ${API_BASE}. Make sure the FastAPI server is running.`
+        "Unable to connect to the server. Check your connection and try again."
       );
     }
 
@@ -849,13 +849,13 @@ export const api = {
           "You are not authorized to upload question-paper documents.";
       } else if (response.status === 404) {
         message =
-          "Question paper upload API was not found. Please check that the latest backend is running.";
+          "Document upload is unavailable right now. Please try again later.";
       } else if (response.status === 413) {
         message =
           "The selected file is too large.";
       } else if (response.status >= 500) {
         message =
-          "The backend encountered an error while processing the document.";
+          "Something went wrong while processing the document. Please try again.";
       }
 
       throw new Error(

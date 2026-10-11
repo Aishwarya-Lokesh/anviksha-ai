@@ -7,7 +7,6 @@ import { DonutChart, SimpleBarChart } from "@/components/charts/Charts";
 import { motion, AnimatePresence } from "framer-motion";
 import { Sparkles, Send, RotateCw, Users, GraduationCap, BookOpen, FileStack, Briefcase, Award, AlertTriangle } from "lucide-react";
 import { api } from "@/lib/api";
-import studentsRaw from "@/data/students.json";
 
 export default function ReportsPage() {
   const [query, setQuery] = useState("");
@@ -73,37 +72,26 @@ export default function ReportsPage() {
           raw_question: query,
         });
         setResult({
-          text: res.ai_answer && res.ai_connected ? res.ai_answer : `Found ${res.count} students matching that criteria — real, live query.`,
+          text: res.ai_answer && res.ai_connected ? res.ai_answer : `Found ${res.count} students matching that criteria.`,
           rows: res.students,
           chartData: res.chart_data,
           chartType,
           aiConnected: res.ai_connected,
         });
       } catch {
-        setResult({ text: "Backend query failed — check the server is running." });
+        setResult({ text: "That search could not be completed. Please try again." });
       }
       setLoading(false);
       return;
     }
 
-    setTimeout(() => {
-      let matched = studentsRaw as any[];
-      let desc = "students";
-      if (noBacklogs) { matched = matched.filter((s) => s.backlogs === 0); desc += " with zero backlogs"; }
-      if (minCgpa) { matched = matched.filter((s) => s.cgpa >= minCgpa); desc += ` with CGPA above ${minCgpa}`; }
-      setResult({ text: `Found ${matched.length} ${desc} (mock data).`, rows: matched.slice(0, 6) });
-      setLoading(false);
-    }, 900);
+    setResult({ text: "Reports are unavailable right now. Please reload the page and try again." });
+    setLoading(false);
   };
 
   return (
     <>
       <Topbar greeting="Reports & Statistics" subtitle="Dashboard > Reports & Statistics" avatarLetter="A" />
-      <div className="px-4 md:px-8 pt-4">
-        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${liveMode ? "bg-success/10 text-success" : "bg-warning/10 text-[#9c6b12]"}`}>
-          {liveMode ? "● Every number below is computed live from real data" : "○ Backend not connected"}
-        </span>
-      </div>
       <div className="p-4 md:p-8 space-y-6">
         <Card hover>
           <div className="flex items-end gap-3 flex-wrap">
