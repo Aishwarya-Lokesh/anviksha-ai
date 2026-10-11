@@ -9,6 +9,7 @@ duration of each test so requests hit only this isolated database (Part A2:
 import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient
 
 from app.core.database import Base, get_db
@@ -19,8 +20,16 @@ from app.models import models as m
 
 @pytest.fixture()
 def db_session():
-    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
+    # StaticPool keeps every session and thread on the one in-memory database;
+    # without it, a request that commits and then queries again is handed a
+    # fresh, empty database.
+    engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     Base.metadata.create_all(bind=engine)
+    # create_all builds tables only; the placement views come from the same
+    # module the migration uses.
+    from app.core.placement_views import create_views
+    with engine.begin() as conn:
+        create_views(conn)
     TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     session = TestingSessionLocal()
     try:
