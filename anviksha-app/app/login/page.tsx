@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, Suspense } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Sparkles, LogIn, ArrowLeft } from "lucide-react";
-import { api, setAuth } from "@/lib/api";
+import { api, setAuth, SERVER_WAKING_EVENT } from "@/lib/api";
 
 const ROLE_LABELS: Record<string, string> = {
   student: "Student", teacher: "Teacher", hod: "Head of Department", admin: "Admin",
@@ -17,7 +17,15 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [waking, setWaking] = useState(false);
   const router = useRouter();
+  const sessionExpired = params.get("expired") === "1";
+
+  useEffect(() => {
+    const onWaking = (e: Event) => setWaking(Boolean((e as CustomEvent).detail));
+    window.addEventListener(SERVER_WAKING_EVENT, onWaking);
+    return () => window.removeEventListener(SERVER_WAKING_EVENT, onWaking);
+  }, []);
 
   const submit = async () => {
     setError("");
@@ -32,8 +40,10 @@ function LoginForm() {
       setAuth(res.access_token, res.role);
       router.push(`/${res.role}`);
     } catch (e: any) {
-      const offline = /Unable to connect/i.test(e?.message || "");
-      setError(offline ? "We couldn't reach the server. Check your connection and try again." : "Incorrect email or password.");
+      const message = e?.message || "";
+      if (/failed: 401/.test(message)) setError("Incorrect email or password.");
+      else if (/Unable to connect/i.test(message)) setError("We couldn't reach the server. Check your connection and try again.");
+      else setError("Something went wrong on our side. Please try again in a moment.");
     } finally {
       setLoading(false);
     }
@@ -66,9 +76,17 @@ function LoginForm() {
             <label htmlFor="login-password" className="text-xs font-medium text-muted mb-1 block">Password</label>
             <input id="login-password" autoComplete="current-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/30" />
           </div>
+          {sessionExpired && !error && !loading && (
+            <p className="text-xs text-muted">Your session ended. Please sign in again.</p>
+          )}
+          {loading && waking && (
+            <p role="status" className="text-xs text-muted">
+              Starting the server — this can take up to a minute after a quiet period. Please keep this page open.
+            </p>
+          )}
           {error && <p role="alert" className="text-xs text-danger">{error}</p>}
           <button onClick={submit} disabled={loading} className="w-full bg-brand text-white font-semibold min-h-[44px] rounded-xl hover:bg-brand-dark disabled:opacity-60 transition-colors flex items-center justify-center gap-2 mt-2">
-            <LogIn size={15} /> {loading ? "Signing in..." : "Sign In"}
+            <LogIn size={15} /> {loading ? (waking ? "Starting server..." : "Signing in...") : "Sign In"}
           </button>
         </div>
       </motion.div>

@@ -78,6 +78,44 @@ export function clearAuth() {
   storage()?.removeItem(ROLE_KEY);
 }
 
+// The backend host puts the server to sleep when idle; the first request
+// afterwards can take up to a minute and may briefly answer 502/503/504 while
+// it starts. Safe requests are retried through that window instead of failing.
+const WAKE_STATUSES = new Set([502, 503, 504]);
+const WAKE_WINDOW_MS = 90_000;
+export const SERVER_WAKING_EVENT = "anviksha:server-waking";
+
+function announceWaking(waking: boolean) {
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent(SERVER_WAKING_EVENT, { detail: waking }));
+  }
+}
+
+async function fetchWithWake(url: string, init: RequestInit, retryable: boolean): Promise<Response> {
+  const deadline = Date.now() + WAKE_WINDOW_MS;
+  // A healthy server answers well inside this; past it, tell the UI we're waiting.
+  const slowTimer = setTimeout(() => announceWaking(true), 4000);
+  let attempt = 0;
+  try {
+    for (;;) {
+      try {
+        const res = await fetch(url, init);
+        if (!retryable || !WAKE_STATUSES.has(res.status) || Date.now() > deadline) return res;
+      } catch {
+        if (!retryable || Date.now() > deadline) {
+          throw new Error("Unable to connect to the server. Check your connection and try again.");
+        }
+      }
+      announceWaking(true);
+      attempt += 1;
+      await new Promise((resolve) => setTimeout(resolve, Math.min(1500 * attempt, 6000)));
+    }
+  } finally {
+    clearTimeout(slowTimer);
+    announceWaking(false);
+  }
+}
+
 async function request(path: string, options: RequestInit = {}) {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
@@ -89,17 +127,17 @@ async function request(path: string, options: RequestInit = {}) {
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  let res: Response;
+  const method = (options.method || "GET").toUpperCase();
+  // Reads and sign-in change nothing on the server, so repeating them is safe.
+  const retryable = method === "GET" || path === "/auth/login";
+  const res = await fetchWithWake(`${API_BASE}${path}`, { ...options, headers }, retryable);
 
-  try {
-    res = await fetch(`${API_BASE}${path}`, {
-      ...options,
-      headers,
-    });
-  } catch (error) {
-    throw new Error(
-      "Unable to connect to the server. Check your connection and try again."
-    );
+  // The session ran out (or the token is no longer valid): send the user back
+  // to sign in instead of leaving them on a page that cannot load anything.
+  if (res.status === 401 && path !== "/auth/login" && typeof window !== "undefined") {
+    clearAuth();
+    if (!window.location.pathname.startsWith("/login")) window.location.assign("/login?expired=1");
+    throw new Error("Your session has expired. Please sign in again.");
   }
 
   if (!res.ok) {
