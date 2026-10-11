@@ -104,7 +104,7 @@ export default function PerformancePage() {
         </div>
 
         {!data ? (
-          <div className="text-sm text-muted py-10 text-center">Loading real cohort data...</div>
+          <div className="text-sm text-muted py-10 text-center">Loading cohort data...</div>
         ) : (
           <>
             <div className="bg-brand-light text-brand text-xs rounded-xl p-3">{data.mode_note}</div>
@@ -137,8 +137,8 @@ export default function PerformancePage() {
                   title="Top Performers"
                   subtitle={
                     mode === "achievements" ? "Excellence Score ranking (CGPA points + achievement points)"
-                    : mode === "subject" ? "Real internal (IA) marks ranking for this subject"
-                    : "Real CGPA ranking, this semester"
+                    : mode === "subject" ? "Internal (IA) marks ranking for this subject"
+                    : "CGPA ranking, this semester"
                   }
                 />
                 <div className="space-y-1 max-h-64 overflow-y-auto">

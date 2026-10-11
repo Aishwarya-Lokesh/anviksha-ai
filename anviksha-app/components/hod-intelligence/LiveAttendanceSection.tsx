@@ -27,7 +27,7 @@ export function LiveAttendanceSection() {
   return (
     <Card hover id="live-attendance">
       <div className="flex items-center justify-between mb-1">
-        <SectionTitle title="Live Daily Attendance" subtitle="Real, department-scoped — today's submitted sessions only" />
+        <SectionTitle title="Live Daily Attendance" subtitle="Today's submitted sessions in your department" />
         <div className="flex items-center gap-2 text-[11px] text-muted shrink-0">
           {today.loading && !today.data ? "Loading…" : agoLabel}
           <button onClick={() => { today.refresh(); trend.refresh(); }} className="p-1.5 rounded-lg hover:bg-gray-100 text-muted hover:text-brand transition-colors" aria-label="Refresh now">

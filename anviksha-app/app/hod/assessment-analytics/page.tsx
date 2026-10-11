@@ -47,7 +47,7 @@ export default function AssessmentAnalyticsPage() {
         <div className="grid lg:grid-cols-2 gap-6">
           <Card hover>
             <div className="flex items-center justify-between mb-1">
-              <SectionTitle title="Pass-Rate Outliers" subtitle="Subjects furthest from the real department average — subjects only, never a teacher ranking" />
+              <SectionTitle title="Pass-Rate Outliers" subtitle="Subjects furthest from the department average — subjects only, never a teacher ranking" />
             </div>
             {outliers.status !== "available" ? (
               <p className="text-sm text-muted text-center py-10">{outliers.reason_unavailable || "Marks data unavailable."}</p>
@@ -72,7 +72,7 @@ export default function AssessmentAnalyticsPage() {
 
           <Card hover>
             <div className="flex items-center justify-between mb-1">
-              <SectionTitle title="Bloom's Taxonomy Coverage" subtitle="Real question-bank content per level — coverage, not performance" />
+              <SectionTitle title="Bloom's Taxonomy Coverage" subtitle="Question-bank content per level — coverage, not performance" />
             </div>
             {bloom.status !== "available" ? (
               <p className="text-sm text-muted text-center py-10">{bloom.reason_unavailable || "Bloom's-level performance is not available because the current assessment data does not contain question-level marks."}</p>
@@ -92,7 +92,7 @@ export default function AssessmentAnalyticsPage() {
 
         <Card hover>
           <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-            <SectionTitle title="Section Comparison" subtitle="Same subject, same semester — real student count and pass rate per section" />
+            <SectionTitle title="Section Comparison" subtitle="Same subject, same semester — student count and pass rate per section" />
             <select
               value={selectedSubjectId} onChange={(e) => setSelectedSubjectId(e.target.value ? Number(e.target.value) : "")}
               className="border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm outline-none"
@@ -102,7 +102,7 @@ export default function AssessmentAnalyticsPage() {
             </select>
           </div>
           {!selectedSubjectId ? (
-            <p className="text-sm text-muted text-center py-8">Select a subject above to compare its real sections.</p>
+            <p className="text-sm text-muted text-center py-8">Select a subject above to compare its sections.</p>
           ) : !sectionComparison ? (
             <p className="text-sm text-muted text-center py-8">Loading...</p>
           ) : sectionComparison.status !== "available" ? (

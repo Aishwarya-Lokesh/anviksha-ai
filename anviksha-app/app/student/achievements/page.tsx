@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Topbar } from "@/components/layout/Topbar";
 import { Card, Button, Badge } from "@/components/ui/Primitives";
@@ -51,6 +52,10 @@ export default function AchievementsPage() {
       .catch(() => setLoadError(true));
   };
   useEffect(() => { load(); }, []);
+  // "Add an achievement" from search opens the form directly.
+  const linkedAction = useSearchParams().get("action");
+  useEffect(() => { if (linkedAction === "add") { resetAddForm(); setShowAdd(true); } // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [linkedAction]);
 
   // Real/demo certificate files (from the earlier verified/demo import) merged in
   // alongside student-added achievements, so nothing from before is lost.

@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Topbar } from "@/components/layout/Topbar";
 import { Card, Badge, Button } from "@/components/ui/Primitives";
@@ -11,6 +12,9 @@ import { DashboardSkeleton } from "@/components/ui/Skeleton";
 export default function HodStudentsPage() {
   const [data, setData] = useState<any>(null);
   const [query, setQuery] = useState("");
+  // Arriving from search: start with that student already filtered.
+  const linkedQuery = useSearchParams().get("q");
+  useEffect(() => { if (linkedQuery) setQuery(linkedQuery); }, [linkedQuery]);
   const [status, setStatus] = useState("all");
   const [batch, setBatch] = useState("");
   const [batches, setBatches] = useState<string[]>([]);

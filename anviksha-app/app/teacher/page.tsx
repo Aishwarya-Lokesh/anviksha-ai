@@ -228,7 +228,7 @@ export default function TeacherDashboard() {
   };
 
   if (!teacherName || !stats) {
-    return <><Topbar greeting="Loading..." subtitle="Fetching your real dashboard" avatarLetter="T" /><DashboardSkeleton /></>;
+    return <><Topbar greeting="Loading..." subtitle="Fetching your dashboard" avatarLetter="T" /><DashboardSkeleton /></>;
   }
 
   return (

@@ -79,7 +79,7 @@ export default function ContentGeneratorPage() {
     try {
       const response = await api.uploadStyleReference(outputType, file, subjectId || undefined);
       if (outputType === "ppt") setSelectedStyleRefId(response.id);
-      push(`Learned real style from ${file.name}`);
+      push(`Learned style from ${file.name}`);
       loadStyleRefs();
     } catch (e: any) {
       push(e.message || "Upload failed", "error");
@@ -93,7 +93,7 @@ export default function ContentGeneratorPage() {
       const res = await api.uploadContentSource(file, subjectId || undefined);
       setSelectedSourceId(res.id);
       setCheckedChapters([]);
-      push(res.chapters_detected ? `Found ${res.chapters.length} real chapters in ${file.name}` : `No clear chapter headings found — split into ${res.chapters.length} sections instead`);
+      push(res.chapters_detected ? `Found ${res.chapters.length} chapters in ${file.name}` : `No clear chapter headings found — split into ${res.chapters.length} sections instead`);
       loadContentSources();
     } catch (e: any) {
       push(e.message || "Upload failed", "error");
@@ -155,11 +155,11 @@ export default function ContentGeneratorPage() {
         setSlideIdx(0);
         setGenerated(true);
         loadHistory();
-        push(res.reused ? "Reused the matching saved presentation — no AI call was made" : `Generated using ${res.style_references_used} real style reference(s)`);
+        push(res.reused ? "Reused the matching saved presentation — no AI call was made" : `Generated using ${res.style_references_used} style reference(s)`);
       } else {
         setRealNotes(res.notes);
         setGenerated(true);
-        push(`Generated using ${res.style_references_used} real style reference(s)`);
+        push(`Generated using ${res.style_references_used} style reference(s)`);
       }
     } catch (e: any) {
       push(e.message || "Could not reach the server. Please try again.", "error");
@@ -200,7 +200,7 @@ export default function ContentGeneratorPage() {
       a.href = url; a.download = `${activeGeneration?.label || "presentation"}.pptx`;
       a.click();
       URL.revokeObjectURL(url);
-      push("Real .pptx downloaded");
+      push(".pptx downloaded");
     } catch {
       push("Export failed", "error");
     }
@@ -216,7 +216,7 @@ export default function ContentGeneratorPage() {
       a.href = url; a.download = `${activeGeneration?.label || "notes"}.docx`;
       a.click();
       URL.revokeObjectURL(url);
-      push("Real .docx downloaded");
+      push(".docx downloaded");
     } catch {
       push("Export failed", "error");
     }
@@ -237,10 +237,10 @@ export default function ContentGeneratorPage() {
 
         <div className="grid lg:grid-cols-2 gap-6">
           <Card hover>
-            <SectionTitle title={`Teach it your ${outputType === "ppt" ? "PPT" : "notes"} style`} subtitle={outputType === "ppt" ? "Upload a past .pptx to learn its theme, layouts, explanation density, headings, and bullet/step style. It never supplies factual content." : "Upload past .docx notes — real structure is learned from each one"} />
+            <SectionTitle title={`Teach it your ${outputType === "ppt" ? "PPT" : "notes"} style`} subtitle={outputType === "ppt" ? "Upload a past .pptx to learn its theme, layouts, explanation density, headings, and bullet/step style. It never supplies factual content." : "Upload past .docx notes — structure is learned from each one"} />
             <label className="border-2 border-dashed border-gray-200 rounded-xl p-4 flex items-center gap-3 text-sm text-muted cursor-pointer hover:border-brand/40 transition-colors">
               <Upload size={18} className="text-brand" />
-              {uploadingStyle ? "Reading real file structure..." : `Upload a past ${outputType === "ppt" ? ".pptx" : ".docx"} file`}
+              {uploadingStyle ? "Reading file structure..." : `Upload a past ${outputType === "ppt" ? ".pptx" : ".docx"} file`}
               <input type="file" accept={outputType === "ppt" ? ".pptx" : ".docx"} className="hidden" onChange={(e) => e.target.files?.[0] && handleStyleUpload(e.target.files[0])} />
             </label>
             <div className="mt-4 space-y-2">
@@ -265,7 +265,7 @@ export default function ContentGeneratorPage() {
           </Card>
 
           <Card hover>
-            <SectionTitle title="Upload the real content source" subtitle="This PDF/DOCX is the factual source for the PPT. Its text is extracted and its chapters are selected below." />
+            <SectionTitle title="Upload the content source" subtitle="This PDF/DOCX is the factual source for the PPT. Its text is extracted and its chapters are selected below." />
             <label className="border-2 border-dashed border-gray-200 rounded-xl p-4 flex items-center gap-3 text-sm text-muted cursor-pointer hover:border-brand/40 transition-colors">
               <BookOpen size={18} className="text-brand" />
               {uploadingSource ? "Extracting text and chapters..." : "Upload the textbook or notes used for PPT content (.pdf or .docx)"}
@@ -280,7 +280,7 @@ export default function ContentGeneratorPage() {
                     <button onClick={(e) => { e.stopPropagation(); api.deleteContentSource(s.id).then(loadContentSources); }} className="p-1 rounded-lg hover:bg-danger/10 text-danger"><Trash2 size={13} /></button>
                   </div>
                   <div className="text-xs text-muted mt-1">
-                    {s.chapters_detected ? `${s.chapters.length} real chapters detected` : `No chapter headings found — split into ${s.chapters.length} sections`}
+                    {s.chapters_detected ? `${s.chapters.length} chapters detected` : `No chapter headings found — split into ${s.chapters.length} sections`}
                   </div>
                 </div>
               ))}
@@ -290,7 +290,7 @@ export default function ContentGeneratorPage() {
 
         {selectedSource && (
           <Card hover>
-            <SectionTitle title={`What should this be built from?`} subtitle="Pick a saved module, or select real chapters yourself and save a new module mapping" />
+            <SectionTitle title={`What should this be built from?`} subtitle="Pick a saved module, or select chapters yourself and save a new module mapping" />
 
             {savedModules.length > 0 && (
               <div className="mb-5">
@@ -307,7 +307,7 @@ export default function ContentGeneratorPage() {
               </div>
             )}
 
-            <div className="text-xs font-semibold text-muted mb-2">Real chapters in "{selectedSource.filename}"</div>
+            <div className="text-xs font-semibold text-muted mb-2">Chapters in "{selectedSource.filename}"</div>
             <div className="space-y-1.5 mb-4 max-h-56 overflow-y-auto">
               {selectedSource.chapters.map((c: any) => (
                 <label key={c.title} className="flex items-center gap-2.5 p-2 rounded-lg hover:bg-gray-50 cursor-pointer text-sm">
@@ -369,7 +369,7 @@ export default function ContentGeneratorPage() {
               <div className="flex items-center gap-3">
                 <button onClick={discardDraft} className="text-danger hover:underline flex items-center gap-1"><X size={12} /> Discard draft</button>
                 <button onClick={outputType === "ppt" ? downloadPPT : downloadNotes} disabled={exporting} className="text-brand hover:underline flex items-center gap-1">
-                  {exporting ? <RotateCw size={12} className="animate-spin" /> : <Download size={12} />} Download real .{outputType === "ppt" ? "pptx" : "docx"}
+                  {exporting ? <RotateCw size={12} className="animate-spin" /> : <Download size={12} />} Download .{outputType === "ppt" ? "pptx" : "docx"}
                 </button>
               </div>
             )}
@@ -380,7 +380,7 @@ export default function ContentGeneratorPage() {
                 <motion.div key="slide" className="w-full">
                   <div className="flex items-center justify-center gap-2 mb-3 flex-wrap">
                     <Badge tone="success">{refsUsed} real style reference(s) used</Badge>
-                    <Badge tone={chaptersDetected ? "success" : "warning"}>{chaptersDetected ? "Real content detected" : "Fallback section"}</Badge>
+                    <Badge tone={chaptersDetected ? "success" : "warning"}>{chaptersDetected ? "Content detected" : "Fallback section"}</Badge>
                     <Badge tone="brand">{realSlides.length} of {plannedSlideCount || numSlides} slides generated</Badge>
                   </div>
                   <div className="bg-gradient-to-br from-brand to-[#7A5FEA] rounded-xl p-6 mb-4">
@@ -400,7 +400,7 @@ export default function ContentGeneratorPage() {
                 <motion.div key="notes" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full">
                   <div className="flex items-center justify-center gap-2 mb-3 flex-wrap">
                     <Badge tone="success">{refsUsed} real style reference(s) used</Badge>
-                    <Badge tone={chaptersDetected ? "success" : "warning"}>{chaptersDetected ? "Real content detected" : "Fallback section"}</Badge>
+                    <Badge tone={chaptersDetected ? "success" : "warning"}>{chaptersDetected ? "Content detected" : "Fallback section"}</Badge>
                   </div>
                   <textarea value={realNotes} onChange={(e) => setRealNotes(e.target.value)} rows={16} className="w-full bg-gray-50 rounded-xl p-5 text-sm text-ink outline-none resize-none" />
                 </motion.div>
@@ -441,7 +441,7 @@ export default function ContentGeneratorPage() {
             <input value={moduleName} onChange={(e) => setModuleName(e.target.value)} placeholder="e.g. Module 1: Cryptography Basics" className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm outline-none" />
           </div>
           <div className="text-xs text-muted">
-            Real chapters included: {checkedChapters.map((c) => <div key={c} className="flex items-center gap-1 mt-1"><Check size={12} className="text-success" /> {c}</div>)}
+            Chapters included: {checkedChapters.map((c) => <div key={c} className="flex items-center gap-1 mt-1"><Check size={12} className="text-success" /> {c}</div>)}
           </div>
           <div className="flex gap-2">
             <Button variant="secondary" className="flex-1" onClick={() => setShowSaveModule(false)}>Cancel</Button>

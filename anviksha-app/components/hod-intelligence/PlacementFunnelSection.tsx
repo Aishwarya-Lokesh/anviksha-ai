@@ -34,7 +34,7 @@ export function PlacementFunnelSection() {
     <div className="grid lg:grid-cols-2 gap-6">
       <Card hover>
         <div className="flex items-center justify-between mb-1">
-          <SectionTitle title="Placement Funnel" subtitle="Real 2-stage funnel — the data doesn't support a richer one" />
+          <SectionTitle title="Placement Funnel" subtitle="Students tracked, then placed" />
         </div>
         {funnel.status !== "available" ? (
           <p className="text-sm text-muted text-center py-10">{funnel.reason_unavailable}</p>
@@ -59,7 +59,7 @@ export function PlacementFunnelSection() {
       </Card>
 
       <Card hover>
-        <SectionTitle title="Offer Tiers" subtitle="Real CTC-based classification of placed students" />
+        <SectionTitle title="Offer Tiers" subtitle="CTC-based classification of placed students" />
         {tiers.status !== "available" ? (
           <p className="text-sm text-muted text-center py-10">{tiers.reason_unavailable}</p>
         ) : (
@@ -78,7 +78,7 @@ export function PlacementFunnelSection() {
       </Card>
 
       <Card hover className="lg:col-span-2">
-        <SectionTitle title="Cycle Comparison" subtitle="Real passed-out cohorts (graduation years), compared against each other" />
+        <SectionTitle title="Cycle Comparison" subtitle="Passed-out cohorts (graduation years), compared against each other" />
         {cycles.status !== "available" ? (
           <p className="text-sm text-muted text-center py-8">{cycles.reason_unavailable}</p>
         ) : (

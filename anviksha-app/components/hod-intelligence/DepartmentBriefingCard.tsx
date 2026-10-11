@@ -28,7 +28,7 @@ export function DepartmentBriefingCard() {
   return (
     <Card hover>
       <div className="flex items-center justify-between mb-1">
-        <SectionTitle title="Department Briefing" subtitle="Grounded only in the real facts below — no invented numbers or names" />
+        <SectionTitle title="Department Briefing" subtitle="Based only on the figures below" />
         <Badge tone={data.source === "ai" ? "brand" : "neutral"}>{data.source === "ai" ? "AI-generated" : "Deterministic"}</Badge>
       </div>
       <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4 }} className="text-sm text-ink leading-relaxed flex gap-2">

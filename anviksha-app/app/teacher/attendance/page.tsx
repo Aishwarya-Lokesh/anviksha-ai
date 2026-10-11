@@ -137,7 +137,7 @@ export default function AttendanceUploadPage() {
     <>
       <Topbar greeting="Attendance Upload" subtitle="Dashboard > Attendance Upload" avatarLetter="T" />
       <div className="p-4 md:p-8 text-sm text-muted">
-        {assignedSubjects.length === 0 && semesters.length === 0 ? "No teaching assignments found." : "Loading your real subjects..."}
+        {assignedSubjects.length === 0 && semesters.length === 0 ? "No teaching assignments found." : "Loading your subjects..."}
       </div>
     </>
   );

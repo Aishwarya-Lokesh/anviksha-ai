@@ -153,7 +153,7 @@ export default function ResumePage() {
       { label: "Skills section has 3+ keywords", pass: skillsWordCount >= 3 },
       { label: "Education details complete", pass: education.some((e) => String(e.institution || "").trim() && String(e.score ?? "").trim()) },
       { label: "Career objective written", pass: !!objective.trim() },
-      { label: "At least one section has real content", pass: activeOrder.some((s) => s.content?.trim()) },
+      { label: "At least one section has content", pass: activeOrder.some((s) => s.content?.trim()) },
       { label: "Using single-column, simple layout", pass: template === "ATS Friendly" || template === "Minimal" },
     ];
   }, [profile, sections, objective, template, activeOrder]);
@@ -236,7 +236,7 @@ export default function ResumePage() {
 
           <div className="mt-5 p-3 rounded-xl bg-success/10">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-success">Real ATS Compatibility Score</span>
+              <span className="text-xs font-medium text-success">ATS Compatibility Score</span>
               <span className="text-lg font-extrabold font-display text-success numeric">{atsScore}%</span>
             </div>
             <div className="space-y-1.5">

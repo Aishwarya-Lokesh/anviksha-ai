@@ -57,6 +57,8 @@ export default function ManageUsersPage() {
     const action = searchParams.get("action");
     if (action === "add-student") { setTab("students"); openAdd(); }
     if (action === "add-faculty") { setTab("faculty"); openAdd(); }
+    const linked = searchParams.get("q");
+    if (linked) { setTab("students"); setQuery(linked); }
   }, [searchParams]);
 
   const openEdit = (row: any) => {

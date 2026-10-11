@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Topbar } from "@/components/layout/Topbar";
 import { Card, SectionTitle, Badge, Button } from "@/components/ui/Primitives";
@@ -28,6 +29,9 @@ export default function DocumentsPage() {
     api.studentDocuments().then((rows) => { setRequests(rows); setLoaded(true); }).catch(() => setLoadError(true));
   };
   useEffect(load, []);
+  // "Request a document" from search opens the form directly.
+  const linkedAction = useSearchParams().get("action");
+  useEffect(() => { if (linkedAction === "new") setOpen(true); }, [linkedAction]);
 
   const counts = {
     Pending: requests.filter((r) => r.status === "Pending").length,

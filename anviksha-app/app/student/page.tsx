@@ -230,7 +230,7 @@ export default function StudentDashboard() {
         {liveMode && profile && (
           <div className="grid lg:grid-cols-3 gap-6">
             <Card className="lg:col-span-1" hover>
-              <SectionTitle title="Academic Profile" subtitle="Your real metrics, normalized to a 0-100 scale for comparison" />
+              <SectionTitle title="Academic Profile" subtitle="Your metrics, normalized to a 0-100 scale for comparison" />
               <StudentRadarChart data={[
                 { metric: "CGPA", value: Math.round(((profile.cgpa ?? 0) / 10) * 100), fullMark: 100 },
                 { metric: "Attendance", value: Math.round(profile.attendance ?? 0), fullMark: 100 },

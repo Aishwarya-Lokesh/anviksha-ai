@@ -38,12 +38,12 @@ export default function ReportsPage() {
         {tab === "performance" && (
           <Card hover>
             <div className="flex items-center justify-between mb-4">
-              <SectionTitle title="Performance Report" subtitle={`Real CGPA/Backlog data — Batch ${batch}`} />
+              <SectionTitle title="Performance Report" subtitle={`CGPA/Backlog data — Batch ${batch}`} />
               <div className="flex gap-2 items-center">
                 <select value={batch} onChange={(e) => setBatch(e.target.value)} className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none">
                   <option>2022</option><option>2023</option><option>2024</option>
                 </select>
-                <Button onClick={() => { downloadExcel(performanceRows, `Performance_Report_Batch_${batch}`, "Performance"); push("Real performance report downloaded"); }}>
+                <Button onClick={() => { downloadExcel(performanceRows, `Performance_Report_Batch_${batch}`, "Performance"); push("Performance report downloaded"); }}>
                   <Download size={15} /> Export Excel
                 </Button>
               </div>

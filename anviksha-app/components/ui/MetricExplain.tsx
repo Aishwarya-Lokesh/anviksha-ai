@@ -83,7 +83,7 @@ export function MetricExplain({
                 )}
                 {basis.record_count !== undefined && (
                   <div className="text-[10px] text-muted">
-                    <span className="font-semibold">Real records used:</span> {basis.record_count}
+                    <span className="font-semibold">Records used:</span> {basis.record_count}
                   </div>
                 )}
                 {basis.filters && Object.keys(basis.filters).length > 0 && (

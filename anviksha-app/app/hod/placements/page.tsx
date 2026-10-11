@@ -102,7 +102,7 @@ export default function HodPlacementsPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Card hover className="text-center">
                   <div className="text-2xl font-extrabold font-display text-brand numeric">{data.avg_ctc_lpa} LPA</div>
-                  <div className="text-xs text-muted mt-1">Real Average Package — placed students with company + CTC data</div>
+                  <div className="text-xs text-muted mt-1">Average Package — placed students with company + CTC data</div>
                 </Card>
                 <Card hover className="text-center">
                   <div className="text-2xl font-extrabold font-display text-ink numeric">{data.companies_hired_count}</div>

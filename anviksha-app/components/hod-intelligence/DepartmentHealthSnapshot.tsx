@@ -68,7 +68,7 @@ export function DepartmentHealthSnapshot({ cgpaBySemester }: { cgpaBySemester?: 
   return (
     <>
       <Card hover>
-        <SectionTitle title="Department Health Snapshot" subtitle="Four real, already-computed numbers — click any of them for the real detail behind it" />
+        <SectionTitle title="Department Health Snapshot" subtitle="Four key numbers — select any of them for the detail behind it" />
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {tiles.map((t, i) => (
             <motion.button

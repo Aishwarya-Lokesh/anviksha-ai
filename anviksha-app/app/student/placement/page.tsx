@@ -18,7 +18,7 @@ export default function PlacementPage() {
     api.myInternships().then(setInternships).catch(() => {});
   }, []);
 
-  if (!placement) return <><Topbar greeting="Placement" subtitle="Loading your real placement record..." avatarLetter="S" /><DashboardSkeleton /></>;
+  if (!placement) return <><Topbar greeting="Placement" subtitle="Loading your placement record..." avatarLetter="S" /><DashboardSkeleton /></>;
 
   return (
     <>
@@ -79,7 +79,7 @@ export default function PlacementPage() {
 
         {internships.length > 0 && (
           <Card hover>
-            <SectionTitle title="Internships" subtitle="Real internship record on file" />
+            <SectionTitle title="Internships" subtitle="Internship record on file" />
             <div className="grid md:grid-cols-2 gap-4">
               {internships.map((i: any, idx: number) => (
                 <motion.div key={idx} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.05 }} className="flex gap-3 p-4 rounded-xl bg-gray-50">

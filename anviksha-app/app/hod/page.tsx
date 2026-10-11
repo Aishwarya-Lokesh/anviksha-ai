@@ -76,21 +76,21 @@ export default function HodDashboard() {
 
         <div className="grid lg:grid-cols-2 gap-6">
           <Card hover>
-            <SectionTitle title="Students — Active vs Passed Out" subtitle="Real, department-scoped" />
+            <SectionTitle title="Students — Active vs Passed Out" subtitle="Your department" />
             <DonutChart data={[
               { name: "Active", value: stats.active_students, color: "#1F9D55" },
               { name: "Passed Out", value: stats.passed_out_students, color: "#6B7280" },
             ]} centerValue={stats.total_students} centerLabel="Total" />
           </Card>
           <Card hover>
-            <SectionTitle title="Subjects Handled by Faculty" subtitle="Real, from each teacher's own Teaching Assignments" />
+            <SectionTitle title="Subjects Handled by Faculty" subtitle="From each teacher's own Teaching Assignments" />
             <SimpleBarChart data={workload.map((w) => ({ label: w.name, value: w.subject_count }))} xKey="label" barKey="value" color="#5B3FD9" />
           </Card>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-6">
           <Card hover>
-            <SectionTitle title="Average CGPA by Batch" subtitle="Real, live-computed for this department — active batches only" />
+            <SectionTitle title="Average CGPA by Batch" subtitle="Active batches in this department" />
             {stats.cgpa_by_batch && stats.cgpa_by_batch.length > 0 ? (
               <SimpleBarChart
                 data={stats.cgpa_by_batch.map((s: any) => ({ label: s.batch, value: s.avg_cgpa }))}
@@ -121,7 +121,7 @@ export default function HodDashboard() {
           <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
             <SectionTitle
               title="Department Top Performers"
-              subtitle={topperfBatch ? `Batch ${topperfBatch}${stats.top_performers_is_passed_out_batch ? " — passed out batch" : ""}, ranked by CGPA` : "Real, ranked by CGPA — active students, department-wide"}
+              subtitle={topperfBatch ? `Batch ${topperfBatch}${stats.top_performers_is_passed_out_batch ? " — passed out batch" : ""}, ranked by CGPA` : "Ranked by CGPA — active students, department-wide"}
             />
             <div className="flex items-center gap-2 flex-wrap">
               <select value={topperfBatch} onChange={(e) => setTopperfBatch(e.target.value)} className="border border-gray-200 rounded-lg px-2 py-1 text-xs outline-none">

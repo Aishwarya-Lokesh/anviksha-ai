@@ -33,7 +33,7 @@ export default function AttendancePage() {
           <Card className="text-center py-12" hover>
             <Inbox size={32} className="text-muted mx-auto mb-3 opacity-50" />
             <p className="text-sm font-medium text-ink mb-1">No attendance sessions recorded yet</p>
-            <p className="text-xs text-muted">This isn't an error — it means none of your teachers have marked a session for you yet via Attendance Upload. As soon as they do, real numbers will appear here.</p>
+            <p className="text-xs text-muted">This isn't an error — it means none of your teachers have marked a session for you yet via Attendance Upload. As soon as they do, numbers will appear here.</p>
           </Card>
         ) : (
           <>
@@ -53,7 +53,7 @@ export default function AttendancePage() {
             </div>
 
             <Card hover>
-              <SectionTitle title="Subject-wise Attendance" subtitle={`Overall: ${data.overall_pct}% across ${data.total_sessions_recorded} real recorded sessions`} />
+              <SectionTitle title="Subject-wise Attendance" subtitle={`Overall: ${data.overall_pct}% across ${data.total_sessions_recorded} recorded sessions`} />
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>

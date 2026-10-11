@@ -1,5 +1,6 @@
 "use client";
 
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Topbar } from "@/components/layout/Topbar";
 import { Card, SectionTitle, Badge, Button } from "@/components/ui/Primitives";
@@ -11,6 +12,9 @@ import { downloadExcel } from "@/lib/fileGen";
 
 export default function MyStudentsPage() {
   const [query, setQuery] = useState("");
+  // Arriving from search: start with that student already filtered.
+  const linkedQuery = useSearchParams().get("q");
+  useEffect(() => { if (linkedQuery) setQuery(linkedQuery); }, [linkedQuery]);
   const [batch, setBatch] = useState<string>("");
   const [semester, setSemester] = useState<number | "">("");
   const [section, setSection] = useState<string>("");

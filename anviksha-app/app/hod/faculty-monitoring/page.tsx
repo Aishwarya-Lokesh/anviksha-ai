@@ -81,7 +81,7 @@ export default function FacultyMonitoringPage() {
         {tab === "activity" && (
           <Card hover className="!p-0 overflow-hidden">
             <div className="p-5 border-b border-gray-100 flex items-center justify-between gap-3">
-              <SectionTitle title="Faculty" subtitle="Real teaching activity per faculty member — default sorted by name" />
+              <SectionTitle title="Faculty" subtitle="Teaching activity per faculty member — default sorted by name" />
               <div className="relative w-64 shrink-0">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                 <input

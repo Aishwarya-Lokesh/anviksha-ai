@@ -30,7 +30,7 @@ export default function RankPage() {
     // still waiting on the very first response
   }
 
-  if (!rankData) return <><Topbar greeting="Class Rank & Comparison" subtitle="Loading your real rank..." avatarLetter="S" /><DashboardSkeleton /></>;
+  if (!rankData) return <><Topbar greeting="Class Rank & Comparison" subtitle="Loading your rank..." avatarLetter="S" /><DashboardSkeleton /></>;
 
   const percentile = rankData.rank && rankData.cohort_size ? Math.round((rankData.rank / rankData.cohort_size) * 100) : null;
 
@@ -57,7 +57,7 @@ export default function RankPage() {
         </Card>
 
         <Card hover>
-          <SectionTitle title="Top Performers in Your Batch" subtitle="Real students, real CGPA — same cohort as you" />
+          <SectionTitle title="Top Performers in Your Batch" subtitle="Ranked by CGPA within your own cohort" />
           <div className="space-y-1">
             {rankData.top_performers.map((s: any, i: number) => (
               <motion.div

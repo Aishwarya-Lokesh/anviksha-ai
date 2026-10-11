@@ -86,11 +86,11 @@ export default function AdminPlacementPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 <Card hover className="text-center">
                   <div className="text-2xl font-extrabold font-display text-brand numeric">{data.avg_ctc_lpa} LPA</div>
-                  <div className="text-xs text-muted mt-1">Real Average Package</div>
+                  <div className="text-xs text-muted mt-1">Average Package</div>
                 </Card>
                 <Card hover className="text-center">
                   <div className="text-2xl font-extrabold font-display text-success numeric">{data.highest_ctc_lpa} LPA</div>
-                  <div className="text-xs text-muted mt-1">Highest Real Package</div>
+                  <div className="text-xs text-muted mt-1">Highest Package</div>
                 </Card>
                 {data.top_companies[0] && (
                   <Card hover className="text-center col-span-2 md:col-span-2">
@@ -103,7 +103,7 @@ export default function AdminPlacementPage() {
 
             {data.offer_tiers_by_ctc && data.offer_tiers_by_ctc.classifiable_count > 0 && (
               <Card hover>
-                <SectionTitle title="Offer Tiers by Real Package" subtitle="Regular < 6 LPA · Dream 6-10 LPA · Super Dream > 10 LPA — classified from real CTC values" />
+                <SectionTitle title="Offer Tiers by Package" subtitle="Regular < 6 LPA · Dream 6-10 LPA · Super Dream > 10 LPA — classified from CTC values" />
                 <div className="grid grid-cols-3 gap-4">
                   <div className="text-center p-4 rounded-xl bg-gray-50">
                     <div className="text-2xl font-extrabold font-display text-ink numeric">{data.offer_tiers_by_ctc.regular}</div>
@@ -139,7 +139,7 @@ export default function AdminPlacementPage() {
 
             {data.top_companies && data.top_companies.length > 0 && (
               <Card hover>
-                <SectionTitle title="Top Hiring Companies" subtitle="Real, from your placement records" />
+                <SectionTitle title="Top Hiring Companies" subtitle="From your placement records" />
                 <div className="grid md:grid-cols-2 gap-2">
                   {data.top_companies.slice(0, 6).map((c: any) => (
                     <div key={c.company} className="flex items-center justify-between text-sm p-2 rounded-lg hover:bg-gray-50">
