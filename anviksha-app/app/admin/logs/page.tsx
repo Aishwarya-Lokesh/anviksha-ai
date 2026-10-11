@@ -23,12 +23,12 @@ export default function ActivityLogsPage() {
   return (
     <>
       <Topbar greeting="Activity Logs" subtitle="Dashboard > Activity Logs" avatarLetter="A" />
-      <div className="px-8 pt-4">
+      <div className="px-4 md:px-8 pt-4">
         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${liveMode ? "bg-success/10 text-success" : "bg-warning/10 text-[#9c6b12]"}`}>
           {liveMode ? "● Live — real actions taken in this system" : "○ Mock data (backend not connected)"}
         </span>
       </div>
-      <div className="p-8 space-y-6">
+      <div className="p-4 md:p-8 space-y-6">
         <Card hover>
           <div className="flex items-center justify-between mb-4">
             <SectionTitle title="System Activity" subtitle={liveMode ? "Every add/edit/delete/attendance action taken since setup" : undefined} />

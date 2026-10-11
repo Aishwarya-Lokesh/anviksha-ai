@@ -60,7 +60,7 @@ export default function FacultyMonitoringPage() {
   return (
     <>
       <Topbar greeting="Faculty Monitoring" subtitle="Dashboard > Faculty Monitoring" avatarLetter="H" />
-      <div className="p-8 space-y-6">
+      <div className="p-4 md:p-8 space-y-6">
         <p className="text-xs text-muted -mt-2">
           Objective, real teaching activity only — there is no faculty score or ranking here.
         </p>
@@ -92,7 +92,7 @@ export default function FacultyMonitoringPage() {
               </div>
             </div>
             {!facultyRows ? (
-              <div className="p-8 text-sm text-muted text-center">Loading...</div>
+              <div className="p-4 md:p-8 text-sm text-muted text-center">Loading...</div>
             ) : facultyRows.length === 0 ? (
               <p className="text-sm text-muted text-center py-10">No faculty data available.</p>
             ) : (
@@ -144,7 +144,7 @@ export default function FacultyMonitoringPage() {
           <Card hover>
             <SectionTitle title="Faculty Alerts" subtitle="Every open, DB-grounded item across the department" />
             {!alerts ? (
-              <div className="p-8 text-sm text-muted text-center">Loading...</div>
+              <div className="p-4 md:p-8 text-sm text-muted text-center">Loading...</div>
             ) : alerts.length === 0 ? (
               <div className="text-center py-10">
                 <Bell size={22} className="text-muted mx-auto mb-2 opacity-50" />

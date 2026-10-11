@@ -10,7 +10,7 @@ export default function HodAssistantPage() {
   return (
     <>
       <Topbar greeting="Ask Anviksha AI" subtitle="Scoped to your authorized department" avatarLetter="H" />
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <ChatPanel
           suggestions={["What is our department's average CGPA?", "Which students are at risk?", "Show faculty workload by subject."]}
           askReal={api.hodAskAI}

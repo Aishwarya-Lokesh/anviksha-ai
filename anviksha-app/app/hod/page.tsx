@@ -60,12 +60,12 @@ export default function HodDashboard() {
   return (
     <>
       <Topbar greeting={me?.title || "Head of Department"} subtitle={`Department: ${stats.department} — scoped to your department only`} avatarLetter="H" />
-      <div className="px-8 pt-4">
+      <div className="px-4 md:px-8 pt-4">
         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${liveMode ? "bg-success/10 text-success" : "bg-warning/10 text-[#9c6b12]"}`}>
           {liveMode ? "● Live department data" : "○ Backend not connected"}
         </span>
       </div>
-      <div className="p-8 space-y-6">
+      <div className="p-4 md:p-8 space-y-6">
         {liveMode && <AIInsightCard fetcher={api.hodInsight} />}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           <StatCard label="Total Students" value={stats.total_students} icon={GraduationCap} tone="brand" onClick={openTotalStudents} link="View by batch →" />

@@ -60,12 +60,12 @@ export default function DocumentsPage() {
   return (
     <>
       <Topbar greeting="Document Requests" subtitle="Dashboard > Document Requests" avatarLetter="S" />
-      <div className="px-8 pt-4">
+      <div className="px-4 md:px-8 pt-4">
         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${liveMode ? "bg-success/10 text-success" : "bg-warning/10 text-[#9c6b12]"}`}>
           {liveMode ? "● Live data from backend" : "○ Mock data (backend not connected)"}
         </span>
       </div>
-      <div className="p-8 space-y-6">
+      <div className="p-4 md:p-8 space-y-6">
         <div className="flex justify-end">
           <Button onClick={() => setOpen(true)}><Plus size={15} /> New Request</Button>
         </div>

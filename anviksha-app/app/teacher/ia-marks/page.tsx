@@ -71,7 +71,7 @@ export default function IaMarksPage() {
   return (
     <>
       <Topbar greeting="IA Marks" subtitle="Dashboard > IA Marks" avatarLetter="T" />
-      <div className="p-8 space-y-6">
+      <div className="p-4 md:p-8 space-y-6">
         <Card hover>
           <div className="grid md:grid-cols-3 gap-4">
             <div>

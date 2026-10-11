@@ -32,12 +32,12 @@ export default function ReportsPage() {
   return (
     <>
       <Topbar greeting="Reports" subtitle="Dashboard > Reports" avatarLetter="R" />
-      <div className="px-8 pt-4">
+      <div className="px-4 md:px-8 pt-4">
         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${liveMode ? "bg-success/10 text-success" : "bg-warning/10 text-[#9c6b12]"}`}>
           {liveMode ? "● Real, exportable reports from actual data" : "○ Backend not connected"}
         </span>
       </div>
-      <div className="p-8 space-y-6">
+      <div className="p-4 md:p-8 space-y-6">
         <PillNav items={[{ key: "performance", label: "Performance Report" }, { key: "attendance", label: "Attendance Report" }]} active={tab} onChange={setTab} />
 
         {tab === "performance" && (

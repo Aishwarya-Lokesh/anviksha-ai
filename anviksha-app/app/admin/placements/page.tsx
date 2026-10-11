@@ -35,7 +35,7 @@ export default function AdminPlacementPage() {
   if (!data) return (
     <>
       <Topbar greeting="Placement Analytics" subtitle="Dashboard > Placement Analytics" avatarLetter="A" />
-      <div className="p-8 text-sm text-muted">Loading...</div>
+      <div className="p-4 md:p-8 text-sm text-muted">Loading...</div>
     </>
   );
 
@@ -48,12 +48,12 @@ export default function AdminPlacementPage() {
   return (
     <>
       <Topbar greeting="Placement Analytics" subtitle="Dashboard > Placement Analytics" avatarLetter="A" />
-      <div className="px-8 pt-4">
+      <div className="px-4 md:px-8 pt-4">
         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${liveMode ? "bg-success/10 text-success" : "bg-warning/10 text-[#9c6b12]"}`}>
           {liveMode ? "● Live data from backend" : "○ Mock data (backend not connected)"}
         </span>
       </div>
-      <div className="p-8 space-y-6">
+      <div className="p-4 md:p-8 space-y-6">
         <div className="flex items-center gap-3 flex-wrap">
           <div>
             <label className="text-[10px] text-muted block mb-1">Department</label>

@@ -10,7 +10,7 @@ export default function StudentAssistantPage() {
   return (
     <>
       <Topbar greeting="Ask Anviksha AI" subtitle="Scoped to your own academic data" avatarLetter="S" />
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <ChatPanel
           suggestions={["What's my CGPA and rank?", "Am I placed?", "Did I get any certificates or internships?", "How has my SGPA changed across semesters?"]}
           askReal={api.askAI}

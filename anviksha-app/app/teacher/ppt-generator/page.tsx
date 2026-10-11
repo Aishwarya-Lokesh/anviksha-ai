@@ -226,7 +226,7 @@ export default function ContentGeneratorPage() {
   return (
     <>
       <Topbar greeting="AI Content Generator" subtitle="Dashboard > PPT & Notes Generator" avatarLetter="R" />
-      <div className="p-8 space-y-6">
+      <div className="p-4 md:p-8 space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <PillNav items={[{ key: "ppt", label: "PPT" }, { key: "notes", label: "Notes" }]} active={outputType} onChange={(v) => setOutputType(v as "ppt" | "notes")} />
           <select value={subjectId} onChange={(e) => setSubjectId(e.target.value ? Number(e.target.value) : "")} className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none">

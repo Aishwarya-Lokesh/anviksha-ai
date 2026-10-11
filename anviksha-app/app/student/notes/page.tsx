@@ -27,7 +27,7 @@ export default function NotesPage() {
     return <><Topbar greeting="Notes & Deadlines" subtitle="Loading..." avatarLetter="S" /><DashboardSkeleton /></>;
   }
   if (loadError) {
-    return <><Topbar greeting="Notes & Deadlines" subtitle="Unable to load. Please try again." avatarLetter="S" /><div className="p-8 text-sm text-danger">Unable to load notes and deadlines. Please try again.</div></>;
+    return <><Topbar greeting="Notes & Deadlines" subtitle="Unable to load. Please try again." avatarLetter="S" /><div className="p-4 md:p-8 text-sm text-danger">Unable to load notes and deadlines. Please try again.</div></>;
   }
 
   const { notes, deadlines } = data!;
@@ -36,7 +36,7 @@ export default function NotesPage() {
   return (
     <>
       <Topbar greeting="Notes & Deadlines" subtitle="Dashboard > Notes & Deadlines" avatarLetter="S" />
-      <div className="p-8 grid lg:grid-cols-3 gap-6">
+      <div className="p-4 md:p-8 grid lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2" hover>
           <SectionTitle title="Subject Notes" subtitle="Uploaded by your teachers, for your batch/semester/section only" />
           {notes.length === 0 ? (

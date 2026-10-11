@@ -68,7 +68,7 @@ export default function HodFacultyPage() {
   return (
     <>
       <Topbar greeting="Faculty Workload" subtitle="Dashboard > Faculty Workload" avatarLetter="H" />
-      <div className="p-8 space-y-6">
+      <div className="p-4 md:p-8 space-y-6">
         <Card hover>
           <SectionTitle title="Subjects Handled by Faculty" subtitle="Real, from each teacher's own Teaching Assignments" />
           <SimpleBarChart data={workload.map((w) => ({ label: w.name, value: w.subject_count }))} xKey="label" barKey="value" color="#5B3FD9" />

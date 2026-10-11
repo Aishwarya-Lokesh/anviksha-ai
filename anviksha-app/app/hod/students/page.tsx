@@ -42,7 +42,7 @@ export default function HodStudentsPage() {
   return (
     <>
       <Topbar greeting="Department Students" subtitle="Dashboard > Department Students" avatarLetter="H" />
-      <div className="p-8 space-y-6">
+      <div className="p-4 md:p-8 space-y-6">
         <Card hover>
           <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
             <div className="flex items-center gap-3 flex-wrap">

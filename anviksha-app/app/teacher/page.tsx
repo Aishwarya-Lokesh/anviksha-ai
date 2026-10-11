@@ -235,12 +235,12 @@ export default function TeacherDashboard() {
   return (
     <>
       <Topbar greeting={`Welcome back, ${teacherName} 👋`} subtitle="Here's what's happening in your classes today." avatarLetter={teacherName.charAt(0)} />
-      <div className="px-8 pt-4">
+      <div className="px-4 md:px-8 pt-4">
         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${liveMode ? "bg-success/10 text-success" : "bg-warning/10 text-[#9c6b12]"}`}>
           {liveMode ? "● Real, teacher-scoped data — not college-wide totals" : "○ Mock data (backend not connected)"}
         </span>
       </div>
-      <div className="p-8 space-y-6">
+      <div className="p-4 md:p-8 space-y-6">
         {liveMode && <AIInsightCard fetcher={api.teacherInsight} />}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           <StatCard label="My Students" value={stats.my_students} icon={Users} tone="brand" delay={0} onClick={openMyStudents} link="View by class →" />

@@ -43,7 +43,7 @@ export default function AssessmentAnalyticsPage() {
   return (
     <>
       <Topbar greeting="Subject / Assessment Analytics" subtitle="Dashboard > Assessment Analytics" avatarLetter="H" />
-      <div className="p-8 space-y-6">
+      <div className="p-4 md:p-8 space-y-6">
         <div className="grid lg:grid-cols-2 gap-6">
           <Card hover>
             <div className="flex items-center justify-between mb-1">

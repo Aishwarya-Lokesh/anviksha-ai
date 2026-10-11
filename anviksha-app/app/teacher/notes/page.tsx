@@ -68,12 +68,12 @@ export default function TeacherNotesPage() {
   return (
     <>
       <Topbar greeting="Notes & Deadlines" subtitle="Dashboard > Notes & Deadlines" avatarLetter="T" />
-      <div className="px-8 pt-4">
+      <div className="px-4 md:px-8 pt-4">
         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${liveMode ? "bg-success/10 text-success" : "bg-warning/10 text-[#9c6b12]"}`}>
           {liveMode ? "● Real — only reaches students in the assignment you pick" : "○ Backend not connected"}
         </span>
       </div>
-      <div className="p-8 space-y-6">
+      <div className="p-4 md:p-8 space-y-6">
         {assignments.length === 0 ? (
           <Card hover>
             <p className="text-sm text-muted text-center py-6">

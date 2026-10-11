@@ -212,12 +212,12 @@ export default function ResumePage() {
   return (
     <>
       <Topbar greeting="Resume Builder" subtitle="Dashboard > Resume Builder" avatarLetter="S" />
-      <div className="px-8 pt-4">
+      <div className="px-4 md:px-8 pt-4">
         <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${liveMode ? "bg-success/10 text-success" : "bg-warning/10 text-[#9c6b12]"}`}>
           {liveMode ? "● Pulling your real profile, achievements, courses & internships" : "○ Mock data (backend not connected)"}
         </span>
       </div>
-      <div className="p-8 grid lg:grid-cols-3 gap-6">
+      <div className="p-4 md:p-8 grid lg:grid-cols-3 gap-6">
         <Card hover>
           <SectionTitle title="1. Select Template" />
           <div className="space-y-3">

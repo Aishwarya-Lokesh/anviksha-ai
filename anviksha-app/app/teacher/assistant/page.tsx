@@ -10,7 +10,7 @@ export default function TeacherAssistantPage() {
   return (
     <>
       <Topbar greeting="Ask Anviksha AI" subtitle="Scoped to your own students and subjects" avatarLetter="R" />
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <ChatPanel
           suggestions={["Which students are below 75% attendance?", "Give me a list of my students with backlogs", "Who is my top performer?", "Do any of my students have internships or achievements?"]}
           askReal={api.teacherAskAI}

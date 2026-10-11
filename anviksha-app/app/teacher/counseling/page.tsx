@@ -207,7 +207,7 @@ export default function TeacherCounselingPage() {
   return (
     <>
       <Topbar greeting="Student Counseling" subtitle="Dashboard > Student Counseling" avatarLetter="T" />
-      <div className="p-8 space-y-6">
+      <div className="p-4 md:p-8 space-y-6">
         <PillNav items={[{ key: "compose", label: "Send a Note" }, { key: "history", label: "All Sent Notes" }]} active={tab} onChange={setTab} />
 
         {tab === "compose" && (

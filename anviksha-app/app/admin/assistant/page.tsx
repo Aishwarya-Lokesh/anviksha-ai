@@ -10,7 +10,7 @@ export default function AdminAssistantPage() {
   return (
     <>
       <Topbar greeting="Ask Anviksha AI" subtitle="Institute-wide aggregate queries" avatarLetter="A" />
-      <div className="p-8">
+      <div className="p-4 md:p-8">
         <ChatPanel
           suggestions={["How many students are in each department?", "Who is the top performer in the 2023 batch?", "How many pending document requests?", "What is our overall placement rate?"]}
           askReal={api.adminAskAI}

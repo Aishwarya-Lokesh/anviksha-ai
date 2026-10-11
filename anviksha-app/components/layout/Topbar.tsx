@@ -57,7 +57,7 @@ function GlobalSearch() {
             className="absolute top-full mt-2 left-0 right-0 bg-white rounded-xl shadow-cardHover border border-gray-100 max-h-96 overflow-y-auto z-50"
           >
             {loading ? (
-              <div className="p-4 flex items-center gap-2 text-sm text-muted"><Loader2 size={14} className="animate-spin" /> Searching real data...</div>
+              <div className="p-4 flex items-center gap-2 text-sm text-muted"><Loader2 size={14} className="animate-spin" /> Searching...</div>
             ) : !results || results.total_results === 0 ? (
               <div className="p-4 text-sm text-muted">No results for "{query}"</div>
             ) : (
@@ -115,7 +115,7 @@ function NotificationBell() {
 
   return (
     <div ref={ref} className="relative">
-      <button onClick={openPanel} className="relative w-10 h-10 rounded-full bg-gray-50 hover:bg-gray-100 flex items-center justify-center transition-colors">
+      <button onClick={openPanel} aria-label="Notifications" className="relative w-11 h-11 rounded-full bg-gray-50 hover:bg-gray-100 flex items-center justify-center transition-colors">
         <Bell size={18} className="text-ink" />
         {data.unread_count > 0 && (
           <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-1 -right-1 w-5 h-5 bg-danger text-white text-[10px] font-bold rounded-full flex items-center justify-center">
@@ -125,7 +125,7 @@ function NotificationBell() {
       </button>
       <AnimatePresence>
         {open && (
-          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="absolute top-full right-0 mt-2 w-80 bg-white rounded-xl shadow-cardHover border border-gray-100 max-h-96 overflow-y-auto z-50">
+          <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="absolute top-full right-0 mt-2 w-80 max-w-[calc(100vw-2rem)] bg-white rounded-xl shadow-cardHover border border-gray-100 max-h-96 overflow-y-auto z-50">
             <div className="px-4 py-3 border-b border-gray-100 text-sm font-semibold text-ink">Notifications</div>
             {data.notifications.length === 0 ? (
               <div className="p-4 text-sm text-muted">No notifications yet.</div>
@@ -154,15 +154,15 @@ export function Topbar({
   avatarLetter: string;
 }) {
   return (
-    <div className="sticky top-0 z-30 bg-white/70 backdrop-blur-md border-b border-gray-100 px-8 py-4 flex items-center justify-between gap-4">
+    <div className="sticky top-0 z-30 bg-white/70 backdrop-blur-md border-b border-gray-100 px-4 py-3 md:px-8 md:py-4 flex items-center justify-between gap-3 md:gap-4">
       <div className="min-w-0">
-        <h1 className="text-xl font-bold text-ink truncate">{greeting}</h1>
-        <p className="text-sm text-muted truncate">{subtitle}</p>
+        <h1 className="text-lg md:text-xl font-bold text-ink truncate">{greeting}</h1>
+        <p className="text-xs md:text-sm text-muted truncate">{subtitle}</p>
       </div>
-      <div className="flex items-center gap-4 shrink-0">
+      <div className="flex items-center gap-2 md:gap-4 shrink-0">
         <GlobalSearch />
         <NotificationBell />
-        <div className="w-10 h-10 rounded-full bg-brand text-white flex items-center justify-center font-semibold">
+        <div className="w-11 h-11 rounded-full bg-brand text-white flex items-center justify-center font-semibold shrink-0">
           {avatarLetter}
         </div>
       </div>
