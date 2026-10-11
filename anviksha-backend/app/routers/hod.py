@@ -255,9 +255,12 @@ def update_extra_work(faculty_id: int, payload: ExtraWorkIn, db: Session = Depen
     f = db.query(Faculty).filter(Faculty.id == faculty_id, Faculty.department_id == dept.id).first()
     if not f:
         raise HTTPException(status_code=404, detail="Faculty not found in your department")
-    f.extra_work = payload.extra_work
+    changed = (payload.extra_work or None) != (f.extra_work or None)
+    f.extra_work = payload.extra_work or None
+    if changed:
+        f.extra_work_status = "pending" if f.extra_work else None
     db.commit()
-    return {"id": f.id, "extra_work": f.extra_work}
+    return {"id": f.id, "extra_work": f.extra_work, "status": f.extra_work_status}
 
 
 @router.get("/faculty-workload")
@@ -289,48 +292,21 @@ def passed_out_years(db: Session = Depends(get_db), user: User = Depends(require
 
 @router.get("/placements")
 def department_placements(
+    batch: Optional[str] = None,
     passed_out_year: Optional[int] = None,
     db: Session = Depends(get_db), user: User = Depends(require_role("hod")),
 ):
-    """Full relational chain: HOD -> Department -> Students -> Placement.
-    When passed_out_year is given, scopes to exactly the students whose
-    admission_year + 4 == passed_out_year AND who have actually graduated —
-    never a raw 'batch' label, which represents admission year, not the
-    year they passed out."""
+    """Placement figures for the HOD's department: one batch, or every batch
+    with at least one offer. `passed_out_year` is the same filter expressed as
+    the graduating year (entry year + 4)."""
+    from app.core import placement_stats
+
     dept = _department_or_403(user, db)
-    q = db.query(Placement).join(Student).filter(Student.department_id == dept.id)
-    if passed_out_year:
-        q = q.filter(Student.admission_year == passed_out_year - 4, Student.status == "passed_out")
-    rows = q.all()
-    placed = sum(1 for r in rows if r.placed)
-
-    import re as _re
-    from collections import Counter
-    ctc_values = []
-    for r in rows:
-        if r.ctc:
-            m = _re.search(r"(\d+(\.\d+)?)", r.ctc)
-            if m:
-                ctc_values.append(float(m.group(1)))
-    avg_ctc_lpa = round(sum(ctc_values) / len(ctc_values), 1) if ctc_values else None
-    company_counts = Counter(r.company for r in rows if r.company)
-
-    return {
-        "department": dept.name,
-        "passed_out_year": passed_out_year,
-        "total_students_in_placement_data": len(rows),
-        "placed": placed,
-        "not_placed": len(rows) - placed,
-        "dream_offers": sum(1 for r in rows if r.placement_type == "Dream"),
-        "regular_offers": sum(1 for r in rows if r.placement_type == "Regular"),
-        "with_company_data": sum(1 for r in rows if r.company),
-        "avg_ctc_lpa": avg_ctc_lpa,
-        "top_companies": [{"company": c, "count": n} for c, n in company_counts.most_common(10)],
-        "students": [{
-            "usn": r.student.usn, "name": r.student.name, "placed": r.placed,
-            "company": r.company, "ctc": r.ctc,
-        } for r in rows],
-    }
+    if not batch and passed_out_year:
+        batch = str(passed_out_year - 4)
+    result = placement_stats.overview(db, dept.id, dept.name, batch)
+    result["passed_out_year"] = passed_out_year
+    return result
 
 
 @router.post("/reports/query")
