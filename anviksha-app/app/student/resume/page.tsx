@@ -7,7 +7,7 @@ import { Card, SectionTitle, Button, Badge } from "@/components/ui/Primitives";
 import { CenterModal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toaster";
 import { Download, Check, GripVertical, Eye, EyeOff, FileText, AlertCircle, CheckCircle2, Pencil, Plus, Trash2, ImagePlus } from "lucide-react";
-import data from "@/data/studentProfile.json";
+import { LoadError, EmptyState } from "@/components/ui/States";
 import { downloadResumePDF, downloadResumeDOCX, downloadResumePlainText } from "@/lib/fileGen";
 import { api, API_BASE } from "@/lib/api";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
@@ -76,7 +76,8 @@ function realContentFor(key: string, profile: any, achievements: any[], courses:
 
 export default function ResumePage() {
   const [profile, setProfile] = useState<any>(null);
-  const [achievements, setAchievements] = useState<any[]>(data.achievements);
+  const [achievements, setAchievements] = useState<any[]>([]);
+  const [loadError, setLoadError] = useState(false);
   const [courses, setCourses] = useState<any[]>([]);
   const [internships, setInternships] = useState<any[]>([]);
   const [liveMode, setLiveMode] = useState(false);
@@ -115,16 +116,18 @@ export default function ResumePage() {
     setUploadingPhoto(false);
   };
 
-  useEffect(() => {
+  const load = () => {
+    setLoadError(false);
     api.studentDashboard().then((d) => {
-      setProfile((p: any) => ({ ...data.profile, ...p, ...d }));
+      setProfile((p: any) => ({ ...p, ...d }));
       if (Array.isArray(d.education) && d.education.length > 0) setEducation(normalizeEducation(d.education));
       setLiveMode(true);
-    }).catch(() => setProfile(data.profile));
+    }).catch(() => setLoadError(true));
     api.studentAchievements().then((a) => setAchievements(a)).catch(() => {});
     api.myCourses().then((c) => setCourses(c)).catch(() => {});
     api.myInternships().then((i) => setInternships(i)).catch(() => {});
-  }, []);
+  };
+  useEffect(load, []);
 
   // sync auto-computed real content into predefined (non-custom) sections whenever underlying real data changes,
   // unless the student has manually overridden that section's text
@@ -182,12 +185,12 @@ export default function ResumePage() {
     const cleaned = educationDraft.map((e) => ({ ...e, score: e.score ? Number(e.score) : null, year: e.year ? Number(e.year) : null }));
     try {
       await api.updateEducation(cleaned);
+      setEducation(educationDraft);
+      setShowEducationModal(false);
       push("Education updated");
-    } catch (e: any) {
-      push(e.message || "Backend not connected — kept locally only", "info");
+    } catch {
+      push("Could not save your education details. Please try again.", "error");
     }
-    setEducation(educationDraft);
-    setShowEducationModal(false);
     setSavingEducation(false);
   };
 
@@ -207,16 +210,12 @@ export default function ResumePage() {
     push("Section deleted");
   };
 
-  if (!profile) return <><Topbar greeting="Resume Builder" subtitle="Loading your real data..." avatarLetter="S" /><DashboardSkeleton /></>;
+  if (loadError && !profile) return <><Topbar greeting="Resume Builder" subtitle="Build your resume" avatarLetter="S" /><LoadError message="We couldn't load your details for the resume." onRetry={load} /></>;
+  if (!profile) return <><Topbar greeting="Resume Builder" subtitle="Loading your details…" avatarLetter="S" /><DashboardSkeleton /></>;
 
   return (
     <>
       <Topbar greeting="Resume Builder" subtitle="Dashboard > Resume Builder" avatarLetter="S" />
-      <div className="px-4 md:px-8 pt-4">
-        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${liveMode ? "bg-success/10 text-success" : "bg-warning/10 text-[#9c6b12]"}`}>
-          {liveMode ? "● Pulling your real profile, achievements, courses & internships" : "○ Mock data (backend not connected)"}
-        </span>
-      </div>
       <div className="p-4 md:p-8 grid lg:grid-cols-3 gap-6">
         <Card hover>
           <SectionTitle title="1. Select Template" />

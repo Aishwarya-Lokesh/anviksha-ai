@@ -557,7 +557,9 @@ def delete_achievement(achievement_id: int, db: Session = Depends(get_db), user:
 @router.get("/documents")
 def documents(db: Session = Depends(get_db), user: User = Depends(require_role("student"))):
     rows = db.query(DocumentRequest).filter(DocumentRequest.student_id == user.student_id).all()
-    return [{"id": d.id, "type": d.type, "purpose": d.purpose, "status": d.status} for d in rows]
+    rows = sorted(rows, key=lambda d: d.id, reverse=True)
+    return [{"id": d.id, "type": d.type, "purpose": d.purpose, "status": d.status,
+             "date": str(d.requested_date)[:10] if d.requested_date else None} for d in rows]
 
 
 @router.get("/placement")

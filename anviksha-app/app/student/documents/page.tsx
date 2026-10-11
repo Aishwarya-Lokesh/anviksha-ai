@@ -7,7 +7,7 @@ import { CenterModal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toaster";
 import { motion } from "framer-motion";
 import { Plus, Clock, PackageCheck, CheckCircle2, XCircle, Inbox } from "lucide-react";
-import raw from "@/data/studentProfile.json";
+import { LoadError, EmptyState } from "@/components/ui/States";
 import { api } from "@/lib/api";
 
 const toneFor: Record<string, "warning" | "info" | "success" | "danger"> = {
@@ -15,18 +15,19 @@ const toneFor: Record<string, "warning" | "info" | "success" | "danger"> = {
 };
 
 export default function DocumentsPage() {
-  const [requests, setRequests] = useState(raw.documentRequests);
-  const [liveMode, setLiveMode] = useState(false);
+  const [requests, setRequests] = useState<any[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [open, setOpen] = useState(false);
   const [type, setType] = useState("Bonafide Certificate");
   const [purpose, setPurpose] = useState("");
   const { push } = useToast();
 
-  useEffect(() => {
-    api.studentDocuments()
-      .then((rows) => { setRequests(rows); setLiveMode(true); })
-      .catch(() => setLiveMode(false));
-  }, []);
+  const load = () => {
+    setLoadError(false);
+    api.studentDocuments().then((rows) => { setRequests(rows); setLoaded(true); }).catch(() => setLoadError(true));
+  };
+  useEffect(load, []);
 
   const counts = {
     Pending: requests.filter((r) => r.status === "Pending").length,
@@ -37,17 +38,15 @@ export default function DocumentsPage() {
 
   const submit = async () => {
     if (!purpose) return;
-    const newItem = { id: `D${Date.now()}`, type, purpose, date: "Today", status: "Pending" };
     try {
-      const res: any = await api.requestDocument({ type, purpose });
-      setRequests([res || newItem, ...requests]);
-      push("Document request saved to backend");
+      await api.requestDocument({ type, purpose });
+      push("Request submitted");
+      setOpen(false);
+      setPurpose("");
+      load();
     } catch {
-      setRequests([newItem, ...requests]);
-      push("Backend not connected — saved locally only", "info");
+      push("Could not submit your request. Please try again.", "error");
     }
-    setOpen(false);
-    setPurpose("");
   };
 
   const stat = [
@@ -60,11 +59,6 @@ export default function DocumentsPage() {
   return (
     <>
       <Topbar greeting="Document Requests" subtitle="Dashboard > Document Requests" avatarLetter="S" />
-      <div className="px-4 md:px-8 pt-4">
-        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${liveMode ? "bg-success/10 text-success" : "bg-warning/10 text-[#9c6b12]"}`}>
-          {liveMode ? "● Live data from backend" : "○ Mock data (backend not connected)"}
-        </span>
-      </div>
       <div className="p-4 md:p-8 space-y-6">
         <div className="flex justify-end">
           <Button onClick={() => setOpen(true)}><Plus size={15} /> New Request</Button>

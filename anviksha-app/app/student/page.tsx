@@ -11,7 +11,7 @@ import { AIInsightCard } from "@/components/ui/AIInsightCard";
 import { useToast } from "@/components/ui/Toaster";
 import { motion } from "framer-motion";
 import { GraduationCap, CalendarCheck, Star, Award, AlertCircle, Calendar, Trophy, UserPlus, FileEdit, MessageSquare, Briefcase, Users, Inbox } from "lucide-react";
-import data from "@/data/studentProfile.json";
+import { LoadError, EmptyState } from "@/components/ui/States";
 import { useRouter } from "next/navigation";
 import { api, consumeJustLoggedIn } from "@/lib/api";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
@@ -52,7 +52,7 @@ const ACH_GROUPS = [
 export default function StudentDashboard() {
   const { push } = useToast();
   const router = useRouter();
-  const [sgpaTrend, setSgpaTrend] = useState<any[]>(data.sgpaTrend);
+  const [sgpaTrend, setSgpaTrend] = useState<any[]>([]);
   const [profile, setProfile] = useState<any>(null);
   const [liveMode, setLiveMode] = useState(false);
   const [loadFailed, setLoadFailed] = useState(false);
@@ -83,7 +83,8 @@ export default function StudentDashboard() {
     api.studentNotes().then((d) => setDeadlines(d.deadlines || [])).catch(() => setDeadlines([]));
   }, []);
 
-  useEffect(() => {
+  const loadProfile = () => {
+    setLoadFailed(false);
     api.studentDashboard()
       .then((d) => {
         setProfile({
@@ -110,20 +111,17 @@ export default function StudentDashboard() {
           setCelebrate(true);
         }
       })
-      .catch(() => { setProfile(data.profile); setLiveMode(false); setLoadFailed(true); });
-  }, []);
+      .catch(() => { setLiveMode(false); setLoadFailed(true); });
+  };
+  useEffect(loadProfile, []);
 
-  if (!profile) return <><Topbar greeting="Loading..." subtitle="Fetching your real profile" avatarLetter="S" /><DashboardSkeleton /></>;
+  if (loadFailed && !profile) return <><Topbar greeting="Dashboard" subtitle="Your academic overview" avatarLetter="S" /><LoadError message="We couldn't load your dashboard." onRetry={loadProfile} /></>;
+  if (!profile) return <><Topbar greeting="Loading..." subtitle="Loading your dashboard…" avatarLetter="S" /><DashboardSkeleton /></>;
 
   return (
     <>
       <Celebration active={celebrate} onDone={() => setCelebrate(false)} />
       <Topbar greeting={`Welcome back, ${profile.name.split(" ")[0]}! 👋`} subtitle="Here's your academic and professional overview." avatarLetter="S" />
-      <div className="px-4 md:px-8 pt-4">
-        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${liveMode ? "bg-success/10 text-success" : "bg-warning/10 text-[#9c6b12]"}`}>
-          {liveMode ? "● Live data from backend" : "○ Mock data (backend not connected)"}
-        </span>
-      </div>
       <div className="p-4 md:p-8 space-y-6">
         {liveMode && <AIInsightCard fetcher={api.studentInsight} />}
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -193,7 +191,11 @@ export default function StudentDashboard() {
         <div className="grid lg:grid-cols-3 gap-6">
           <Card className="lg:col-span-2" hover>
             <SectionTitle title="SGPA Trend" subtitle="Semester-wise progress" />
-            <TrendLineChart data={sgpaTrend} lines={[{ key: "sgpa", color: "#5B3FD9" }]} />
+            {sgpaTrend.length === 0 ? (
+              <EmptyState title="No semester results on record yet" hint="Your SGPA trend appears here once results are entered." compact />
+            ) : (
+              <TrendLineChart data={sgpaTrend} lines={[{ key: "sgpa", color: "#5B3FD9" }]} />
+            )}
           </Card>
           <Card hover>
             <SectionTitle title="Attendance Overview" />

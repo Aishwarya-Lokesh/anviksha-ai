@@ -7,7 +7,7 @@ import { Drawer } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toaster";
 import { motion } from "framer-motion";
 import { Edit3, CheckCircle2, XCircle, Camera, Loader2, FileUp, Trash2 } from "lucide-react";
-import data from "@/data/studentProfile.json";
+import { LoadError, EmptyState } from "@/components/ui/States";
 import { api, API_BASE } from "@/lib/api";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { FileCheck, Download } from "lucide-react";
@@ -45,16 +45,19 @@ export default function ProfilePage() {
   const [uploadingResume, setUploadingResume] = useState(false);
   const { push } = useToast();
 
-  useEffect(() => {
+  const [loadError, setLoadError] = useState(false);
+  const load = () => {
+    setLoadError(false);
     api.studentDashboard()
       .then((d) => {
         setProfile(d);
         setForm({ linkedin: d.linkedin || "", github: d.github || "", skills: d.skills || "" });
         setLiveMode(true);
       })
-      .catch(() => { setProfile(data.profile); setForm({ linkedin: data.profile.linkedin, github: data.profile.github, skills: data.profile.skills }); setLiveMode(false); });
+      .catch(() => { setLiveMode(false); setLoadError(true); });
     api.myCertificates().then(setCertificates).catch(() => {});
-  }, []);
+  };
+  useEffect(load, []);
 
   const handlePhotoUpload = async (file: File) => {
     setUploadingPhoto(true);
@@ -90,7 +93,8 @@ export default function ProfilePage() {
     }
   };
 
-  if (!profile) return <><Topbar greeting="My Profile" subtitle="Loading your real profile..." avatarLetter="S" /><DashboardSkeleton /></>;
+  if (loadError && !profile) return <><Topbar greeting="My Profile" subtitle="Your details" avatarLetter="S" /><LoadError message="We couldn't load your profile." onRetry={load} /></>;
+  if (!profile) return <><Topbar greeting="My Profile" subtitle="Loading your profile…" avatarLetter="S" /><DashboardSkeleton /></>;
 
   // Real completion checklist — based on what's actually filled in, not hardcoded true/false
   const checklist = [
@@ -106,11 +110,6 @@ export default function ProfilePage() {
   return (
     <>
       <Topbar greeting="My Profile" subtitle="Dashboard > My Profile" avatarLetter="S" />
-      <div className="px-4 md:px-8 pt-4">
-        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${liveMode ? "bg-success/10 text-success" : "bg-warning/10 text-[#9c6b12]"}`}>
-          {liveMode ? "● Live — this is your real profile" : "○ Mock data (backend not connected)"}
-        </span>
-      </div>
       <div className="p-4 md:p-8 space-y-6">
         <div className="flex justify-end">
           <Button onClick={() => setOpen(true)}><Edit3 size={15} /> Edit Profile</Button>
@@ -241,12 +240,11 @@ export default function ProfilePage() {
             try {
               const updated = await api.updateProfile(form);
               setProfile((p: any) => ({ ...p, ...updated }));
-              push("Profile saved to backend");
+              push("Profile saved");
+              setOpen(false);
             } catch {
-              setProfile((p: any) => ({ ...p, ...form }));
-              push("Backend not connected — changes kept locally only", "info");
+              push("Could not save your profile. Please try again.", "error");
             }
-            setOpen(false);
           }}>Save Changes</Button>
         </div>
       </Drawer>

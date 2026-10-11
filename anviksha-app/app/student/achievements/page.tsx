@@ -102,7 +102,7 @@ export default function AchievementsPage() {
       setShowAdd(false);
       load();
     } catch (e: any) {
-      push(e.message || "Failed to add — check backend connection", "error");
+      push(e.message || "Could not add this. Please try again.", "error");
     }
     setSaving(false);
   };
@@ -199,11 +199,6 @@ export default function AchievementsPage() {
   return (
     <>
       <Topbar greeting="My Achievements" subtitle="Dashboard > Achievements" avatarLetter="S" />
-      <div className="px-4 md:px-8 pt-4">
-        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${liveMode ? "bg-success/10 text-success" : "bg-warning/10 text-[#9c6b12]"}`}>
-          {liveMode ? "● Live — your real achievements" : "○ Backend not connected"}
-        </span>
-      </div>
       <div className="p-4 md:p-8 space-y-6">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <Tabs tabs={TABS} active={tab} onChange={setTab} />
