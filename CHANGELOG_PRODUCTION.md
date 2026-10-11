@@ -45,7 +45,7 @@ Work happens on the local branch `hardening/phase-1`. Nothing here has been push
 ### Import
 - `anviksha-backend/scripts/import_placements.py` — dry run by default, `--apply` to write. Writes `IMPORT_REPORT.md`.
 - `anviksha-backend/app/core/placement_matching.py` — USN → exact name (initials in any form/order) → similar name + same first name. A row is imported only on a single match with no open question.
-- Seed files `data/placements_2027_batch.csv`, `data/internships_2027_batch.csv`.
+- Seed files live in `anviksha-backend/data_raw/placement_2027/`, which is git-ignored: they hold student names and packages and are never committed. They are imported straight into the database.
 - 11 new tests for matching and company-name normalization (42 backend tests pass).
 
 ### Decisions made
@@ -64,3 +64,22 @@ Work happens on the local branch `hardening/phase-1`. Nothing here has been push
 ### Not verified
 - The migration has **not been run on Postgres**. The table changes are standard, but the RLS / view-security / revoke statements are Postgres-only and could not be exercised locally.
 - Nothing has been written to production.
+
+## Login reliability, session expiry, role alias
+
+### Root causes found for "login sometimes fails"
+- **Dropped database connections.** The backend kept idle connections open with no health check. The Supabase pooler closes idle connections, so the first request after a quiet period could be handed a dead one and fail with a server error, which the login page reported as a failed login. Fixed with connection pre-ping and recycling (`app/core/database.py`).
+- **Server asleep.** Render stops the backend when idle; the first request took 53 s when measured, with nothing on screen to explain the wait. The API client now waits and retries safe requests (reads and sign-in) for up to 90 s, and the login page says the server is starting.
+- **Expired sessions.** Tokens last 8 hours with no handling when they run out, so pages silently stopped loading. A rejected token now signs the user out and returns them to the login page with an explanation.
+- Login errors now distinguish wrong credentials, server unreachable, and server error (previously all three said the same thing).
+
+### Role alias
+- `faculty` is accepted as another spelling of `teacher` at login and on every role check. Migration `d5e6f7a8b9c0` updates the one stored account.
+
+### Placement import
+- Seed CSVs removed from git history (they were only ever in unpushed local commits) and moved to the git-ignored `anviksha-backend/data_raw/placement_2027/`. `IMPORT_REPORT.md` is git-ignored.
+- Drive type is stored as "Not specified" when the source does not state it.
+- All 9 seed records confirmed by the department; rehearsal on a scratch copy imports 6 placements and 3 internships with no duplicates on a second run. Batch 2023: 6 placed of 70, highest 22 LPA, Mindsprint 4 offers at 5.2 LPA.
+
+### Not verified
+- The login fix cannot be proven until it is deployed: the failure is intermittent and happens only in production.
