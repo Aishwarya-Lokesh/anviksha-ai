@@ -7,6 +7,7 @@ import os
 
 from app.core.file_storage import get_file
 from app.routers import auth, student, teacher, admin, notifications, search, hod, question_paper, hod_intelligence
+from app.routers import notes, teacher_extras, student_extras, hod_extras
 
 app = FastAPI(title="Anviksha AI — Phase 2 Backend", version="0.2.0")
 
@@ -63,6 +64,16 @@ def get_profile_photo(filename: str):
     return _serve_stored_file("profile_photos", filename)
 
 
+@app.get("/note-files/{filename}")
+def get_note_file(filename: str):
+    return _serve_stored_file("note_files", filename)
+
+
+@app.get("/resume-files/{filename}")
+def get_resume_file(filename: str):
+    return _serve_stored_file("resume_files", filename)
+
+
 # Real .xlsx exports generated on demand from the Teacher/Admin chat assistants
 @app.get("/exports/{filename}")
 def get_export(filename: str):
@@ -78,6 +89,10 @@ app.include_router(search.router)
 app.include_router(hod.router)
 app.include_router(question_paper.router)
 app.include_router(hod_intelligence.router)
+app.include_router(notes.router)
+app.include_router(teacher_extras.router)
+app.include_router(student_extras.router)
+app.include_router(hod_extras.router)
 
 
 @app.get("/")

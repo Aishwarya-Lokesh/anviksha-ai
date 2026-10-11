@@ -83,3 +83,36 @@ Work happens on the local branch `hardening/phase-1`. Nothing here has been push
 
 ### Not verified
 - The login fix cannot be proven until it is deployed: the failure is intermittent and happens only in production.
+
+## Missing backend features (the screens existed; the server side did not)
+
+Migration `e6f7a8b9c0d1` (additive): counseling reply columns, resume file and education on students, extra-work status on faculty, and the `notes` table where it does not already exist (production's existing table and its 2 rows are left untouched).
+
+### Now working
+- **Notes & Deadlines:** teachers post a note or deadline (with an optional file) to one of their classes; only students of that class see it and are notified. `GET/POST/DELETE /teacher/notes`, `GET /student/notes`.
+- **Student dashboard:** Profile Score, achievement count, breakdown and the achievement list are now returned by `/student/dashboard`.
+- **IA marks:** `POST /teacher/marks/bulk` saves the whole grid, all-or-nothing, limited to the teacher's own students and subjects.
+- **Attendance:** a teacher can delete a session they marked.
+- **Counseling:** students can respond to a note, edit or remove the response; teachers can reply back. Both sides see the thread.
+- **Extra work:** a teacher sees work the HOD assigned, marks it completed, or clears it.
+- **HOD:** batch breakdown (which feeds every batch filter), a faculty member's classes, placement batch selector and batch-vs-batch comparison.
+- **Placements:** `/hod/placements`, `/student/placement` and `/student/internships` now read the new placement tables through one shared module (`app/core/placement_stats.py`) and the three views.
+- **Resume file** upload/replace/delete and **education** details for the Resume Builder.
+
+### Bug found and fixed along the way
+- A teacher's class list matched students by batch and semester only, so in a multi-department setup it would have included other departments' students. It now also matches the department.
+
+### Decisions made
+- **Profile Score = Student Excellence Score** (CGPA tier points + achievement points). The dashboard already labels the card "Same as Excellence Score"; the number now comes from the same calculation.
+- **"All batches" placement figures count only batches that have at least one offer**, so a batch that has not started placements does not drag the percentage down.
+- **Placement percentage is placed students ÷ all students in the batch.** Previously it was placed ÷ students who happened to have a placement row, which showed 100% for batches where only placed students were recorded.
+- **Dream offer = 9 LPA or more** on the HOD screen, because that is what the screen's own label says. The admin screen uses different tiers (see open questions).
+- New endpoints live in their own files (`notes.py`, `teacher_extras.py`, `student_extras.py`, `hod_extras.py`) rather than growing the existing 1,900-line teacher module.
+
+### Verified
+- 12 new tests covering each feature and its access boundary (own class / own students / own department only); 55 backend tests pass.
+- All three migrations rehearsed on a scratch copy: upgrade, full downgrade, upgrade again, import twice. Also rehearsed with a pre-existing `notes` table, as in production.
+
+### Not verified
+- None of this has run against Postgres or the live site yet.
+- Files attached to notes and uploaded resumes need the storage bucket to survive a server restart.
