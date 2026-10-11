@@ -216,7 +216,7 @@ class PlacementDrive(Base):
     __tablename__ = "placement_drives"
     id = Column(Integer, primary_key=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=False)
-    drive_type = Column(String, nullable=True)   # "campus" | "off-campus" | "pool"
+    drive_type = Column(String, nullable=True)   # "campus" | "off-campus" | "pool" | "Not specified"
     drive_date = Column(Date, nullable=True)
     venue = Column(String, nullable=True)
     batch = Column(String, nullable=True, index=True)  # student entry-year batch, matches Student.batch

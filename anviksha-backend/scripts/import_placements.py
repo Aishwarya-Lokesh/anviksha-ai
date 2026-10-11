@@ -26,9 +26,14 @@ from app.core.placement_matching import canonical_company, match_student  # noqa
 from app.models.models import Company, Department, Internship, Placement, PlacementDrive, Student  # noqa: E402
 
 REPO_ROOT = os.path.join(os.path.dirname(__file__), "..", "..")
+# Student names and packages are personal data: the CSVs live under data_raw/,
+# which is git-ignored, and are never committed.
+DATA_DIR = os.path.join(os.path.dirname(__file__), "..", "data_raw", "placement_2027")
+# Stored when the source does not say how the student was hired — never inferred.
+DRIVE_NOT_SPECIFIED = "Not specified"
 OFFER_TYPES = {"full-time", "PPO", "internship+PPO"}
 OFFER_STATUSES = {"offered", "accepted", "joined", "declined"}
-DRIVE_TYPES = {"campus", "off-campus", "pool"}
+DRIVE_TYPES = {"campus", "off-campus", "pool", DRIVE_NOT_SPECIFIED}
 INTERNSHIP_STATUSES = {"ongoing", "completed"}
 
 
@@ -131,7 +136,7 @@ def run(placements_csv: str, internships_csv: str, department: str | None, apply
             package = _positive(row.get("package_lpa"), "package_lpa", errors)
             offer_type = _choice(row.get("offer_type"), OFFER_TYPES, "offer_type", errors)
             status = _choice(row.get("status"), OFFER_STATUSES, "status", errors) or "offered"
-            drive_type = _choice(row.get("drive_type"), DRIVE_TYPES, "drive_type", errors)
+            drive_type = _choice(row.get("drive_type"), DRIVE_TYPES, "drive_type", errors) or DRIVE_NOT_SPECIFIED
             offer_date = _date(row.get("offer_date"), "offer_date", errors)
             drive_date = _date(row.get("drive_date"), "drive_date", errors)
             if not _clean(row.get("company")):
@@ -150,18 +155,17 @@ def run(placements_csv: str, internships_csv: str, department: str | None, apply
             student = entry["match"].student
             company = _company(db, row["company"], known_company_keys, new_companies)
             batch = _clean(row.get("batch"))
-            drive = None
-            if drive_type or drive_date or _clean(row.get("venue")):
-                drive = db.query(PlacementDrive).filter(
-                    PlacementDrive.company_id == company.id, PlacementDrive.batch == batch,
-                    PlacementDrive.drive_type == drive_type, PlacementDrive.drive_date == drive_date,
-                ).first()
-                if not drive:
-                    drive = PlacementDrive(company_id=company.id, batch=batch, drive_type=drive_type,
-                                           drive_date=drive_date, venue=_clean(row.get("venue")) or None,
-                                           source_note=_clean(row.get("source_note")) or None)
-                    db.add(drive)
-                    db.flush()
+            drive = db.query(PlacementDrive).filter(
+                PlacementDrive.company_id == company.id, PlacementDrive.batch == batch,
+                PlacementDrive.drive_type == drive_type,
+                PlacementDrive.drive_date == drive_date if drive_date else PlacementDrive.drive_date.is_(None),
+            ).first()
+            if not drive:
+                drive = PlacementDrive(company_id=company.id, batch=batch, drive_type=drive_type,
+                                       drive_date=drive_date, venue=_clean(row.get("venue")) or None,
+                                       source_note=_clean(row.get("source_note")) or None)
+                db.add(drive)
+                db.flush()
 
             placement = db.query(Placement).filter(
                 Placement.student_id == student.student_id, Placement.company_id == company.id,
@@ -171,7 +175,7 @@ def run(placements_csv: str, internships_csv: str, department: str | None, apply
                 placement = Placement(student_id=student.student_id, company_id=company.id, offer_type=offer_type)
                 db.add(placement)
             placement.usn = student.usn
-            placement.drive_id = drive.id if drive else None
+            placement.drive_id = drive.id
             placement.role = _clean(row.get("role")) or None
             placement.package_lpa = package
             placement.offer_date = offer_date
@@ -297,8 +301,8 @@ def render_report(result: dict) -> str:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--placements", default=os.path.join(REPO_ROOT, "data", "placements_2027_batch.csv"))
-    parser.add_argument("--internships", default=os.path.join(REPO_ROOT, "data", "internships_2027_batch.csv"))
+    parser.add_argument("--placements", default=os.path.join(DATA_DIR, "placements_2027_batch.csv"))
+    parser.add_argument("--internships", default=os.path.join(DATA_DIR, "internships_2027_batch.csv"))
     parser.add_argument("--department", default=None, help="part of the department name; default is the first department")
     parser.add_argument("--report", default=os.path.join(REPO_ROOT, "IMPORT_REPORT.md"))
     parser.add_argument("--apply", action="store_true", help="write the safe rows; without this nothing is written")
