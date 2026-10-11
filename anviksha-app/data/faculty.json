@@ -1,7 +1,0 @@
-[
-  { "id": "F001", "name": "Dr. Rahul Sharma", "dept": "ISE", "designation": "Assistant Professor", "subjects": 5, "email": "rahul.sharma@gsssietw.ac.in" },
-  { "id": "F002", "name": "Prof. Meena Kumari", "dept": "ISE", "designation": "Associate Professor", "subjects": 4, "email": "meena.kumari@gsssietw.ac.in" },
-  { "id": "F003", "name": "Prof. Arvind Rao", "dept": "CSE", "designation": "Assistant Professor", "subjects": 3, "email": "arvind.rao@gsssietw.ac.in" },
-  { "id": "F004", "name": "Dr. Kavya Reddy", "dept": "ECE", "designation": "Professor", "subjects": 4, "email": "kavya.reddy@gsssietw.ac.in" },
-  { "id": "F005", "name": "Prof. Suresh Babu", "dept": "Mechanical", "designation": "Assistant Professor", "subjects": 5, "email": "suresh.babu@gsssietw.ac.in" }
-]
