@@ -216,6 +216,26 @@ class FeedbackSubmission(Base):
     semester = Column(Integer, nullable=True)
 
 
+class AssistantConversation(Base):
+    """One chat thread with the assistant. Belongs to the user who started it."""
+    __tablename__ = "assistant_conversations"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    title = Column(String, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now())
+
+
+class AssistantMessage(Base):
+    __tablename__ = "assistant_messages"
+    id = Column(Integer, primary_key=True)
+    conversation_id = Column(Integer, ForeignKey("assistant_conversations.id"), nullable=False, index=True)
+    role = Column(String, nullable=False)      # "user" | "assistant"
+    content = Column(Text, nullable=False)
+    extra = Column(Text, nullable=True)        # JSON: charts shown with this reply
+    created_at = Column(DateTime, server_default=func.now())
+
+
 class QuestionBankChunk(Base):
     """Chunked, subject-tagged text from ingested question papers — indexed
     into the real TF-IDF retrieval layer (app/core/rag_retrieval.py).
