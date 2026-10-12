@@ -171,6 +171,60 @@ export const api = {
 
   accountProfile: () => request("/auth/profile"),
 
+  // ---- assistant ----
+  assistantStarters: () => request("/assistant/starters"),
+
+  assistantConversations: () => request("/assistant/conversations"),
+
+  assistantConversation: (id: number) => request(`/assistant/conversations/${id}`),
+
+  deleteAssistantConversation: (id: number) =>
+    request(`/assistant/conversations/${id}`, { method: "DELETE" }),
+
+  // The reply arrives as a stream of small events (start, status, text, chart,
+  // done); `onEvent` is called for each as it comes in.
+  assistantChat: async (
+    payload: { message: string; conversation_id: number | null },
+    onEvent: (event: string, data: any) => void,
+    signal?: AbortSignal
+  ) => {
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+    if (getToken()) headers["Authorization"] = `Bearer ${getToken()}`;
+    const res = await fetch(`${API_BASE}/assistant/chat`, { method: "POST", headers, body: JSON.stringify(payload), signal });
+    if (res.status === 401 && typeof window !== "undefined") {
+      clearAuth();
+      window.location.assign("/login?expired=1");
+      throw new Error("Your session has expired. Please sign in again.");
+    }
+    if (!res.ok || !res.body) {
+      const error = new Error("The assistant could not be reached.") as Error & { detail?: string };
+      try { error.detail = (await res.json())?.detail; } catch { /* no readable explanation */ }
+      throw error;
+    }
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let cut: number;
+      while ((cut = buffer.indexOf("\n\n")) >= 0) {
+        const block = buffer.slice(0, cut);
+        buffer = buffer.slice(cut + 2);
+        let event = "message";
+        let data = "";
+        for (const line of block.split("\n")) {
+          if (line.startsWith("event: ")) event = line.slice(7);
+          else if (line.startsWith("data: ")) data += line.slice(6);
+        }
+        if (data) {
+          try { onEvent(event, JSON.parse(data)); } catch { /* a malformed event is skipped */ }
+        }
+      }
+    }
+  },
+
   // ---- feedback ----
   studentFeedback: () => request("/student/feedback"),
 
