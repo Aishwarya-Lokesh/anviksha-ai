@@ -218,3 +218,15 @@ def test_reply_still_streams_after_the_request_session_is_closed(placed, scripte
             assert [x["role"] for x in saved] == ["user", "assistant"]
     finally:
         app.dependency_overrides.clear()
+
+
+def test_a_batch_can_be_named_by_graduation_year(placed):  # noqa: F811
+    db = placed["db"]
+    hod = _user(db, "hod@test.local")
+    by_entry = _run(db, hod, "d_batch_placements", batch="2023")["batches"]
+    by_graduation = _run(db, hod, "d_batch_placements", batch="2027")["batches"]          # "the 2027 batch"
+    assert len(by_entry) == 1 and by_graduation == by_entry and by_entry[0]["graduates_in"] == 2027
+    assert [o["usn"] for o in _run(db, hod, "d_placed_students", batch="2027")["offers"]] == ["T23IS001", "T23IS001"]
+    assert _run(db, hod, "d_students", batch="2025")["matching"] == 1                      # 2021 entry graduates in 2025
+    assert _run(db, hod, "d_batch_placements", batch="2024")["batches"][0]["batch"] == "2024"   # a real entry year is taken as one
+    assert _run(db, hod, "d_batch_placements", batch="1999")["batches"] == []

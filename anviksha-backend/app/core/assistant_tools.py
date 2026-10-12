@@ -50,6 +50,24 @@ def _pick_students(query, which: str, limit: int) -> list[dict]:
             "definition": f"at_risk = CGPA below {AT_RISK_CGPA} or at least one backlog" if which == "at_risk" else None}
 
 
+def _batch(db: Session, value) -> str:
+    """The stored batch for what the user said. Batches are stored by entry
+    year, but people also name them by graduation year ("the 2027 batch" is
+    the 2023 entry). A year that is not an entry year but is four years after
+    one is read as that graduation year."""
+    wanted = str(value or "").strip()
+    if not wanted:
+        return ""
+    known = {b for (b,) in db.query(Student.batch).distinct() if b}
+    if wanted in known:
+        return wanted
+    try:
+        entry = str(int(wanted[:4]) - 4)
+    except ValueError:
+        return wanted
+    return entry if entry in known else wanted
+
+
 def _search_question_bank(db: Session, user: User, query: str = "", **_) -> dict:
     from app.core.rag_retrieval import retrieve
     hits = retrieve(db, query or "", top_k=5)
@@ -179,6 +197,13 @@ def t_my_work(db: Session, user: User, **_) -> dict:
 
 # ------------------------------------------------------- HOD (one department) and admin (all)
 
+def _graduation_year(batch) -> Optional[int]:
+    try:
+        return int(batch) + 4
+    except (TypeError, ValueError):
+        return None
+
+
 def _dept_id(user: User) -> Optional[int]:
     """The department an HOD is limited to; None for an admin (no limit)."""
     return user.department_id if user.role == "hod" else None
@@ -209,8 +234,9 @@ def d_overview(db: Session, user: User, **_) -> dict:
 
 def d_students(db: Session, user: User, which: str = "all", batch: str = "", limit: int = 15, **_) -> dict:
     q = _scoped(db.query(Student), Student.department_id, _dept_id(user))
+    batch = _batch(db, batch)
     if batch:
-        q = q.filter(Student.batch == str(batch))
+        q = q.filter(Student.batch == batch)
     return _pick_students(q, which, _limit(limit))
 
 
@@ -255,17 +281,19 @@ def d_faculty_feedback(db: Session, user: User, faculty_name: str = "", **_) -> 
 
 def d_batch_placements(db: Session, user: User, batch: str = "", **_) -> dict:
     out = []
+    batch = _batch(db, batch)
     for d in _departments(db, _dept_id(user)):
         for row in placement_stats.batch_rows(db, d.id):
-            if not batch or row["batch"] == str(batch):
-                out.append({"department": d.name, **row})
-    return {"batches": out, "note": "placement_pct = placed students / all students in the batch"}
+            if not batch or row["batch"] == batch:
+                out.append({"department": d.name, "graduates_in": _graduation_year(row["batch"]), **row})
+    return {"batches": out, "note": "placement_pct = placed students / all students in the batch. 'batch' is the entry year."}
 
 
 def d_company_stats(db: Session, user: User, company: str = "", batch: str = "", **_) -> dict:
     sql = "SELECT company, batch, offers_count, placed_students, avg_package_lpa, highest_package_lpa, interns_count, avg_stipend_per_month FROM v_company_stats WHERE 1=1"
     params: dict = {}
     dept_id = _dept_id(user)
+    batch = _batch(db, batch)
     if dept_id:
         sql += " AND department_id = :d"
         params["d"] = dept_id
@@ -286,8 +314,9 @@ def d_placed_students(db: Session, user: User, batch: str = "", company: str = "
     q = db.query(Placement).join(Student, Student.id == Placement.student_id).filter(
         Placement.placed == True, (Placement.status.is_(None)) | (Placement.status != "declined"))  # noqa: E712
     q = _scoped(q, Student.department_id, _dept_id(user))
+    batch = _batch(db, batch)
     if batch:
-        q = q.filter(Student.batch == str(batch))
+        q = q.filter(Student.batch == batch)
     offers = q.all()
     name_of = lambda o: o.company_ref.name if o.company_ref else o.company  # noqa: E731
     if company:
@@ -306,8 +335,9 @@ def d_placed_students(db: Session, user: User, batch: str = "", company: str = "
 
 def d_internships(db: Session, user: User, batch: str = "", **_) -> dict:
     q = _scoped(db.query(Internship).join(Student, Student.id == Internship.student_id), Student.department_id, _dept_id(user))
+    batch = _batch(db, batch)
     if batch:
-        q = q.filter(Student.batch == str(batch))
+        q = q.filter(Student.batch == batch)
     rows = q.all()
     return {"internships_matching": len(rows), "internships": [{
         "usn": i.student.usn, "name": i.student.name, "batch": i.student.batch, "company": i.company_ref.name if i.company_ref else i.company,
@@ -340,7 +370,7 @@ def _tool(fn: Callable, description: str, properties: Optional[dict] = None, sta
 
 
 _WHICH = {"type": "string", "enum": ["all", "at_risk", "backlogs", "top"], "description": "Which students: all, at_risk (CGPA below 6 or any backlog), backlogs, or top (highest CGPA)"}
-_BATCH = {"type": "string", "description": "Entry-year batch such as 2023 (the 2023-27 batch). Leave empty for all batches."}
+_BATCH = {"type": "string", "description": "The batch as the user named it: an entry year (2023) or a graduation year (2027) both work. Leave empty for all batches."}
 _LIMIT = {"type": "integer", "description": "How many rows to return, at most 40"}
 _QB = _tool(_search_question_bank, "Search the department's bank of past internal-assessment question papers for a topic. Use for exam-style questions and syllabus topics.",
             {"query": {"type": "string", "description": "Topic or keywords"}}, "Searching past question papers…")

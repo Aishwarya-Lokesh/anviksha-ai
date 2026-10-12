@@ -87,14 +87,18 @@ export function Assistant({ role }: { role: "student" | "teacher" | "hod" | "adm
     const controller = new AbortController();
     abortRef.current = controller;
     let startedId: number | null = null;
+    let finished = false;
     try {
       await api.assistantChat({ message: text, conversation_id: activeId }, (event, data) => {
         if (event === "start") { startedId = data.conversation_id; setActiveId(data.conversation_id); }
         else if (event === "status") setStatus(data.text);
         else if (event === "text") { setStatus(""); patchLast((m) => ({ ...m, content: m.content + data.text })); }
         else if (event === "chart") patchLast((m) => ({ ...m, charts: [...(m.charts || []), data.chart] }));
-        else if (event === "done" && data.available === false) setAvailable(false);
+        else if (event === "done") { finished = true; if (data.available === false) setAvailable(false); }
       }, controller.signal);
+      // The connection can close before the reply is complete. What arrived is
+      // kept, and the reader is told it is incomplete.
+      if (!finished) patchLast((m) => ({ ...m, failed: true, content: (m.content ? m.content + "\n\n" : "") + "*The reply was cut off before it finished. Please ask again.*" }));
     } catch (e: any) {
       if (e?.name !== "AbortError") {
         patchLast((m) => ({ ...m, failed: true, content: m.content || e?.detail || "I couldn't reach the assistant just now. Please try again." }));

@@ -34,7 +34,10 @@ const isDivider = (line: string) => /^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\
 const cells = (line: string) => line.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
 
 export function Markdown({ text }: { text: string }) {
-  const lines = text.replace(/\r\n/g, "\n").split("\n");
+  // Models sometimes write an image tag for a chart that is shown separately,
+  // or for a picture that does not exist. Such tags would only display as
+  // stray text, so they are dropped.
+  const lines = text.replace(/\r\n/g, "\n").replace(/!\[[^\]\n]*\](\([^)\n]*\))?/g, "").split("\n");
   const blocks: React.ReactNode[] = [];
   let i = 0;
   let key = 0;
