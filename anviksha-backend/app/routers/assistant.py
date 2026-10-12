@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.core import assistant
 from app.core.database import get_db
-from app.core.security import get_current_user
+from app.core.security import get_current_user, normalize_role
 from app.models.models import AssistantConversation, AssistantMessage, User
 
 router = APIRouter(prefix="/assistant", tags=["assistant"])
@@ -98,13 +98,19 @@ def chat(payload: ChatIn, db: Session = Depends(get_db), user: User = Depends(ge
     history = [{"role": m.role, "content": m.content} for m in db.query(AssistantMessage).filter(
         AssistantMessage.conversation_id == conversation_id).order_by(AssistantMessage.id).all()]
 
+    # The reply is produced after this function has returned, by which time the
+    # request's own database session has been closed. The stream therefore
+    # opens a session of its own and looks the user up again by id.
+    bind, user_id = db.get_bind(), user.id
+
     def stream():
-        # The reply is written while it streams, after this function has
-        # returned, so the session is closed here rather than by the request.
+        session = Session(bind=bind)
         try:
             yield _event("start", {"conversation_id": conversation_id})
+            me = session.query(User).filter(User.id == user_id).first()
+            me.role = normalize_role(me.role)
             final = None
-            for event in assistant.run_turn(db, user, history):
+            for event in assistant.run_turn(session, me, history):
                 if event["type"] == "done":
                     final = event
                 else:
@@ -112,15 +118,21 @@ def chat(payload: ChatIn, db: Session = Depends(get_db), user: User = Depends(ge
             if final is not None:
                 message = AssistantMessage(conversation_id=conversation_id, role="assistant", content=final["content"],
                                            extra=json.dumps({"charts": final["charts"]}) if final["charts"] else None)
-                db.add(message)
-                touched = db.query(AssistantConversation).filter(AssistantConversation.id == conversation_id).first()
+                session.add(message)
+                touched = session.query(AssistantConversation).filter(AssistantConversation.id == conversation_id).first()
                 if touched:
                     from sqlalchemy.sql import func
                     touched.updated_at = func.now()
-                db.commit()
+                session.commit()
                 yield _event("done", {"message_id": message.id, "available": final["available"]})
+        except Exception:
+            # Never end the stream in silence: the page is waiting for an answer.
+            session.rollback()
+            yield _event("text", {"text": "Something went wrong while answering. Please try again."})
+            yield _event("error", {"text": "The reply could not be completed."})
+            yield _event("done", {"message_id": None, "available": True})
         finally:
-            db.close()
+            session.close()
 
     return StreamingResponse(stream(), media_type="text/event-stream",
                              headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"})

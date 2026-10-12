@@ -185,3 +185,36 @@ def test_unavailable_model_and_bad_input(client, placed, monkeypatch):  # noqa: 
     assert client.post("/assistant/chat", headers=h["t1"], json={"message": "   "}).status_code == 400
     assert client.post("/assistant/chat", headers=h["t1"], json={"message": "x" * 4001}).status_code == 400
     assert client.post("/assistant/chat", json={"message": "hello"}).status_code == 401
+
+
+def test_reply_still_streams_after_the_request_session_is_closed(placed, scripted):  # noqa: F811
+    """On the live server the session that served the request is closed before
+    the reply is streamed. The first live run of the assistant returned an
+    empty reply for exactly this reason; this reproduces that order of events."""
+    from fastapi.testclient import TestClient
+    from sqlalchemy.orm import Session as OrmSession
+
+    from app.core.database import get_db
+    from app.main import app
+
+    bind = placed["db"].get_bind()
+
+    def closing_session():
+        session = OrmSession(bind=bind)
+        try:
+            yield session
+        finally:
+            session.close()          # as the real dependency does
+
+    app.dependency_overrides[get_db] = closing_session
+    try:
+        with TestClient(app) as live_like:
+            r = live_like.post("/assistant/chat", headers=placed["h"]["s1"], json={"message": "What is my placement status?"})
+            events = _events(r)
+            assert [e[0] for e in events][0] == "start" and events[-1][0] == "done"
+            assert "You have an offer from" in "".join(e[1]["text"] for e in events if e[0] == "text")
+            cid = events[0][1]["conversation_id"]
+            saved = live_like.get(f"/assistant/conversations/{cid}", headers=placed["h"]["s1"]).json()["messages"]
+            assert [x["role"] for x in saved] == ["user", "assistant"]
+    finally:
+        app.dependency_overrides.clear()
