@@ -38,7 +38,12 @@ def signed(url: Optional[str], lifetime: int = LINK_LIFETIME_SECONDS) -> Optiona
     from urllib.parse import unquote
     plain = unquote(path)
     expires = int(time.time()) + lifetime
-    return f"{quote(plain)}?exp={expires}&sig={_signature(plain, expires)}"
+    # The link ends with the file's own extension. Pages decide "PDF or image"
+    # from how a link ends, and an older copy of the app still open in someone's
+    # browser does so on the whole link, query string included.
+    extension = plain.rsplit(".", 1)[-1].lower() if "." in plain.rsplit("/", 1)[-1] else ""
+    tail = f"&type=.{extension}" if extension else ""
+    return f"{quote(plain)}?exp={expires}&sig={_signature(plain, expires)}{tail}"
 
 
 def is_valid(path: str, expires: Optional[int], signature: Optional[str]) -> bool:

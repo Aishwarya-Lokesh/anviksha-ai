@@ -24,6 +24,7 @@ def test_signature_round_trip_and_tampering():
     assert path == "/certificates/My%20File%20%281%29.pdf"
     params = dict(p.split("=") for p in query.split("&"))
     assert file_links.is_valid("/certificates/My File (1).pdf", int(params["exp"]), params["sig"])
+    assert link.endswith(".pdf") and file_links.signed("/achievement-files/photo.JPG").endswith(".jpg")   # still reads as its file type
     assert not file_links.is_valid("/certificates/Other.pdf", int(params["exp"]), params["sig"])       # another file
     assert not file_links.is_valid("/certificates/My File (1).pdf", int(params["exp"]) + 60, params["sig"])  # stretched expiry
     assert not file_links.is_valid("/certificates/My File (1).pdf", None, None)

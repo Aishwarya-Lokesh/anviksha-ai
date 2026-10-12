@@ -255,3 +255,38 @@ Migration `e6f7a8b9c0d1` (additive): counseling reply columns, resume file and e
 ### Verified
 - 5 new backend tests (80 pass): two different sets drawn only from the source text, headers and signatures never treated as questions, generation from the question bank alone, replacing one question, and that files and papers are private to the teacher who owns them.
 - Browser test, 36 checks at 1440 px and 390 px, including downloading the PDF and Word file. Both files were opened and inspected.
+
+## AI assistant
+
+### How it works now
+- **Role-limited lookups instead of one block of text.** The model cannot read the database. It can only request one of a fixed set of lookups for the signed-in role, and each lookup reads strictly within what that person may see: a student their own records, a teacher their own classes, an HOD their department, an admin everything. The scope comes from the signed-in user, never from anything the model writes.
+- **Lookups per role:** 9 for students (academics, attendance, notes and deadlines, achievements, own placements and internships, subjects, counseling, own batch's placement totals, past question papers), 6 for teachers, 10 for HODs, 12 for admins. Placement lookups read the same views and figures as the dashboards.
+- **Streamed replies** with a line showing what is being looked up, a Stop button, and Markdown formatting including tables. Charts are drawn when asked for.
+- **Conversations are saved** per user and can be reopened or deleted. Nobody can open another person's chat.
+- **Starter questions** for each role.
+- **"I don't have that data"** when the lookups return nothing, instead of an invented answer.
+- Migration `b9c0d1e2f3a4` (additive): `assistant_conversations`, `assistant_messages`.
+
+### Departures from the brief
+- **Runs in the FastAPI backend, not a Supabase Edge Function**, consistent with the decision to keep one server layer. Keys stay server-side.
+- **No pgvector.** Document search uses the existing keyword index over the question bank. Vector search needs an embeddings provider, and none is configured; say if you want it added.
+- The older one-shot `/ask-ai` endpoints remain in the backend but the pages no longer use them.
+
+### Found by testing on the live site, and fixed
+- **Empty replies.** The first live run returned nothing: the database session that served the request is closed before the reply starts streaming. The stream now uses its own session, and a test reproduces the live order of events (it fails on the old code).
+- **"The 2027 batch" found nothing**, because batches are stored by entry year. A batch can now be named by entry or graduation year.
+- A reply that is cut off mid-stream keeps what arrived and says it is incomplete.
+- A reply can never end in silence: any failure produces a message.
+
+### Verified
+- 10 backend tests with a scripted stand-in for the model (93 pass): which lookups each role has, that an argument cannot redirect a lookup at someone else, the lookup-then-answer loop, saved and private conversations, charts, a model that never stops asking for lookups, and an unavailable model.
+- **Live, with the real AI and real data, as each role:** "Who got placed at Mindsprint?" (the four confirmed students, 5.2 LPA), "highest package in the 2027 batch" (22 LPA, Deutsche Bank), internships and stipends, "how many placed in 2023" (6 of 70), a student's own placement status and a follow-up question, attendance, feedback (none yet, and it says so), a made-up question about IA marks ("I don't have that data"), general teaching help, and a chart.
+- **Privacy, live:** a student asking for a classmate's CGPA, for a classmate's package, and for the names of placed classmates was refused each time.
+- Browser test of the screen against the live backend: HOD on desktop and student on a phone, 17 of 18 checks (the one miss was the test checking for starter questions a moment before they loaded).
+
+### Known limits
+- Reply time varies with the AI provider: usually 3–8 seconds to the first words, occasionally 20–30.
+- One reply in roughly thirty lost its connection mid-stream during testing and could not be reproduced. The page now reports that case and asks the user to try again.
+
+## Deployment note
+- Stored-file links now end with the file's extension, so an older copy of the Achievements page (still served while the frontend deployment was pending) keeps recognising PDFs.
