@@ -223,3 +223,35 @@ Migration `e6f7a8b9c0d1` (additive): counseling reply columns, resume file and e
 ### Decisions made
 - Links last 6 hours. Long enough for a working session, short enough that a forwarded link stops working the same day.
 - The signing key is the existing `JWT_SECRET`, so there is no new setting to configure.
+
+## Question Paper Generator
+
+### What changed for the teacher
+- **Source files are kept.** Files uploaded before are listed with tick-boxes and can be reused for the next paper, or removed. Previously every paper needed a fresh upload.
+- **Works from the department's question bank alone** when it has the subject; an upload is no longer mandatory. If there is no source at all, the page says so plainly.
+- **Subject picker** from the teacher's own subjects, filling in name, code and semester. Faculty and department are filled in from the signed-in teacher.
+- **Edit any question in place**, change its marks, or press **Replace** to swap in one different question without regenerating the whole paper.
+- **Summary above the paper:** marks on the paper, difficulty mix (easy / medium / hard), marks per course outcome, and the Bloom's level spread, with plain-language warnings.
+- **Questions the source could not supply are shown as empty and highlighted**, and the paper cannot be downloaded until they are filled. Questions written by the AI are labelled "review".
+- **Export in examination format** (PDF and Word): set label, institution, department, examination and academic year, subject, date, duration, maximum marks, instructions, then a ruled table of Q.No, Question, Marks, CO and RBT level with OR rows and part headings.
+- **History** shows each saved paper's date, marks and question count; deleting asks for confirmation in the app's own dialog.
+- Fully usable on a phone.
+
+### Fixed
+- The old export printed the literal words "COLLEGE NAME" and "DEPARTMENT" when those were not supplied. Removed.
+- Generating crashed when the question bank had nothing to search. It now simply finds no matches.
+- The question-bank search index was built once and never refreshed, so newly added papers were not searchable until the server restarted. It now rebuilds when the bank changes.
+- Very large notes could exceed what the AI accepts when it had to write a question; the text sent is now bounded.
+- An unfilled slot used to contain a sentence about the AI assistant not being connected, which would have been printed on the paper.
+
+### Removed
+- Four unused export helpers, including an invented sample question paper and a PowerPoint stub that only raised an error.
+
+### Decisions made
+- **Difficulty is derived from the Bloom's level**: Remember and Understand are easy, Apply and Analyze medium, Evaluate and Create hard. The teacher sets the mix by choosing the level of each question.
+- **The institution line defaults to "GSSS Institute of Engineering and Technology for Women, Mysuru"** and can be edited on the page.
+- **RBT levels are printed as L1–L6** (Remember = L1 … Create = L6).
+
+### Verified
+- 5 new backend tests (80 pass): two different sets drawn only from the source text, headers and signatures never treated as questions, generation from the question bank alone, replacing one question, and that files and papers are private to the teacher who owns them.
+- Browser test, 36 checks at 1440 px and 390 px, including downloading the PDF and Word file. Both files were opened and inspected.
