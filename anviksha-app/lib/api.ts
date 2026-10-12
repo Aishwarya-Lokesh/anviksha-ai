@@ -924,6 +924,14 @@ export const api = {
       body: JSON.stringify(payload),
     }),
 
+  replaceQuestionPaperQuestion: (payload: any) =>
+    request("/teacher/question-paper/replace-question", { method: "POST", body: JSON.stringify(payload) }),
+
+  listQuestionPaperDocuments: () => request("/teacher/question-paper/documents"),
+
+  deleteQuestionPaperDocument: (id: number) =>
+    request(`/teacher/question-paper/documents/${id}`, { method: "DELETE" }),
+
   listQuestionPapers: () =>
     request("/teacher/question-paper"),
 
