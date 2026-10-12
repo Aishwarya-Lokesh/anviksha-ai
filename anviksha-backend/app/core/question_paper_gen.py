@@ -19,6 +19,8 @@ _LINE_NUMBERING_RE = re.compile(r"^\s*(?:Q\.?\s*)?\d+\s*[.)]\s*|^\s*[a-hA-H]\s*[
 _INLINE_MARKS_RE = re.compile(r"\(?\b(\d{1,2})\s*(?:marks?|m)\b\)?", re.IGNORECASE)
 _INLINE_TAG_RE = re.compile(r"\b(CO\d|Module\s*\d)\b", re.IGNORECASE)
 _BRACKETS_RE = re.compile(r"[\[\](){}]")
+_TABLE_NUMBER_RE = re.compile(r"^\s*\d{1,2}\s*[a-hA-H]\b[.)]?\s+")
+_TABLE_TAIL_RE = re.compile(r"\s+\d{1,2}\s+(?:CO\s*)?\d(?:\s*,\s*\d)*\s+(?:L\d|Rem|Und|App|Ana|Eva|Cre)[A-Za-z]*\.?\s*$", re.IGNORECASE)
 _WORD_RE = re.compile(r"[a-z]{4,}")
 
 # Real question-paper documents (and the real question bank they're chunked
@@ -53,6 +55,11 @@ def parse_candidate_questions(text: str) -> list[dict]:
             continue
         if _ADMIN_LINE_RE.search(line):
             continue
+        # Papers copied out of a table carry their own numbering in front
+        # ("4a Discuss ...") and the marks / CO / level columns behind
+        # ("... equation.  5   1,2,3  Und"); neither belongs in the question.
+        line = _TABLE_TAIL_RE.sub("", line)
+        line = _TABLE_NUMBER_RE.sub("", line)
         stripped = _LINE_NUMBERING_RE.sub("", line).strip()
         if len(stripped) < 12:
             continue

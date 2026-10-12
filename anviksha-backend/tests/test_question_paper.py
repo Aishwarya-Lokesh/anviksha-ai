@@ -144,3 +144,17 @@ def test_table_rows_and_fragments_are_not_questions():
     """
     found = [c["text"] for c in parse_candidate_questions(text)]
     assert found == ["Explain the working of a decision tree with an example", "Apply the k-means algorithm to the points 2,3, 4,5 and 7,8 with k = 2"]
+
+
+def test_table_numbering_and_trailing_columns_are_stripped():
+    from app.core.question_paper_gen import parse_candidate_questions
+    text = """
+    4a Discuss different types of Activation functions with suitable equation.  5   1,2,3  Und
+    3b Develop a Python program to generate Fibonacci sequence of length N
+    2. Explain the bias-variance trade-off in supervised learning. (10 marks)
+    """
+    assert [c["text"] for c in parse_candidate_questions(text)] == [
+        "Discuss different types of Activation functions with suitable equation",
+        "Develop a Python program to generate Fibonacci sequence of length N",
+        "Explain the bias-variance trade-off in supervised learning",
+    ]
