@@ -203,3 +203,23 @@ Migration `e6f7a8b9c0d1` (additive): counseling reply columns, resume file and e
 - 6 new backend tests: who may rate whom, validation, that no student is stored with the answers, the 3-response threshold, teacher sees only their own, HOD sees only their department (69 pass).
 - Browser test, 40 checks at 1440 px and 360 px: the student form (cannot submit until every question is rated, correct data sent, subject marked submitted), the teacher view in all three states (results, too few responses, none), and the HOD overview, batch filter, drill-down and Back button.
 - All five migrations rehearsed up, down and up again on a scratch copy.
+
+## Live deployment (2026-10-11) and what live testing found
+
+- All five migrations applied to the production database in one transaction; every existing row preserved. The 9 confirmed placement and internship records imported (batch 2023: 6 placed of 70, highest 22 LPA).
+- Pushed to `deploy/production-setup`. Render deployed it; Vercel built it as a Preview because its Production Branch setting pointed elsewhere, so the deployment was promoted by hand and the setting corrected.
+- Live checks as all four roles: 41 read-only API checks passed, and every page was opened in a browser at 1440 px and 390 px.
+- **Found on the live site and fixed:** the admin's document-request list returned a server error for every request (a request was never linked to its student in the code). It had been hidden by the old sample-data fallback.
+- Search keeps its previous response shape alongside the new one, so a browser still running an older page does not break during a deploy.
+
+## Certificates and stored files
+
+- **Verified certificate files count for points.** A real certificate file on a student's record earns the same 50 points as a certificate they add themselves. Demo files never count.
+- **Stored files open only through signed, time-limited links.** Certificates, achievement proofs, resumes, note attachments and exports used to be readable by anyone who guessed the file name. The API now signs each file address it hands out (valid 6 hours); the bare address is refused. Profile photos stay openly readable because they appear in image tags throughout the interface.
+- **In-app viewer** for images and PDFs with Download and Open-in-new-tab, used on the Achievements and Profile pages. A missing or expired file shows a clear message instead of a blank frame. On phones, where a PDF cannot be shown inside a page, the two buttons are offered.
+- **Demo placeholder files are no longer listed** to students, and the "DEMO" / "AI" badges and "Demo mode" text are gone. Nothing was deleted from the database.
+- **Admin storage tools:** `GET /admin/storage/status` reports whether the file store is configured and reachable and which certificate files the records expect but the store lacks; `POST /admin/storage/certificate-file` puts a missing file in place (only under a name an existing record already points to).
+
+### Decisions made
+- Links last 6 hours. Long enough for a working session, short enough that a forwarded link stops working the same day.
+- The signing key is the existing `JWT_SECRET`, so there is no new setting to configure.
