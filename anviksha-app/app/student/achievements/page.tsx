@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Plus, Trophy, Award, Briefcase, Users, Inbox, Eye, Upload, Trash2, X, ImagePlus, Loader2 } from "lucide-react";
 import { api, API_BASE } from "@/lib/api";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
+import { FileViewer } from "@/components/ui/FileViewer";
 
 const TABS = ["All", "Hackathon", "Certificate", "Project", "Activity"];
 const iconFor: Record<string, any> = { Hackathon: Trophy, Certificate: Award, Project: Briefcase, Activity: Users };
@@ -57,13 +58,13 @@ export default function AchievementsPage() {
   useEffect(() => { if (linkedAction === "add") { resetAddForm(); setShowAdd(true); } // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [linkedAction]);
 
-  // Real/demo certificate files (from the earlier verified/demo import) merged in
-  // alongside student-added achievements, so nothing from before is lost.
+  // Certificate files on the student's record, shown alongside the achievements
+  // they added themselves.
   const certAsItems = certificates.map((c: any) => ({
     id: `cert-${c.id}`, title: c.label || "Certificate", description: c.filename,
     type: c.category || "Certificate", year: null,
-    certificate_url: c.download_url, certificate_type: c.is_demo ? "ai_generated_demo" : "verified",
-    isLegacyFile: true, isDemo: c.is_demo,
+    certificate_url: c.download_url, certificate_type: "verified",
+    isLegacyFile: true,
   }));
 
   const filtered = tab === "All" ? [...(items || []), ...certAsItems] : [...(items || []), ...certAsItems].filter((a) => a.type === tab);
@@ -233,7 +234,6 @@ export default function AchievementsPage() {
                       ) : (
                         <div className="w-14 h-14 rounded-full bg-white border-2 border-brand/30 flex items-center justify-center mx-auto mb-3 shadow-sm relative">
                           <Icon size={24} className="text-brand" />
-                          {a.certificate_type === "ai_generated_demo" && <span className="absolute -top-1 -right-1 bg-warning text-white text-[7px] font-bold px-1 py-0.5 rounded-full">{a.isDemo ? "DEMO" : "AI"}</span>}
                         </div>
                       )}
                       <div className="text-[10px] uppercase tracking-wider text-brand/70 font-semibold mb-1">{isProject ? a.domain || "Project" : `Certificate of ${a.type}`}</div>
@@ -338,7 +338,7 @@ export default function AchievementsPage() {
                 <label className="text-xs font-medium text-muted mb-1 block">Upload {addType === "Activity" ? "Proof/" : ""}Certificate</label>
                 <input ref={certInputRef} type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => setCertFile(e.target.files?.[0] || null)} className="w-full text-xs" />
                 {certFile && <p className="text-xs text-success mt-1">Selected: {certFile.name}</p>}
-                <p className="text-[10px] text-muted mt-1">Demo mode — accepted as an AI-generated certificate, no verification performed yet.</p>
+                <p className="text-[10px] text-muted mt-1">PDF, JPG or PNG, up to 10 MB.</p>
               </div>
             </>
           )}
@@ -367,11 +367,7 @@ export default function AchievementsPage() {
                 )}
               </>
             ) : viewing.certificate_url ? (
-              viewing.certificate_url.toLowerCase().endsWith(".pdf") ? (
-                <iframe src={`${API_BASE}${viewing.certificate_url}`} className="w-full h-96 rounded-xl border border-gray-200" />
-              ) : (
-                <img src={`${API_BASE}${viewing.certificate_url}`} className="w-full rounded-xl border border-gray-200" />
-              )
+              <FileViewer url={viewing.certificate_url} title={viewing.title} />
             ) : (
               <p className="text-sm text-muted text-center py-8">No certificate file on this record.</p>
             )}

@@ -12,6 +12,7 @@ import { api, API_BASE } from "@/lib/api";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { FileCheck, Download } from "lucide-react";
 import { ChangePasswordCard } from "@/components/account/AccountPage";
+import { FileViewerModal, fileName } from "@/components/ui/FileViewer";
 import { refreshProfile } from "@/lib/useProfile";
 
 function CompletionRing({ value }: { value: number }) {
@@ -45,6 +46,7 @@ export default function ProfilePage() {
   const [form, setForm] = useState({ linkedin: "", github: "", skills: "" });
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [uploadingResume, setUploadingResume] = useState(false);
+  const [openFile, setOpenFile] = useState<{ url: string; title: string } | null>(null);
   const { push } = useToast();
 
   const [loadError, setLoadError] = useState(false);
@@ -179,7 +181,7 @@ export default function ProfilePage() {
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-ink truncate">Resume on file</div>
-                <div className="text-xs text-muted truncate">{profile.resume_file_url.split("/").pop()}</div>
+                <div className="text-xs text-muted truncate">{fileName(profile.resume_file_url)}</div>
               </div>
               <a href={`${API_BASE}${profile.resume_file_url}`} target="_blank" rel="noreferrer" className="text-muted hover:text-brand p-2 rounded-lg hover:bg-white transition-colors"><Download size={16} /></a>
               <button onClick={handleResumeDelete} className="text-muted hover:text-danger p-2 rounded-lg hover:bg-white transition-colors"><Trash2 size={16} /></button>
@@ -205,7 +207,7 @@ export default function ProfilePage() {
           ) : (
             <div className="grid md:grid-cols-2 gap-3">
               {certificates.map((c: any) => (
-                <a key={c.id} href={`${API_BASE}${c.download_url}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-brand/40 hover:bg-brand-light/40 transition-colors group">
+                <button key={c.id} type="button" onClick={() => setOpenFile({ url: c.download_url, title: c.label || "Certificate" })} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-brand/40 hover:bg-brand-light/40 transition-colors group text-left min-h-[56px]">
                   <div className="w-10 h-10 rounded-xl bg-brand-light flex items-center justify-center shrink-0">
                     <FileCheck size={18} className="text-brand" />
                   </div>
@@ -214,13 +216,15 @@ export default function ProfilePage() {
                     <div className="text-xs text-muted truncate">{c.filename}</div>
                   </div>
                   <Download size={15} className="text-muted group-hover:text-brand transition-colors shrink-0" />
-                </a>
+                </button>
               ))}
             </div>
           )}
         </Card>
         <ChangePasswordCard />
       </div>
+
+      <FileViewerModal file={openFile} onClose={() => setOpenFile(null)} />
 
       <Drawer open={open} onClose={() => setOpen(false)} title="Edit Profile">
         <div className="space-y-4">
