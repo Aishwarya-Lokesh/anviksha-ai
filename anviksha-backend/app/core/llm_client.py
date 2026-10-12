@@ -260,7 +260,9 @@ def generate_paper_question(bloom_level: str, marks: int, co: str, context: str 
         return {"question": None, "connected": False}
     try:
         level = bloom_level if bloom_level and bloom_level != "Any" else "Understand"
-        prompt = QUESTION_SYSTEM_PROMPT.format(bloom_level=level, marks=marks, co=co or "the subject", context=context or "(no source notes provided)")
+        # A whole set of notes can be far larger than the model accepts; the
+        # opening portion is enough to keep one question on-syllabus.
+        prompt = QUESTION_SYSTEM_PROMPT.format(bloom_level=level, marks=marks, co=co or "the subject", context=(context or "(no source notes provided)")[:8000])
         response = _call_with_fallback(Groq(api_key=os.environ["GROQ_API_KEY"]), [{"role": "user", "content": prompt}])
         text = response.choices[0].message.content.strip().strip('"')
         return {"question": text or None, "connected": True}

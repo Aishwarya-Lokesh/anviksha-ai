@@ -38,8 +38,17 @@ def build_index(db: Session):
     _chunk_texts = [c.text for c in chunks]
     subject_folders = [c.subject_folder for c in chunks]
 
-    _vectorizer = TfidfVectorizer(stop_words="english", max_features=5000)
-    _matrix = _vectorizer.fit_transform(_chunk_texts)
+    if not chunks:
+        # Nothing to index. Leaving the index empty (rather than fitting on
+        # nothing, which raises) lets a search simply find no matches.
+        _vectorizer, _matrix = None, None
+        return 0, []
+    try:
+        _vectorizer = TfidfVectorizer(stop_words="english", max_features=5000)
+        _matrix = _vectorizer.fit_transform(_chunk_texts)
+    except ValueError:      # every chunk was empty or only common words
+        _vectorizer, _matrix = None, None
+        return 0, []
     return len(chunks), subject_folders
 
 
@@ -47,8 +56,13 @@ def retrieve(db: Session, query: str, top_k: int = 3, subject_folder: str = None
     """Real retrieval: returns the top_k real chunks most relevant to the
     query, by TF-IDF cosine similarity — never invented, never a random pick."""
     global _vectorizer, _matrix, _chunk_ids, _chunk_texts
-    if _vectorizer is None:
+    # Rebuilt whenever the bank has grown or shrunk since the index was made,
+    # so newly ingested papers are searchable without restarting the server.
+    current = db.query(QuestionBankChunk.id).count()
+    if _vectorizer is None or _chunk_ids is None or len(_chunk_ids) != current:
         build_index(db)
+    if _vectorizer is None or not (query or "").strip():
+        return []
 
     query_vec = _vectorizer.transform([query])
     sims = cosine_similarity(query_vec, _matrix)[0]

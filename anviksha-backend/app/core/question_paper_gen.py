@@ -80,6 +80,45 @@ def parse_candidate_questions(text: str) -> list[dict]:
     return candidates
 
 
+# Difficulty follows the Bloom's level a question sits at: recall and
+# understanding are the easy end, application and analysis the middle,
+# evaluation and creation the hard end.
+DIFFICULTY_BY_BLOOM = {
+    "Remember": "Easy", "Understand": "Easy",
+    "Apply": "Medium", "Analyze": "Medium",
+    "Evaluate": "Hard", "Create": "Hard",
+}
+
+
+def difficulty_of(bloom_level) -> str:
+    return DIFFICULTY_BY_BLOOM.get(bloom_level or "", "Unclassified")
+
+
+def replacement_question(spec: dict, pool: list[dict], exclude_texts: set, notes_text: str, important_text: str) -> dict:
+    """One fresh question for a single slot of an existing paper: the best
+    source question not already on the paper, or — only when none is left —
+    one written by the AI from the uploaded notes."""
+    from app.core.llm_client import generate_paper_question
+
+    question_type = spec.get("question_type", "Any")
+    marks, co = spec.get("marks", 0), spec.get("co", "")
+    normalized_exclude = {_normalize(t) for t in exclude_texts}
+    remaining = [c for c in pool if _normalize(c["text"]) not in normalized_exclude]
+    candidate = next((c for c in remaining if question_type == "Any" or c["bloom_level"] == question_type), None) \
+        or next(iter(remaining), None)
+    base = {"marks": marks, "co": co, "or_after": bool(spec.get("or_after"))}
+    if candidate:
+        level = candidate["bloom_level"] or question_type
+        return {**base, "question": candidate["text"], "source": "extracted", "grounded": True,
+                "bloom_level": level, "tag_source": candidate["tag_source"], "difficulty": difficulty_of(level)}
+    result = generate_paper_question(question_type, marks, co, notes_text or important_text)
+    if result.get("question") and _normalize(result["question"]) not in normalized_exclude:
+        return {**base, "question": result["question"], "source": "ai_generated", "connected": result.get("connected", False),
+                "grounded": is_grounded_in_notes(result["question"], notes_text),
+                "bloom_level": question_type, "tag_source": "ai_generated", "difficulty": difficulty_of(question_type)}
+    return {}
+
+
 def _keywords(text: str) -> set:
     return {w for w in _WORD_RE.findall(text.lower()) if w not in _STOPWORDS}
 
@@ -150,6 +189,7 @@ def _build_one_set(structure: list[dict], pool: list[dict], notes_text: str, use
                     "or_after": bool(spec.get("or_after")),
                     "source": source, "grounded": True, "reused_from_other_set": reused,
                     "bloom_level": candidate["bloom_level"] or question_type, "tag_source": candidate["tag_source"],
+                    "difficulty": difficulty_of(candidate["bloom_level"] or question_type),
                 })
             else:
                 result = generate_paper_question(question_type, marks, co, notes_text or important_text)
@@ -160,14 +200,15 @@ def _build_one_set(structure: list[dict], pool: list[dict], notes_text: str, use
                         "source": "ai_generated", "connected": result.get("connected", False),
                         "grounded": is_grounded_in_notes(result["question"], notes_text),
                         "bloom_level": question_type, "tag_source": "ai_generated",
+                        "difficulty": difficulty_of(question_type),
                     })
                 else:
                     questions.append({
-                        "question": "(No matching question available in the uploaded Important Questions file, "
-                                     "and the AI assistant isn't connected to fill this slot.)",
+                        "question": "",
                         "marks": marks, "co": co, "or_after": bool(spec.get("or_after")),
                         "source": "missing", "grounded": False,
                         "bloom_level": question_type, "tag_source": "missing",
+                        "difficulty": difficulty_of(question_type),
                     })
         parts.append({"name": part.get("name", "PART"), "questions": questions})
     return parts
@@ -190,9 +231,15 @@ def validate_paper(parts: list[dict], settings: dict) -> dict:
     missing_count = sum(1 for q in all_qs if q["source"] == "missing")
     ungrounded_count = sum(1 for q in all_qs if not q.get("grounded"))
     bloom_distribution: dict = {}
+    difficulty_mix: dict = {}
+    co_marks: dict = {}
     for q in all_qs:
         level = q.get("bloom_level") or "Unknown"
         bloom_distribution[level] = bloom_distribution.get(level, 0) + 1
+        difficulty = difficulty_of(q.get("bloom_level"))
+        difficulty_mix[difficulty] = difficulty_mix.get(difficulty, 0) + 1
+        co = (q.get("co") or "Unmapped").strip() or "Unmapped"
+        co_marks[co] = co_marks.get(co, 0) + (q.get("marks") or 0)
 
     warnings = []
     if duplicate_count:
@@ -200,13 +247,13 @@ def validate_paper(parts: list[dict], settings: dict) -> dict:
     if total_marks_configured and total_marks_generated != total_marks_configured:
         warnings.append(f"Configured question marks ({total_marks_generated}) do not match the paper's stated total marks ({total_marks_configured}).")
     if missing_count:
-        warnings.append(f"{missing_count} question slot(s) could not be filled - not enough real questions were uploaded and the AI assistant isn't connected.")
+        warnings.append(f"{missing_count} question(s) could not be filled: the source files do not have enough questions. Type them in, or upload more source questions.")
     if ai_generated_count:
-        warnings.append(f"{ai_generated_count} question(s) were AI-completed because no matching question existed in the uploaded Important Questions file or real question bank.")
+        warnings.append(f"{ai_generated_count} question(s) were written by the AI from your notes because the source files had no matching question. Review them before use.")
     if paraphrased_count:
-        warnings.append(f"{paraphrased_count} question(s) were reworded by the AI to avoid repeating an identical real question across both sets.")
+        warnings.append(f"{paraphrased_count} question(s) were reworded by the AI so the two sets do not repeat the same wording.")
     if reused_count and not paraphrased_count:
-        warnings.append(f"{reused_count} question(s) were reused verbatim from the other set — the real source material didn't have enough distinct questions, and AI rewording wasn't available.")
+        warnings.append(f"{reused_count} question(s) also appear in the other set, because the source files did not have enough different questions.")
 
     return {
         "total_marks_configured": total_marks_configured,
@@ -221,6 +268,8 @@ def validate_paper(parts: list[dict], settings: dict) -> dict:
         "questions_missing": missing_count,
         "questions_ungrounded": ungrounded_count,
         "bloom_distribution": bloom_distribution,
+        "difficulty_mix": difficulty_mix,
+        "co_marks": dict(sorted(co_marks.items())),
         "sections": len(parts),
         "warnings": warnings,
     }

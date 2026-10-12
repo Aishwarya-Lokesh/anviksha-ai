@@ -118,9 +118,6 @@ def generate_question_paper(payload: GenerateRequest, db: Session = Depends(get_
         QuestionPaperDocument.id.in_(payload.important_question_ids), QuestionPaperDocument.faculty_id == user.faculty_id,
     ).all() if payload.important_question_ids else []
 
-    if not important_docs:
-        raise HTTPException(status_code=400, detail="Upload at least one real Important Questions document before generating.")
-
     notes_text = "\n".join(d.extracted_text or "" for d in notes_docs)
     uploaded_important_text = "\n".join(d.extracted_text or "" for d in important_docs)
 
@@ -135,10 +132,68 @@ def generate_question_paper(payload: GenerateRequest, db: Session = Depends(get_
     # lesser source.
     bank_text, bank_chunk_count = _question_bank_text_for_subject(db, payload.settings.get("subject_name", ""))
     important_text = uploaded_important_text + ("\n" + bank_text if bank_text else "")
+    if not important_text.strip():
+        # No upload and nothing for this subject in the department's bank:
+        # there is no source to draw questions from.
+        raise HTTPException(
+            status_code=400,
+            detail="There are no questions to choose from yet. Upload an Important Questions or previous question paper file for this subject.",
+        )
 
     result = generate_paper_sets(payload.settings, notes_text, important_text)
     result["real_question_bank_chunks_used"] = bank_chunk_count
+    result["sources"] = {"uploaded_question_files": len(important_docs), "notes_files": len(notes_docs), "question_bank_chunks": bank_chunk_count}
     return result
+
+
+class ReplaceRequest(BaseModel):
+    settings: dict
+    note_ids: list[int] = []
+    important_question_ids: list[int] = []
+    spec: dict                   # the slot being replaced: question_type, marks, co, or_after
+    exclude: list[str] = []      # every question currently on the paper (both sets)
+
+
+@router.post("/replace-question")
+def replace_one_question(payload: ReplaceRequest, db: Session = Depends(get_db), user: User = Depends(require_role("teacher"))):
+    """A different question for one slot, without regenerating the paper."""
+    from app.core.question_paper_gen import parse_candidate_questions, replacement_question
+
+    docs = db.query(QuestionPaperDocument).filter(
+        QuestionPaperDocument.id.in_(payload.note_ids + payload.important_question_ids),
+        QuestionPaperDocument.faculty_id == user.faculty_id,
+    ).all() if (payload.note_ids or payload.important_question_ids) else []
+    notes_text = "\n".join(d.extracted_text or "" for d in docs if d.kind == "notes")
+    uploaded = "\n".join(d.extracted_text or "" for d in docs if d.kind == "important_questions")
+    bank_text, _ = _question_bank_text_for_subject(db, payload.settings.get("subject_name", ""))
+    important_text = uploaded + ("\n" + bank_text if bank_text else "")
+
+    question = replacement_question(payload.spec, parse_candidate_questions(important_text), set(payload.exclude), notes_text, important_text)
+    if not question:
+        raise HTTPException(status_code=409, detail="No other suitable question is available. Upload more source questions, or edit this one by hand.")
+    return question
+
+
+@router.get("/documents")
+def my_documents(db: Session = Depends(get_db), user: User = Depends(require_role("teacher"))):
+    """Source files this teacher has uploaded before, so they can be reused
+    for another paper without uploading again."""
+    rows = db.query(QuestionPaperDocument).filter(QuestionPaperDocument.faculty_id == user.faculty_id).order_by(QuestionPaperDocument.id.desc()).all()
+    return [{"id": d.id, "filename": d.filename, "kind": d.kind, "module_hint": d.module_hint,
+             "uploaded_at": str(d.uploaded_at)[:10] if d.uploaded_at else None,
+             "characters": len(d.extracted_text or "")} for d in rows]
+
+
+@router.delete("/documents/{document_id}")
+def delete_document(document_id: int, db: Session = Depends(get_db), user: User = Depends(require_role("teacher"))):
+    d = db.query(QuestionPaperDocument).filter(QuestionPaperDocument.id == document_id, QuestionPaperDocument.faculty_id == user.faculty_id).first()
+    if not d:
+        raise HTTPException(status_code=404, detail="Document not found")
+    from app.core.file_storage import delete_file
+    delete_file(f"teacher_uploads/question_paper/{d.stored_filename}")
+    db.delete(d)
+    db.commit()
+    return {"message": "Removed"}
 
 
 class SaveRequest(BaseModel):
@@ -167,7 +222,20 @@ def save_question_paper(payload: SaveRequest, db: Session = Depends(get_db), use
 @router.get("")
 def list_question_papers(db: Session = Depends(get_db), user: User = Depends(require_role("teacher"))):
     rows = db.query(QuestionPaper).filter(QuestionPaper.faculty_id == user.faculty_id).order_by(QuestionPaper.created_at.desc()).all()
-    return [{"id": r.id, "title": r.title, "set_label": r.set_label} for r in rows]
+    out = []
+    for r in rows:
+        try:
+            settings, parts = _json.loads(r.settings), _json.loads(r.paper)
+        except ValueError:
+            settings, parts = {}, []
+        out.append({
+            "id": r.id, "title": r.title, "set_label": r.set_label,
+            "created_at": str(r.created_at)[:16] if r.created_at else None,
+            "total_marks": settings.get("total_marks"),
+            "questions": sum(len(p.get("questions", [])) for p in parts),
+            "exam_name": settings.get("exam_name"),
+        })
+    return out
 
 
 @router.get("/{paper_id}")
