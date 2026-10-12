@@ -119,3 +119,28 @@ def test_source_files_and_saved_papers_are_private_to_the_teacher(client, source
     assert client.get(f"/teacher/question-paper/{saved['id']}", headers=h["t2"]).status_code == 404
     assert client.delete(f"/teacher/question-paper/{saved['id']}", headers=h["t2"]).status_code == 404
     assert client.delete(f"/teacher/question-paper/documents/{sources['mine'].id}", headers=h["t1"]).status_code == 200
+
+
+def test_bank_folder_matching_never_relies_on_a_common_word():
+    from app.routers.question_paper import match_bank_folder
+    folders = ["BCS501", "BPOPS103", "CNS_IA_QP", "FSD", "IA_QP_old", "ML_IA_QP", "OOPs_Java_QP", "Programming in C", "Python"]
+    assert match_bank_folder("Python Programming", "", folders) == "Python"            # not "Programming in C"
+    assert match_bank_folder("Programming in C", "", folders) == "Programming in C"
+    assert match_bank_folder("Machine Learning", "", folders) == "ML_IA_QP"            # folder named by initials
+    assert match_bank_folder("Software Engineering", "BCS501", folders) == "BCS501"    # by subject code
+    assert match_bank_folder("Full Stack Development", "", folders) == "FSD"
+    assert match_bank_folder("Computer Networks", "", folders) is None                 # "CN" is not "CNS"
+    assert match_bank_folder("Advanced Programming", "", folders) is None
+    assert match_bank_folder("", "", folders) is None
+
+
+def test_table_rows_and_fragments_are_not_questions():
+    from app.core.question_paper_gen import parse_candidate_questions
+    text = """
+    similarity  5   1,2,3  Apply
+    1 a  10  CO2  L3  Analyze
+    Explain the working of a decision tree with an example. 10 marks CO2
+    Apply the k-means algorithm to the points (2,3), (4,5) and (7,8) with k = 2.
+    """
+    found = [c["text"] for c in parse_candidate_questions(text)]
+    assert found == ["Explain the working of a decision tree with an example", "Apply the k-means algorithm to the points 2,3, 4,5 and 7,8 with k = 2"]

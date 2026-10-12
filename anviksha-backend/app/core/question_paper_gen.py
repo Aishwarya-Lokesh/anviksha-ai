@@ -65,6 +65,13 @@ def parse_candidate_questions(text: str) -> list[dict]:
         clean = _BRACKETS_RE.sub("", clean).strip(" -:.")
         if len(clean) < 12 or clean.lower() in seen:
             continue
+        # Rows lifted out of a marks or mapping table ("similarity  5  1,2,3  Apply")
+        # contain an action verb but are not questions: they are mostly numbers
+        # and have too few words to be a sentence.
+        words = re.findall(r"[A-Za-z]{2,}", clean)
+        number_tokens = re.findall(r"(?<![A-Za-z])\d+(?:[.,]\d+)*(?![A-Za-z])", clean)
+        if len(words) < 4 or len(number_tokens) > len(words) / 2:
+            continue
         bloom_level, tag_source = classify_bloom(clean)
         # Require a real signal that this line is actually a question -
         # either a recognized Bloom's action verb or an explicit "?" -

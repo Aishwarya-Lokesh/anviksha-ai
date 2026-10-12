@@ -79,7 +79,54 @@ class GenerateRequest(BaseModel):
     important_question_ids: list[int] = []
 
 
-def _question_bank_text_for_subject(db: Session, subject_name: str) -> tuple[str, int]:
+# Words that appear in many subject and folder names and so say nothing
+# about which subject a folder belongs to.
+_GENERIC_WORDS = {"programming", "introduction", "lab", "laboratory", "and", "of", "in", "the", "to", "using", "with",
+                  "for", "ia", "qp", "old", "paper", "papers", "question", "questions", "bank", "engineering", "basics", "principles"}
+
+
+def _tokens(text: str) -> list[str]:
+    return [t for t in re.split(r"[^a-z0-9+#]+", (text or "").lower()) if t]
+
+
+def match_bank_folder(subject_name: str, subject_code: str, folders: list[str]):
+    """Which question-bank folder holds this subject, or None. Strongest
+    evidence first, and never on a word as common as "programming" — that
+    once put C questions on a Python paper."""
+    name, code = (subject_name or "").strip().lower(), (subject_code or "").strip().lower()
+    subject_tokens = _tokens(name)
+    distinctive = {t for t in subject_tokens if t not in _GENERIC_WORDS}
+    acronym = "".join(t[0] for t in subject_tokens if t not in {"and", "of", "in", "the", "to", "for"})
+
+    def core(folder: str) -> list[str]:
+        return [t for t in _tokens(folder) if t not in _GENERIC_WORDS]
+
+    # 1. the subject code is the folder (e.g. "BCS501")
+    for folder in folders:
+        if code and code in _tokens(folder):
+            return folder
+    # 2. same name
+    for folder in folders:
+        if folder.strip().lower() == name:
+            return folder
+    # 3. every distinctive word of the folder appears in the subject name ("Python" in "Python Programming")
+    best = None
+    for folder in folders:
+        folder_core = core(folder)
+        if folder_core and all(len(t) > 1 for t in folder_core) and set(folder_core) <= distinctive:
+            if best is None or len(folder_core) > len(core(best)):
+                best = folder
+    if best:
+        return best
+    # 4. the folder is named by the subject's initials ("ML_IA_QP" for "Machine Learning")
+    if len(acronym) >= 2:
+        for folder in folders:
+            if core(folder) == [acronym]:
+                return folder
+    return None
+
+
+def _question_bank_text_for_subject(db: Session, subject_name: str, subject_code: str = "") -> tuple[str, int]:
     """Real question-bank chunks matching this paper's subject, used as an
     additional real candidate source alongside the teacher's own upload -
     never siloed, never treated as a lesser source. Tries an exact-ish
@@ -93,12 +140,8 @@ def _question_bank_text_for_subject(db: Session, subject_name: str) -> tuple[str
     if not subject_name or not subject_name.strip():
         return "", 0
 
-    words = [w for w in subject_name.split() if len(w) > 2]
-    folder_match = None
-    for folder in {c.subject_folder for c in db.query(QuestionBankChunk.subject_folder).distinct()}:
-        if folder and (folder.lower() in subject_name.lower() or any(w.lower() in folder.lower() for w in words)):
-            folder_match = folder
-            break
+    folders = sorted({c.subject_folder for c in db.query(QuestionBankChunk.subject_folder).distinct() if c.subject_folder})
+    folder_match = match_bank_folder(subject_name, subject_code, folders)
 
     if folder_match:
         chunks = db.query(QuestionBankChunk).filter(QuestionBankChunk.subject_folder == folder_match).all()
@@ -130,7 +173,7 @@ def generate_question_paper(payload: GenerateRequest, db: Session = Depends(get_
     # Bloom's-tagged question bank for this subject. Both are merged into
     # one real candidate pool before generation - neither is treated as a
     # lesser source.
-    bank_text, bank_chunk_count = _question_bank_text_for_subject(db, payload.settings.get("subject_name", ""))
+    bank_text, bank_chunk_count = _question_bank_text_for_subject(db, payload.settings.get("subject_name", ""), payload.settings.get("subject_code", ""))
     important_text = uploaded_important_text + ("\n" + bank_text if bank_text else "")
     if not important_text.strip():
         # No upload and nothing for this subject in the department's bank:
@@ -165,7 +208,7 @@ def replace_one_question(payload: ReplaceRequest, db: Session = Depends(get_db),
     ).all() if (payload.note_ids or payload.important_question_ids) else []
     notes_text = "\n".join(d.extracted_text or "" for d in docs if d.kind == "notes")
     uploaded = "\n".join(d.extracted_text or "" for d in docs if d.kind == "important_questions")
-    bank_text, _ = _question_bank_text_for_subject(db, payload.settings.get("subject_name", ""))
+    bank_text, _ = _question_bank_text_for_subject(db, payload.settings.get("subject_name", ""), payload.settings.get("subject_code", ""))
     important_text = uploaded + ("\n" + bank_text if bank_text else "")
 
     question = replacement_question(payload.spec, parse_candidate_questions(important_text), set(payload.exclude), notes_text, important_text)
