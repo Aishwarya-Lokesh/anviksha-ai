@@ -9,6 +9,7 @@ import logging
 
 from app.core.database import get_db
 from app.core.security import require_role
+from app.core.file_links import signed
 from app.core.demo_mode import apply_demo_mask
 from app.core.activity_log import log_activity
 from app.core.notifications import notify_student
@@ -50,7 +51,7 @@ def ask_ai(payload: AskAIRequest, db: Session = Depends(get_db), user: User = De
         stored_name, _ = write_xlsx(rows, sheet_name, f"teacher_{title}")
         return {
             "answer": f"Here's your real {title} — {len(rows)} row(s), ready to download.",
-            "connected": True, "download_url": f"/exports/{stored_name}", "download_filename": f"{title.replace(' ', '_')}.xlsx",
+            "connected": True, "download_url": signed(f"/exports/{stored_name}"), "download_filename": f"{title.replace(' ', '_')}.xlsx",
         }
 
     from app.core.chat_charts import is_chart_request, build_teacher_chart

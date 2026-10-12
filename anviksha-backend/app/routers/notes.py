@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.file_links import signed
 from app.core.file_storage import delete_file, upload_file
 from app.core.notifications import notify_student
 from app.core.security import require_role
@@ -22,7 +23,7 @@ KINDS = ("note", "deadline")
 
 
 def _file_url(note: Note) -> Optional[str]:
-    return f"/note-files/{note.file_url}" if note.file_url else None
+    return signed(f"/note-files/{note.file_url}") if note.file_url else None
 
 
 def _class_student_ids(db: Session, assignment: TeachingAssignment) -> list[int]:

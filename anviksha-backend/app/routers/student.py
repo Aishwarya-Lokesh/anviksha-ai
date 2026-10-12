@@ -8,6 +8,7 @@ import os
 from app.core.database import get_db
 from app.core.security import require_role, get_current_user
 from app.core.demo_mode import apply_demo_mask
+from app.core.file_links import signed
 from app.models.models import Student, Achievement, DocumentRequest, User, Placement, CourseCompletion, AttendanceRecord, AttendanceSession, Subject, CertificateFile
 from app.models.schemas import AchievementCreate, DocumentRequestCreate, ProfileUpdate
 
@@ -192,7 +193,7 @@ def _student_dict(s: Student) -> dict:
         "data_status": s.data_status, "linkedin": s.linkedin, "github": s.github, "skills": s.skills,
         "resume_link": s.resume_link, "semester_sgpa": s.semester_sgpa,
         "profile_score": s.profile_score, "photo_url": s.photo_url,
-        "resume_file_url": f"/resume-files/{s.resume_file}" if s.resume_file else None,
+        "resume_file_url": signed(f"/resume-files/{s.resume_file}") if s.resume_file else None,
         "education": s.education or [],
     }
 
@@ -364,12 +365,12 @@ def _achievement_out(a: Achievement):
     return {
         "id": a.id, "title": a.title, "description": a.description, "type": a.type,
         "date": a.date, "year": a.year,
-        "certificate_url": f"/achievement-files/{a.certificate_url}" if a.certificate_url else None,
+        "certificate_url": signed(f"/achievement-files/{a.certificate_url}") if a.certificate_url else None,
         "certificate_type": a.certificate_type,
         "domain": a.domain,
         "tools_used": a.tools_used.split(",") if a.tools_used else [],
         "technologies_used": a.technologies_used.split(",") if a.technologies_used else [],
-        "images": [f"/achievement-files/{img}" for img in _json.loads(a.images)] if a.images else [],
+        "images": [signed(f"/achievement-files/{img}") for img in _json.loads(a.images)] if a.images else [],
         "won": a.won,
     }
 
@@ -628,14 +629,15 @@ def my_certificates(db: Session = Depends(get_db), user: User = Depends(require_
     are intentionally left out of scope for this filter."""
     from app.models.models import CertificateFile
     from urllib.parse import quote
+    # Placeholder files loaded for demonstration are never listed: only real
+    # certificate files a student or the department put on the record.
     rows = db.query(CertificateFile).filter(
-        CertificateFile.student_id == user.student_id,
-        ~((CertificateFile.category == "Certificate") & (CertificateFile.is_demo == True)),
+        CertificateFile.student_id == user.student_id, CertificateFile.is_demo == False,  # noqa: E712
     ).all()
     return [{
         "id": c.id, "filename": c.filename, "label": c.display_label,
         "category": c.category, "is_demo": c.is_demo,
-        "download_url": f"/demo-certificates/{quote(c.filename)}" if c.is_demo else f"/certificates/{quote(c.filename)}",
+        "download_url": signed(f"/certificates/{c.filename}"),
         "uploaded_at": str(c.uploaded_at),
     } for c in rows]
 
@@ -695,7 +697,7 @@ async def upload_certificate(
         db.add(c)
     db.commit()
     db.refresh(c)
-    return {"id": c.id, "label": c.display_label, "download_url": f"/certificates/{c.filename}"}
+    return {"id": c.id, "label": c.display_label, "download_url": signed(f"/certificates/{c.filename}")}
 
 
 @router.delete("/certificates/{certificate_id}")

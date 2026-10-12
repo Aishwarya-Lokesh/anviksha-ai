@@ -79,6 +79,44 @@ def get_file(path: str) -> bytes:
         return f.read()
 
 
+def storage_status() -> dict:
+    """Where files are being kept right now, and whether that place answers."""
+    if not is_configured():
+        return {"mode": "local", "configured": False, "bucket": None, "reachable": True,
+                "note": "Files are kept on the server's own disk and are lost when it restarts."}
+    try:
+        resp = httpx.get(f"{SUPABASE_URL}/storage/v1/bucket/{SUPABASE_BUCKET}",
+                         headers={"Authorization": f"Bearer {SUPABASE_SERVICE_KEY}"}, timeout=20)
+    except Exception as exc:  # network trouble is reported, not raised
+        return {"mode": "supabase", "configured": True, "bucket": SUPABASE_BUCKET, "reachable": False, "note": type(exc).__name__}
+    if resp.status_code == 200:
+        return {"mode": "supabase", "configured": True, "bucket": SUPABASE_BUCKET, "reachable": True,
+                "public": bool(resp.json().get("public")), "note": None}
+    return {"mode": "supabase", "configured": True, "bucket": SUPABASE_BUCKET, "reachable": False,
+            "note": f"Storage answered {resp.status_code}: {resp.text[:120]}"}
+
+
+def list_files(prefix: str) -> list[str]:
+    """File names directly under `prefix` (a folder such as "real_mooc_certs")."""
+    if is_configured():
+        names, offset = [], 0
+        while True:
+            resp = httpx.post(
+                f"{SUPABASE_URL}/storage/v1/object/list/{SUPABASE_BUCKET}",
+                headers={"Authorization": f"Bearer {SUPABASE_SERVICE_KEY}"},
+                json={"prefix": prefix.rstrip("/") + "/", "limit": 1000, "offset": offset}, timeout=30,
+            )
+            if resp.status_code != 200:
+                raise RuntimeError(f"Supabase Storage list failed for {prefix}: {resp.status_code} {resp.text}")
+            page = [item["name"] for item in resp.json() if item.get("id")]   # folders have no id
+            names += page
+            if len(resp.json()) < 1000:
+                return names
+            offset += 1000
+    folder = _local_path(prefix)
+    return sorted(os.listdir(folder)) if os.path.isdir(folder) else []
+
+
 def delete_file(path: str) -> None:
     """Best-effort delete — never raises if the file is already gone,
     matching the exists-then-remove pattern used throughout the

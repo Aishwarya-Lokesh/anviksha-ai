@@ -10,6 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
+from app.core.file_links import signed
 from app.core.file_storage import delete_file, upload_file
 from app.core.notifications import notify_user
 from app.core.security import require_role
@@ -25,7 +26,7 @@ MAX_EDUCATION_ROWS = 8
 
 
 def resume_file_url(student: Student) -> Optional[str]:
-    return f"/resume-files/{student.resume_file}" if student.resume_file else None
+    return signed(f"/resume-files/{student.resume_file}") if student.resume_file else None
 
 
 def _student_or_404(db: Session, user: User) -> Student:

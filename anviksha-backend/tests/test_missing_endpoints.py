@@ -301,8 +301,9 @@ def test_resume_upload_replace_delete(client, campus):
     h, stored = campus["h"], campus["stored"]
     assert client.post("/student/profile/resume", headers=h["s1"], files={"file": ("cv.txt", b"hello", "text/plain")}).status_code == 400
     url = client.post("/student/profile/resume", headers=h["s1"], files={"file": ("My CV.pdf", b"%PDF-1.4", "application/pdf")}).json()["resume_file_url"]
-    assert url.startswith("/resume-files/T23IS001_resume_") and url.endswith(".pdf") and len(stored) == 1
-    assert client.get("/student/dashboard", headers=h["s1"]).json()["resume_file_url"] == url
+    address = url.split("?")[0]                                   # the link also carries an expiry and a signature
+    assert address.startswith("/resume-files/T23IS001_resume_") and address.endswith(".pdf") and "sig=" in url and len(stored) == 1
+    assert client.get("/student/dashboard", headers=h["s1"]).json()["resume_file_url"].split("?")[0] == address
     assert client.get("/student/dashboard", headers=h["s2"]).json()["resume_file_url"] is None
     assert client.delete("/student/profile/resume", headers=h["s1"]).json() == {"resume_file_url": None}
     assert stored == {} and client.get("/student/dashboard", headers=h["s1"]).json()["resume_file_url"] is None
