@@ -8,6 +8,7 @@ import { DonutChart, SimpleBarChart } from "@/components/charts/Charts";
 import { CenterModal } from "@/components/ui/Modal";
 import { GraduationCap, Users, Activity } from "lucide-react";
 import { api } from "@/lib/api";
+import { useUrlState } from "@/lib/useUrlState";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { AIInsightCard } from "@/components/ui/AIInsightCard";
 import { LiveAttendanceSection } from "@/components/hod-intelligence/LiveAttendanceSection";
@@ -26,8 +27,11 @@ export default function HodDashboard() {
   const [showFaculty, setShowFaculty] = useState(false);
   const [facultyList, setFacultyList] = useState<any[]>([]);
 
-  const [backlogBatch, setBacklogBatch] = useState("");
-  const [topperfBatch, setTopperfBatch] = useState("");
+  const [urlParams, setUrlParams] = useUrlState();
+  const backlogBatch = urlParams.get("backlog_batch") || "";
+  const topperfBatch = urlParams.get("top_batch") || "";
+  const setBacklogBatch = (b: string) => setUrlParams({ backlog_batch: b || null });
+  const setTopperfBatch = (b: string) => setUrlParams({ top_batch: b || null });
   const [topperfLimitChoice, setTopperfLimitChoice] = useState("5");
   const [topperfCustom, setTopperfCustom] = useState("5");
 

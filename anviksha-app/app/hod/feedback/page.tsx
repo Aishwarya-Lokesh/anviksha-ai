@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, ChevronRight, MessageSquareQuote } from "lucide-react";
+import { ArrowLeft, ChevronRight, Download, MessageSquareQuote } from "lucide-react";
+import { downloadCsv } from "@/lib/csv";
 import { Topbar } from "@/components/layout/Topbar";
 import { Card, SectionTitle, Badge } from "@/components/ui/Primitives";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
@@ -110,7 +111,19 @@ export default function HodFeedbackPage() {
         )}
 
         <Card hover>
-          <SectionTitle title="All faculty" subtitle="Select a name for the full breakdown and comments" />
+          <SectionTitle
+            title="All faculty"
+            subtitle="Select a name for the full breakdown and comments"
+            action={
+              <button
+                disabled={overview.faculty.length === 0}
+                onClick={() => downloadCsv(`faculty_feedback${batch ? `_batch_${batch}` : ""}`, ["Faculty", "Designation", "Subjects", "Responses", "Average rating (out of 5)"], overview.faculty.map((f) => [f.name, f.designation, f.subjects.join("; "), f.responses, f.average]))}
+                className="inline-flex items-center gap-1.5 px-3 min-h-[44px] rounded-xl text-xs font-semibold text-brand bg-brand-50 hover:bg-brand-light disabled:opacity-50 shrink-0"
+              >
+                <Download size={14} /> Export
+              </button>
+            }
+          />
           {overview.faculty.length === 0 ? (
             <EmptyState title="No faculty in this department yet" compact />
           ) : (

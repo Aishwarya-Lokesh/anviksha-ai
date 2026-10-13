@@ -118,6 +118,26 @@ Built after the sections above were written: notifications, dark mode, the feedb
 - The career objective was shown in the resume preview but left out of the downloaded PDF.
 - Long resume sections ran off the bottom of the PDF page instead of continuing on the next one.
 
+## Round 4: HOD filters and exports, reminders, device alerts (13 Oct, last)
+
+| Layer | Result |
+|---|---|
+| Backend automated tests | 112 of 112 pass |
+| Frontend type-check and production build | Pass (59 pages) |
+| HOD pages on live data, 1440 px and 390 px, plus device alerts | 44 of 44 pass |
+| Earlier new-screen checks, run again | 148 of 148 pass |
+
+| Feature | Verified on live URL | Newest build | How it was checked |
+|---|---|---|---|
+| HOD Department Students: batch, semester, status, search and page are kept in the address; export of every matching student | Not yet (Vercel) | Pass | Live data: batch 2023 active gave 70 students and a 70-row file, though the screen shows 25 a page |
+| HOD Placement Analytics: batch kept in the address | Not yet (Vercel) | Pass | Live data: 70 tracked for batch 2023, 258 for all |
+| HOD dashboard, Faculty Monitoring, Assessment Analytics: filters, tab and chosen subject kept in the address | Not yet (Vercel) | Pass | Live data, including a reload |
+| Export on Faculty Workload, Faculty Monitoring, Faculty Feedback and Pass-Rate Outliers | Not yet (Vercel) | Pass | Live data: each file had the same 16 rows as the table |
+| Deadline reminder: a student's own deadline with the reminder on becomes one notification when it is within a day of falling due | Backend live | Pass | Automated test: once only, not for finished or other students' items |
+| Device alerts: an opt-in switch in the notification panel shows new notices as system notifications | Not yet (Vercel) | Pass | Browser with a stand-in server: one alert per new notice, none repeated |
+
+Found and fixed: two filters changed in quick succession could undo each other (clearing filters while a search was still being typed brought the old filters back).
+
 ## Not tested, and why
 
 | Item | Reason |
@@ -140,9 +160,10 @@ Built after the sections above were written: notifications, dark mode, the feedb
 5. **Question bank text is uneven.** Some stored questions carry leftover table columns (marks, CO, level) at the end; most are cleaned, a few are not.
 6. **Files uploaded before the storage bucket existed are gone** and need uploading again.
 7. **Server sleeps when idle** until an uptime monitor is set up; the first visit after a quiet period takes about 50 seconds.
-8. **Deadline reminders show on the dashboard and planner only.** They are not sent by email or as a push notification.
-9. **Dark mode recolours charts' surroundings but not the chart colours themselves**, and the resume, question paper and slide previews stay white on purpose, as they are pictures of a printed page.
-10. **A login cannot be deleted, only deactivated**, in line with the rule that nothing real is deleted.
+8. **Reminders and announcements are not emailed.** Student records hold no email address (logins are `usn@anviksha.ai`, which is not a real mailbox), so there is nowhere to send to. They arrive as in-app notifications, and as device alerts for anyone who switches those on.
+9. **Device alerts work only while the site is open in a browser tab**, and not on iPhone Safari. Alerts with the site fully closed would need a push service set up.
+10. **Dark mode recolours charts' surroundings but not the chart colours themselves**, and the resume, question paper and slide previews stay white on purpose, as they are pictures of a printed page.
+11. **A login cannot be deleted, only deactivated**, in line with the rule that nothing real is deleted.
 
 ## Still to configure
 
@@ -156,8 +177,8 @@ Built after the sections above were written: notifications, dark mode, the feedb
 
 ## Not built yet
 
-- HOD exports beyond the placement and feedback pages, and year filters on every HOD page.
-- Email or push delivery of reminders and announcements.
+- Email delivery of reminders and announcements. It needs two decisions from you first: real email addresses for students (none are stored), and an email-sending service with its key.
+- Alerts when the site is completely closed (true push).
 - Deleting the hidden demo certificates and achievements: waiting for your confirmation.
 
 ## Assistant: final live run

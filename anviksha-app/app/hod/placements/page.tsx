@@ -11,12 +11,14 @@ import { api } from "@/lib/api";
 import { downloadExcel } from "@/lib/fileGen";
 import { useToast } from "@/components/ui/Toaster";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
+import { useUrlState } from "@/lib/useUrlState";
 import { PlacementFunnelSection } from "@/components/hod-intelligence/PlacementFunnelSection";
 
 export default function HodPlacementsPage() {
   const [data, setData] = useState<any>(null);
   const [placementBatches, setPlacementBatches] = useState<{ batch: string; label: string }[]>([]);
-  const [activeBatch, setActiveBatch] = useState<string>("All");
+  const [urlParams, setUrlParams] = useUrlState();
+  const activeBatch = urlParams.get("batch") || "All";
   const [liveMode, setLiveMode] = useState(false);
 
   const [compareSelected, setCompareSelected] = useState<Set<string>>(new Set());
@@ -24,18 +26,17 @@ export default function HodPlacementsPage() {
   const { push } = useToast();
 
   useEffect(() => {
-    api.hodPlacements().then((d) => { setData(d); setLiveMode(true); }).catch(() => {});
     api.hodPlacementBatches().then((rows) => {
       setPlacementBatches(rows);
       setCompareSelected(new Set(rows.map((r: any) => r.batch)));
     }).catch(() => {});
   }, []);
 
-  const changeBatch = (b: string) => {
-    setActiveBatch(b);
-    const fetcher = b === "All" ? api.hodPlacements() : api.hodPlacements(b);
-    fetcher.then(setData).catch(() => {});
-  };
+  const changeBatch = (b: string) => setUrlParams({ batch: b === "All" ? null : b });
+
+  useEffect(() => {
+    (activeBatch === "All" ? api.hodPlacements() : api.hodPlacements(activeBatch)).then((d) => { setData(d); setLiveMode(true); }).catch(() => {});
+  }, [activeBatch]);
 
   const runComparison = () => {
     if (compareSelected.size < 2) { push("Select at least 2 batches to compare", "error"); return; }

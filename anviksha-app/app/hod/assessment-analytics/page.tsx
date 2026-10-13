@@ -9,6 +9,9 @@ import { StudentRadarChart } from "@/components/charts/Charts";
 import { hodIntelligenceApi } from "@/lib/hodIntelligenceApi";
 import { api } from "@/lib/api";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
+import { Download } from "lucide-react";
+import { downloadCsv } from "@/lib/csv";
+import { useUrlState } from "@/lib/useUrlState";
 
 /**
  * Phase 4 — Subject / Assessment Analytics. New page, new nav item.
@@ -23,7 +26,9 @@ export default function AssessmentAnalyticsPage() {
   const [outliers, setOutliers] = useState<any>(null);
   const [bloom, setBloom] = useState<any>(null);
   const [subjects, setSubjects] = useState<any[]>([]);
-  const [selectedSubjectId, setSelectedSubjectId] = useState<number | "">("");
+  const [urlParams, setUrlParams] = useUrlState();
+  const selectedSubjectId: number | "" = Number(urlParams.get("subject")) || "";
+  const setSelectedSubjectId = (id: number | "") => { setSectionComparison(null); setUrlParams({ subject: id ? String(id) : null }); };
   const [sectionComparison, setSectionComparison] = useState<any>(null);
 
   useEffect(() => {
@@ -46,8 +51,16 @@ export default function AssessmentAnalyticsPage() {
       <div className="p-4 md:p-8 space-y-6">
         <div className="grid lg:grid-cols-2 gap-6">
           <Card hover>
-            <div className="flex items-center justify-between mb-1">
+            <div className="flex items-start justify-between gap-3 mb-1">
               <SectionTitle title="Pass-Rate Outliers" subtitle="Subjects furthest from the department average — subjects only, never a teacher ranking" />
+              {outliers.status === "available" && outliers.outliers.length > 0 && (
+                <button
+                  onClick={() => downloadCsv("pass_rate_outliers", Object.keys(outliers.outliers[0]), outliers.outliers.map((o: any) => Object.values(o)))}
+                  className="inline-flex items-center gap-1.5 px-3 min-h-[44px] rounded-xl text-xs font-semibold text-brand bg-brand-50 hover:bg-brand-light shrink-0"
+                >
+                  <Download size={14} /> Export
+                </button>
+              )}
             </div>
             {outliers.status !== "available" ? (
               <p className="text-sm text-muted text-center py-10">{outliers.reason_unavailable || "Marks data unavailable."}</p>

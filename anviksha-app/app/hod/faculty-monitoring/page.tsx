@@ -9,7 +9,9 @@ import { PillNav } from "@/components/ui/Tabs";
 import { MetricExplain } from "@/components/ui/MetricExplain";
 import { hodIntelligenceApi } from "@/lib/hodIntelligenceApi";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
-import { Users, BookOpen, ClipboardList, AlertTriangle, Search, Bell, Sparkles } from "lucide-react";
+import { Users, BookOpen, ClipboardList, AlertTriangle, Search, Bell, Sparkles, Download } from "lucide-react";
+import { downloadCsv } from "@/lib/csv";
+import { useUrlState } from "@/lib/useUrlState";
 
 /**
  * Phase 2 — Faculty Monitoring & Faculty Alerts. New page, new nav item
@@ -19,10 +21,12 @@ import { Users, BookOpen, ClipboardList, AlertTriangle, Search, Bell, Sparkles }
  * no numeric "performance" column exists anywhere.
  */
 export default function FacultyMonitoringPage() {
-  const [tab, setTab] = useState<"activity" | "alerts">("activity");
+  const [urlParams, setUrlParams] = useUrlState();
+  const tab: "activity" | "alerts" = urlParams.get("tab") === "alerts" ? "alerts" : "activity";
+  const setTab = (t: "activity" | "alerts") => setUrlParams({ tab: t === "alerts" ? "alerts" : null });
   const [overview, setOverview] = useState<any>(null);
   const [facultyRows, setFacultyRows] = useState<any[] | null>(null);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(urlParams.get("q") || "");
   const [alerts, setAlerts] = useState<any[] | null>(null);
   const [selectedFacultyId, setSelectedFacultyId] = useState<number | null>(null);
   const [detail, setDetail] = useState<any>(null);
@@ -35,6 +39,7 @@ export default function FacultyMonitoringPage() {
   useEffect(() => {
     const t = window.setTimeout(() => {
       hodIntelligenceApi.facultyTable(search || undefined).then((d) => setFacultyRows(d.faculty)).catch(() => setFacultyRows([]));
+      if ((urlParams.get("q") || "") !== search) setUrlParams({ q: search || null });
     }, 250);
     return () => window.clearTimeout(t);
   }, [search]);
@@ -80,9 +85,17 @@ export default function FacultyMonitoringPage() {
 
         {tab === "activity" && (
           <Card hover className="!p-0 overflow-hidden">
-            <div className="p-5 border-b border-gray-100 flex items-center justify-between gap-3">
+            <div className="p-5 border-b border-gray-100 flex items-center justify-between gap-3 flex-wrap">
               <SectionTitle title="Faculty" subtitle="Teaching activity per faculty member — default sorted by name" />
-              <div className="relative w-64 shrink-0">
+              <button
+                disabled={!facultyRows || facultyRows.length === 0}
+                onClick={() => downloadCsv("faculty_teaching_activity", ["Name", "Assigned subjects", "Sessions recorded", "Attendance last updated", "Marks status", "At-risk students", "Open alerts", "Status"],
+                  (facultyRows || []).map((f) => [f.name, f.assigned_subjects.join("; "), f.sessions_recorded, f.attendance_last_updated || "Pending", f.marks_status, f.at_risk_students, f.open_alert_count, f.status === "up_to_date" ? "Up to date" : "Pending"]))}
+                className="inline-flex items-center gap-1.5 px-3 min-h-[44px] rounded-xl text-xs font-semibold text-brand bg-brand-50 hover:bg-brand-light disabled:opacity-50 shrink-0 ml-auto"
+              >
+                <Download size={14} /> Export
+              </button>
+              <div className="relative w-64 max-w-full shrink-0">
                 <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
                 <input
                   value={search} onChange={(e) => setSearch(e.target.value)}

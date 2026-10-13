@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, CheckCheck, Moon, Search, Sun } from "lucide-react";
+import { Bell, BellRing, CheckCheck, Moon, Search, Sun } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -52,6 +52,7 @@ export function timeAgo(iso: string | null): string {
 }
 
 const THEME_KEY = "anviksha_theme";
+const ALERTS_KEY = "anviksha_device_alerts";
 
 function ThemeToggle() {
   const [dark, setDark] = useState(false);
@@ -85,13 +86,60 @@ function NotificationBell() {
   const [data, setData] = useState<{ unread_count: number; notifications: Notice[] }>({ unread_count: 0, notifications: [] });
   const ref = useRef<HTMLDivElement>(null);
 
-  const load = () => api.myNotifications().then(setData).catch(() => {});
+  // Alerts on this device: while the site is open in any tab, a new notice
+  // also appears as a system notification. Off until the person turns it on.
+  const [deviceAlerts, setDeviceAlerts] = useState<"unsupported" | "off" | "on" | "blocked">("unsupported");
+  const alertsOn = useRef(false);
+  const newestSeen = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) return;
+    let saved = false;
+    try { saved = window.localStorage.getItem(ALERTS_KEY) === "on"; } catch { /* not remembered */ }
+    const state = Notification.permission === "denied" ? "blocked" : saved && Notification.permission === "granted" ? "on" : "off";
+    setDeviceAlerts(state);
+    alertsOn.current = state === "on";
+  }, []);
+
+  const announce = (fresh: Notice[]) => {
+    if (!alertsOn.current || typeof document === "undefined" || document.visibilityState === "visible") return;
+    for (const n of fresh.slice(0, 3)) {
+      try {
+        const alert = new Notification("Anviksha", { body: n.message, tag: `anviksha-${n.id}` });
+        alert.onclick = () => { window.focus(); if (n.link) router.push(n.link); alert.close(); };
+      } catch {
+        // some browsers only allow this from a service worker; the bell still shows the notice
+      }
+    }
+  };
+
+  const load = () => api.myNotifications().then((d: { unread_count: number; notifications: Notice[] }) => {
+    const newest = d.notifications.reduce((max, n) => Math.max(max, n.id), 0);
+    // The first load only records where we are; alerts are for what arrives after that.
+    if (newestSeen.current !== null) announce(d.notifications.filter((n) => !n.read && n.id > (newestSeen.current as number)));
+    newestSeen.current = newest;
+    setData(d);
+  }).catch(() => {});
+
+  const toggleDeviceAlerts = async () => {
+    if (deviceAlerts === "on") {
+      alertsOn.current = false;
+      setDeviceAlerts("off");
+      try { window.localStorage.setItem(ALERTS_KEY, "off"); } catch { /* not remembered */ }
+      return;
+    }
+    const permission = Notification.permission === "granted" ? "granted" : await Notification.requestPermission();
+    if (permission !== "granted") { setDeviceAlerts(permission === "denied" ? "blocked" : "off"); return; }
+    alertsOn.current = true;
+    setDeviceAlerts("on");
+    try { window.localStorage.setItem(ALERTS_KEY, "on"); } catch { /* not remembered */ }
+  };
 
   useEffect(() => {
     load();
     const interval = setInterval(load, 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!open) return;
@@ -180,6 +228,27 @@ function NotificationBell() {
                   </li>
                 ))}
               </ul>
+            )}
+            {deviceAlerts !== "unsupported" && (
+              <div className="px-4 py-2.5 border-t border-gray-100 flex items-center gap-3">
+                <BellRing size={15} className="text-muted shrink-0" />
+                <div className="flex-1 min-w-0 text-xs text-muted">
+                  {deviceAlerts === "blocked" ? "Alerts are blocked for this site in your browser settings." : "Alert me on this device while the site is open in a tab."}
+                </div>
+                {deviceAlerts !== "blocked" && (
+                  <button
+                    role="switch"
+                    aria-checked={deviceAlerts === "on"}
+                    aria-label="Alert me on this device"
+                    onClick={toggleDeviceAlerts}
+                    className="shrink-0 w-11 h-11 flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-brand/40 rounded-xl"
+                  >
+                    <span className={`relative w-11 h-6 rounded-full transition-colors ${deviceAlerts === "on" ? "bg-success" : "bg-gray-300"}`}>
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-indigo-50 shadow transition-transform ${deviceAlerts === "on" ? "translate-x-5" : ""}`} />
+                    </span>
+                  </button>
+                )}
+              </div>
             )}
           </motion.div>
         )}

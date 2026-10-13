@@ -1,110 +1,161 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { Download, GraduationCap, Search } from "lucide-react";
 import { Topbar } from "@/components/layout/Topbar";
 import { Card, Badge, Button } from "@/components/ui/Primitives";
-import { PillNav } from "@/components/ui/Tabs";
-import { Search, Inbox } from "lucide-react";
-import { api } from "@/lib/api";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
+import { EmptyState, LoadError } from "@/components/ui/States";
+import { useToast } from "@/components/ui/Toaster";
+import { api } from "@/lib/api";
+import { downloadCsv } from "@/lib/csv";
+import { useUrlState } from "@/lib/useUrlState";
+
+const STATUSES = [{ key: "", label: "All" }, { key: "active", label: "Active" }, { key: "passed_out", label: "Passed out" }];
+const SELECT = "border border-gray-200 bg-white rounded-xl px-3 min-h-[44px] text-sm text-ink outline-none";
 
 export default function HodStudentsPage() {
+  // Batch, semester, status, search and page all live in the address.
+  const [params, setParams] = useUrlState();
+  const batch = params.get("batch") || "";
+  const semester = params.get("semester") || "";
+  const status = params.get("status") || "";
+  const linkedQuery = params.get("q") || "";
+  const page = Math.max(1, Number(params.get("page")) || 1);
+
+  const [query, setQuery] = useState(linkedQuery);
   const [data, setData] = useState<any>(null);
-  const [query, setQuery] = useState("");
-  // Arriving from search: start with that student already filtered.
-  const linkedQuery = useSearchParams().get("q");
-  useEffect(() => { if (linkedQuery) setQuery(linkedQuery); }, [linkedQuery]);
-  const [status, setStatus] = useState("all");
-  const [batch, setBatch] = useState("");
+  const [failed, setFailed] = useState(false);
   const [batches, setBatches] = useState<string[]>([]);
-  const [page, setPage] = useState(1);
   const [department, setDepartment] = useState("");
+  const [exporting, setExporting] = useState(false);
   const requestSeq = useRef(0);
+  const { push } = useToast();
 
   useEffect(() => {
     api.hodMe().then((d) => setDepartment(d.department)).catch(() => {});
     api.hodStudentsByBatch().then((rows) => setBatches(rows.map((r: any) => r.batch))).catch(() => {});
   }, []);
 
+  // Typing waits a moment before it changes the address and asks the server.
   useEffect(() => {
-    const id = ++requestSeq.current;
-    const timer = setTimeout(() => {
-      const params: Record<string, string> = { page: String(page), page_size: "25" };
-      if (query) params.search = query;
-      if (status !== "all") params.status = status;
-      if (batch) params.batch = batch;
-      api.hodStudentsFiltered(params)
-        .then((d) => { if (id === requestSeq.current) setData(d); })
-        .catch(() => { if (id === requestSeq.current) setData({ students: [], total: 0 }); });
-    }, query ? 300 : 0);
-    return () => clearTimeout(timer);
-  }, [query, status, batch, page]);
+    if (query === linkedQuery) return;
+    const t = setTimeout(() => setParams({ q: query || null, page: null }), 300);
+    return () => clearTimeout(t);
+  }, [query]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { setQuery(linkedQuery); }, [linkedQuery]);
 
-  if (!data) return <><Topbar greeting="Department Students" subtitle="Loading..." avatarLetter="H" /><DashboardSkeleton /></>;
+  const filters = () => {
+    const f: Record<string, string> = {};
+    if (linkedQuery) f.search = linkedQuery;
+    if (status) f.status = status;
+    if (batch) f.batch = batch;
+    if (semester) f.semester = semester;
+    return f;
+  };
+
+  const load = () => {
+    const id = ++requestSeq.current;
+    setFailed(false);
+    api.hodStudentsFiltered({ ...filters(), page: String(page), page_size: "25" })
+      .then((d) => { if (id === requestSeq.current) setData(d); })
+      .catch(() => { if (id === requestSeq.current) setFailed(true); });
+  };
+  useEffect(load, [linkedQuery, status, batch, semester, page]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The export holds every student matching the filters, not only the page on screen.
+  const exportAll = async () => {
+    setExporting(true);
+    try {
+      const all = await api.hodStudentsFiltered({ ...filters(), page: "1", page_size: "5000" });
+      downloadCsv(
+        `students${batch ? `_batch_${batch}` : ""}${semester ? `_sem_${semester}` : ""}${status ? `_${status}` : ""}`,
+        ["USN", "Name", "Batch", "Semester", "CGPA", "Backlogs", "Status"],
+        all.students.map((s: any) => [s.usn, s.name, s.batch, s.semester, s.cgpa, s.backlogs, s.status]),
+      );
+      push(`${all.students.length} student${all.students.length === 1 ? "" : "s"} exported`);
+    } catch {
+      push("Could not export. Please try again.", "error");
+    }
+    setExporting(false);
+  };
+
+  const title = "Department Students";
+  if (failed) return <><Topbar greeting={title} subtitle="Your department" avatarLetter="H" /><LoadError message="We couldn't load the students." onRetry={load} /></>;
+  if (!data) return <><Topbar greeting={title} subtitle="Loading…" avatarLetter="H" /><DashboardSkeleton /></>;
+
+  const filtered = !!(batch || semester || status || linkedQuery);
 
   return (
     <>
-      <Topbar greeting="Department Students" subtitle="Dashboard > Department Students" avatarLetter="H" />
-      <div className="p-4 md:p-8 space-y-6">
-        <Card hover>
-          <div className="flex items-center justify-between flex-wrap gap-3 mb-5">
-            <div className="flex items-center gap-3 flex-wrap">
-              <div>
-                <label className="text-[10px] text-muted block mb-1">Department</label>
-                <div className="border border-gray-200 rounded-xl px-3 py-2 text-sm bg-gray-50 w-48">{department || "..."}</div>
-              </div>
-              <div>
-                <label className="text-[10px] text-muted block mb-1">Batch</label>
-                <select value={batch} onChange={(e) => { setBatch(e.target.value); setPage(1); }} className="border border-gray-200 rounded-xl px-3 py-2 text-sm outline-none">
-                  <option value="">All Batches</option>
-                  {batches.map((b) => <option key={b} value={b}>{b}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-[10px] text-muted block mb-1">Search</label>
-                <div className="relative">
-                  <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted" />
-                  <input value={query} onChange={(e) => { setQuery(e.target.value); setPage(1); }} placeholder="Search by name or USN..." className="pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl outline-none w-56" />
-                </div>
-              </div>
-            </div>
-            <PillNav items={[{ key: "all", label: "All" }, { key: "active", label: "Active" }, { key: "passed_out", label: "Passed Out" }]} active={status} onChange={(v) => { setStatus(v); setPage(1); }} />
+      <Topbar greeting={title} subtitle={`Dashboard > Department Students${department ? ` — ${department}` : ""}`} avatarLetter="H" />
+      <div className="p-4 md:p-8 space-y-5">
+        <div className="flex items-end gap-3 flex-wrap">
+          <label className="text-xs text-muted">
+            <span className="block mb-1">Batch</span>
+            <select value={batch} onChange={(e) => setParams({ batch: e.target.value || null, page: null })} className={SELECT}>
+              <option value="">All batches</option>
+              {(batch && !batches.includes(batch) ? [batch, ...batches] : batches).map((b) => <option key={b} value={b}>{b}</option>)}
+            </select>
+          </label>
+          <label className="text-xs text-muted">
+            <span className="block mb-1">Semester</span>
+            <select value={semester} onChange={(e) => setParams({ semester: e.target.value || null, page: null })} className={SELECT}>
+              <option value="">All semesters</option>
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>Semester {n}</option>)}
+            </select>
+          </label>
+          <label className="text-xs text-muted">
+            <span className="block mb-1">Status</span>
+            <select value={status} onChange={(e) => setParams({ status: e.target.value || null, page: null })} className={SELECT}>
+              {STATUSES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
+            </select>
+          </label>
+          <label className="relative flex-1 min-w-[13rem] max-w-sm text-xs text-muted">
+            <span className="block mb-1">Search</span>
+            <Search size={15} className="absolute left-3.5 bottom-[14px] text-muted" />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Name or USN" className={`${SELECT} w-full pl-10`} />
+          </label>
+          <div className="flex gap-2 ml-auto">
+            {filtered && <Button variant="ghost" className="min-h-[44px]" onClick={() => { setQuery(""); setParams({ batch: null, semester: null, status: null, q: null, page: null }); }}>Clear filters</Button>}
+            <Button variant="secondary" className="min-h-[44px]" disabled={exporting || data.total === 0} onClick={exportAll}><Download size={14} /> {exporting ? "Exporting…" : `Export ${data.total}`}</Button>
           </div>
+        </div>
 
+        <Card className="!p-0 overflow-hidden">
           {data.students.length === 0 ? (
-            <div className="text-center py-10">
-              <Inbox size={28} className="text-muted mx-auto mb-2 opacity-50" />
-              <p className="text-sm text-muted">{data.empty_message || "No students found."}</p>
-            </div>
+            <EmptyState icon={GraduationCap} title={filtered ? "No student matches these filters" : "No students in this department yet"} hint={filtered ? "Try a different batch, semester or search." : undefined} />
           ) : (
             <>
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-muted border-b border-gray-100">
-                    <th className="py-2.5 font-medium">USN</th><th className="py-2.5 font-medium">Name</th>
-                    <th className="py-2.5 font-medium">Semester</th><th className="py-2.5 font-medium">Batch</th>
-                    <th className="py-2.5 font-medium">CGPA</th><th className="py-2.5 font-medium">Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.students.map((s: any) => (
-                    <tr key={s.id} className="border-b border-gray-50 hover:bg-gray-50/70 transition-colors">
-                      <td className="py-3 text-muted">{s.usn}</td>
-                      <td className="py-3 font-medium text-ink">{s.name}</td>
-                      <td className="py-3 text-muted">{s.semester}</td>
-                      <td className="py-3 text-muted">{s.batch}</td>
-                      <td className="py-3 numeric">{s.cgpa?.toFixed(2) ?? "N/A"}</td>
-                      <td className="py-3"><Badge tone={s.status === "active" ? "success" : "neutral"}>{s.status}</Badge></td>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm min-w-[620px]">
+                  <thead>
+                    <tr className="text-left text-xs text-muted border-b border-gray-100">
+                      <th className="py-3 pl-5 pr-3 font-medium">USN</th><th className="py-3 pr-3 font-medium">Name</th>
+                      <th className="py-3 pr-3 font-medium">Batch</th><th className="py-3 pr-3 font-medium">Semester</th>
+                      <th className="py-3 pr-3 font-medium">CGPA</th><th className="py-3 pr-3 font-medium">Backlogs</th><th className="py-3 pr-5 font-medium">Status</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="flex items-center justify-between mt-4">
-                <div className="text-xs text-muted">Showing {data.students.length} of {data.total} students — page {data.page} of {data.total_pages}</div>
+                  </thead>
+                  <tbody>
+                    {data.students.map((s: any) => (
+                      <tr key={s.id} className="border-b border-gray-100 last:border-0">
+                        <td className="py-2.5 pl-5 pr-3 text-muted whitespace-nowrap">{s.usn}</td>
+                        <td className="py-2.5 pr-3 font-medium text-ink">{s.name}</td>
+                        <td className="py-2.5 pr-3 text-muted numeric">{s.batch}</td>
+                        <td className="py-2.5 pr-3 text-muted numeric">{s.semester ?? "—"}</td>
+                        <td className="py-2.5 pr-3 text-ink numeric">{s.cgpa != null ? Number(s.cgpa).toFixed(2) : "—"}</td>
+                        <td className="py-2.5 pr-3 numeric">{s.backlogs ? <Badge tone="danger">{s.backlogs}</Badge> : <span className="text-muted">0</span>}</td>
+                        <td className="py-2.5 pr-5"><Badge tone={s.status === "active" ? "success" : "neutral"}>{s.status === "passed_out" ? "Passed out" : s.status === "active" ? "Active" : s.status}</Badge></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-gray-100 flex-wrap">
+                <div className="text-xs text-muted">{data.total} student{data.total === 1 ? "" : "s"} · page {data.page} of {data.total_pages}</div>
                 <div className="flex gap-2">
-                  <Button size="sm" variant="secondary" onClick={() => setPage((p) => Math.max(1, p - 1))}>Previous</Button>
-                  <Button size="sm" variant="secondary" onClick={() => setPage((p) => Math.min(data.total_pages, p + 1))}>Next</Button>
+                  <Button size="sm" variant="secondary" className="min-h-[44px]" disabled={page <= 1} onClick={() => setParams({ page: page > 2 ? String(page - 1) : null })}>Previous</Button>
+                  <Button size="sm" variant="secondary" className="min-h-[44px]" disabled={page >= data.total_pages} onClick={() => setParams({ page: String(page + 1) })}>Next</Button>
                 </div>
               </div>
             </>

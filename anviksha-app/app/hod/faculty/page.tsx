@@ -6,7 +6,8 @@ import { Card, SectionTitle, Badge, Button } from "@/components/ui/Primitives";
 import { CenterModal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toaster";
 import { SimpleBarChart } from "@/components/charts/Charts";
-import { Pencil } from "lucide-react";
+import { Download, Pencil } from "lucide-react";
+import { downloadCsv } from "@/lib/csv";
 import { api } from "@/lib/api";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 
@@ -74,8 +75,17 @@ export default function HodFacultyPage() {
           <SimpleBarChart data={workload.map((w) => ({ label: w.name, value: w.subject_count }))} xKey="label" barKey="value" color="#5B3FD9" />
         </Card>
         <Card hover>
-          <SectionTitle title="Faculty Directory" />
-          <table className="w-full text-sm">
+          <SectionTitle
+            title="Faculty Directory"
+            action={
+              <Button variant="secondary" size="sm" className="min-h-[44px] shrink-0" disabled={faculty.length === 0}
+                onClick={() => { downloadCsv("faculty_workload", ["Name", "Designation", "Subjects handled", "Extra work", "Extra work status"], faculty.map((f: any) => [f.name, f.designation, f.subjects_handled, f.extra_work, f.extra_work_status || ""])); push("Faculty list exported"); }}>
+                <Download size={14} /> Export
+              </Button>
+            }
+          />
+          <div className="overflow-x-auto">
+          <table className="w-full text-sm min-w-[620px]">
             <thead>
               <tr className="text-left text-muted border-b border-gray-100">
                 <th className="py-2.5 font-medium">Name</th><th className="py-2.5 font-medium">Designation</th>
@@ -102,6 +112,7 @@ export default function HodFacultyPage() {
               ))}
             </tbody>
           </table>
+          </div>
         </Card>
       </div>
 

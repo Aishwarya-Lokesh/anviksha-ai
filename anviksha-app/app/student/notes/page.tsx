@@ -392,7 +392,7 @@ export default function NotesPage() {
                 </fieldset>
                 <label className="flex items-center gap-3 min-h-[44px] text-sm text-ink cursor-pointer">
                   <input type="checkbox" checked={draft.remind} onChange={(e) => setDraft({ ...draft, remind: e.target.checked })} className="w-5 h-5 accent-[#5B3FD9]" />
-                  Remind me on my dashboard in the week before it is due
+                  Send me a notification a day before it is due
                 </label>
               </>
             )}

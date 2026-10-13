@@ -335,5 +335,15 @@ Migration `e6f7a8b9c0d1` (additive): counseling reply columns, resume file and e
 - A teacher's announcement always goes to students of one of their own classes; they cannot write to faculty or other classes.
 - Reminders appear on the dashboard and planner; nothing is emailed.
 
+## Round 4: HOD filters and exports, reminders, device alerts
+
+- **HOD pages keep their filters in the address**, so a filtered view can be bookmarked, shared or returned to: Department Students (batch, semester, status, search, page), Placement Analytics (batch), the dashboard's two batch filters, Faculty Monitoring (tab, search) and Assessment Analytics (subject).
+- **Department Students** gained a semester filter, a backlog column, "Clear filters", and an export of every student matching the filters.
+- **Export buttons** on Faculty Workload, Faculty Monitoring, Faculty Feedback and Pass-Rate Outliers.
+- **Deadline reminders are now notifications.** A student's own deadline with the reminder on raises one notification when it is within a day of falling due. No background job: it is checked when the student's notifications are read.
+- **Device alerts.** A switch in the notification panel shows new notices as system notifications while the site is open in a tab. Off until switched on; remembered per device.
+- Due dates are compared in India time rather than the server's UTC clock.
+- Fixed: two filter changes made close together could undo each other.
+
 ## Deployment note
 - Stored-file links now end with the file's extension, so an older copy of the Achievements page (still served while the frontend deployment was pending) keeps recognising PDFs.
