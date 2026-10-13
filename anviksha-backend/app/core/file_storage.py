@@ -66,7 +66,9 @@ def get_file(path: str) -> bytes:
         url = f"{SUPABASE_URL}/storage/v1/object/{SUPABASE_BUCKET}/{path}"
         headers = {"Authorization": f"Bearer {SUPABASE_SERVICE_KEY}"}
         resp = httpx.get(url, headers=headers, timeout=30)
-        if resp.status_code == 404:
+        # Supabase Storage reports a missing object as 404 on some routes and as
+        # 400 with a "not found" body on others; both mean the file is not there.
+        if resp.status_code == 404 or (resp.status_code == 400 and "not" in resp.text.lower() and "found" in resp.text.lower()):
             raise FileNotFoundError(path)
         if resp.status_code != 200:
             raise RuntimeError(f"Supabase Storage download failed for {path}: {resp.status_code} {resp.text}")

@@ -102,3 +102,22 @@ def test_admin_storage_status_and_filling_a_missing_certificate(client, campus, 
     assert client.get("/admin/storage/status", headers=ah).json()["certificates"]["missing"] == []
     assert client.get("/admin/storage/status", headers=campus["h"]["hod"]).status_code == 403
     assert client.post("/admin/storage/certificate-file", headers=campus["h"]["s1"], files={"file": ("gone.pdf", b"%PDF", "application/pdf")}).status_code == 403
+
+
+def test_a_file_missing_from_cloud_storage_is_not_found_not_a_server_error(client, monkeypatch):
+    """The storage service answers 400 with a not-found body for a missing
+    object. On the live site that surfaced as a server error."""
+    monkeypatch.setattr(file_storage, "SUPABASE_URL", "https://storage.example.test")
+    monkeypatch.setattr(file_storage, "SUPABASE_SERVICE_KEY", "key")
+
+    class Reply:
+        def __init__(self, status_code, text):
+            self.status_code, self.text, self.content = status_code, text, b""
+
+    replies = iter([Reply(400, '{"statusCode":"404","error":"not_found","message":"Object not found"}'), Reply(404, "Not Found"), Reply(500, "boom")])
+    monkeypatch.setattr(file_storage.httpx, "get", lambda *a, **k: next(replies))
+    link = file_links.signed("/note-files/gone.pdf")
+    assert client.get(link).status_code == 404
+    assert client.get(link).status_code == 404
+    with pytest.raises(RuntimeError):
+        file_storage.get_file("note_files/gone.pdf")          # a genuine storage failure is still an error
