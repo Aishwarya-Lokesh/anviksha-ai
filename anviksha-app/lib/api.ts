@@ -91,6 +91,16 @@ function announceWaking(waking: boolean) {
   }
 }
 
+// Called as soon as the home or sign-in page opens: if the server has gone
+// to sleep it starts waking now, while the visitor is still choosing a role
+// and typing, instead of when they press "Sign In".
+let wakeSent = false;
+export function wakeServer() {
+  if (wakeSent || typeof window === "undefined") return;
+  wakeSent = true;
+  fetch(`${API_BASE}/health`, { cache: "no-store" }).catch(() => { wakeSent = false; });
+}
+
 async function fetchWithWake(url: string, init: RequestInit, retryable: boolean): Promise<Response> {
   const deadline = Date.now() + WAKE_WINDOW_MS;
   // A healthy server answers well inside this; past it, tell the UI we're waiting.

@@ -4,7 +4,7 @@ import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 import { Sparkles, LogIn, ArrowLeft } from "lucide-react";
-import { api, setAuth, SERVER_WAKING_EVENT } from "@/lib/api";
+import { api, setAuth, wakeServer, SERVER_WAKING_EVENT } from "@/lib/api";
 
 const ROLE_LABELS: Record<string, string> = {
   student: "Student", teacher: "Teacher", hod: "Head of Department", admin: "Admin",
@@ -95,6 +95,7 @@ function LoginForm() {
 }
 
 export default function LoginPage() {
+  useEffect(wakeServer, []);
   return (
     <Suspense fallback={null}>
       <LoginForm />

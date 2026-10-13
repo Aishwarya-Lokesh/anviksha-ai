@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { wakeServer } from "@/lib/api";
 import { motion } from "framer-motion";
 import { GraduationCap, UserCog, Users, Sparkles, Briefcase } from "lucide-react";
 
@@ -12,6 +14,7 @@ const roles = [
 ];
 
 export default function Home() {
+  useEffect(wakeServer, []);
   const router = useRouter();
 
   return (
