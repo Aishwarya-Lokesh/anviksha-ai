@@ -96,6 +96,31 @@ def test_calendar_combines_own_and_class_deadlines(client, campus):  # noqa: F81
     assert other["events"] == []                                             # another class, nothing of s1's
 
 
+def test_a_deadline_due_within_a_day_becomes_one_reminder(client, campus):  # noqa: F811
+    from datetime import timedelta
+    from app.routers.campus import campus_now
+    h = campus["h"]
+    at = lambda hours: (campus_now() + timedelta(hours=hours)).strftime("%Y-%m-%dT%H:%M")  # noqa: E731
+    add = lambda who, **body: client.post("/student/planner", headers=h[who], json={"kind": "deadline", **body}).json()  # noqa: E731
+    soon = add("s1", title="Lab record", due_at=at(3), remind=True)
+    add("s1", title="No reminder wanted", due_at=at(3), remind=False)
+    add("s1", title="Next week", due_at=at(24 * 6), remind=True)
+    add("s1", title="Already past", due_at=at(-2), remind=True)
+    add("s2", title="Someone else", due_at=at(3), remind=True)
+
+    reminders = lambda who: [n for n in client.get("/notifications", headers=h[who]).json()["notifications"] if n["message"].startswith("Reminder")]  # noqa: E731
+    mine = reminders("s1")
+    assert len(mine) == 1 and 'your deadline "Lab record" is due' in mine[0]["message"] and mine[0]["link"] == "/student/notes" and mine[0]["read"] is False
+    assert len(reminders("s1")) == 1                                             # asking again does not repeat it
+    assert [n["message"].split('"')[1] for n in reminders("s2")] == ["Someone else"]
+    assert reminders("t1") == []
+
+    client.patch(f"/student/planner/{soon['id']}", headers=h["s1"], json={"done": True})
+    other = add("s1", title="Viva", due_at=at(5), remind=True)
+    assert sorted(n["message"].split('"')[1] for n in reminders("s1")) == ["Lab record", "Viva"]   # a finished item raises nothing new; a new one does
+    assert other["remind"] is True
+
+
 # ---------- announcements ----------
 
 def test_announcements_reach_only_their_audience(client, admin):

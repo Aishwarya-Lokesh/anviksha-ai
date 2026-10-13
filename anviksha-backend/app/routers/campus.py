@@ -18,6 +18,34 @@ from app.models.models import (
 router = APIRouter(tags=["campus"])
 
 PRIORITIES = ("low", "medium", "high")
+CAMPUS_UTC_OFFSET = timedelta(hours=5, minutes=30)      # the college runs on India time; the server clock is UTC
+
+
+def campus_now() -> datetime:
+    """The time on campus. Due dates are entered and stored in campus time."""
+    return datetime.utcnow() + CAMPUS_UTC_OFFSET
+
+
+def raise_due_reminders(db: Session, user: User) -> int:
+    """Turns a student's own deadlines that fall due within a day into
+    notifications, once each. Called when their notifications are read, so
+    no background job is needed."""
+    if user.role != "student" or not user.student_id:
+        return 0
+    now = campus_now()
+    due = db.query(PlannerItem).filter(
+        PlannerItem.student_id == user.student_id, PlannerItem.kind == "deadline", PlannerItem.remind == True,  # noqa: E712
+        PlannerItem.done == False, PlannerItem.due_at >= now, PlannerItem.due_at <= now + timedelta(hours=24)).all()  # noqa: E712
+    made = 0
+    for item in due:
+        day = "today" if item.due_at.date() == now.date() else "tomorrow"
+        message = f'Reminder: your deadline "{item.title}" is due {day} at {item.due_at.strftime("%H:%M")}.'
+        if not db.query(Notification.id).filter(Notification.user_id == user.id, Notification.message == message).first():
+            db.add(Notification(user_id=user.id, message=message))
+            made += 1
+    if made:
+        db.commit()
+    return made
 KINDS = ("note", "deadline")
 AUDIENCES = ("students", "faculty", "everyone")
 MAX_NOTIFY = 600
@@ -144,8 +172,8 @@ def my_calendar(db: Session = Depends(get_db), user: User = Depends(require_role
             events.append({"id": f"class-{d['id']}", "source": "class", "title": d["title"], "subject": d.get("subject"), "date": d["due_date"],
                            "time": None, "priority": None, "done": False, "remind": True, "teacher": d.get("teacher_name")})
     events.sort(key=lambda e: (e["date"], e["time"] or "23:59"))
-    today = datetime.now().strftime("%Y-%m-%d")
-    soon = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d")
+    today = campus_now().strftime("%Y-%m-%d")
+    soon = (campus_now() + timedelta(days=7)).strftime("%Y-%m-%d")
     due_soon = [e for e in events if not e["done"] and today <= e["date"] <= soon]
     overdue = [e for e in events if not e["done"] and e["date"] < today and e["source"] == "mine"]
     return {"events": events, "due_soon": due_soon, "overdue": overdue, "today": today}

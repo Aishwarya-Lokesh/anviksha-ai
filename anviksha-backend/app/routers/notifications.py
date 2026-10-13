@@ -28,6 +28,8 @@ def link_for(role: str, message: str) -> str:
 
 @router.get("")
 def my_notifications(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    from app.routers.campus import raise_due_reminders
+    raise_due_reminders(db, user)
     rows = db.query(Notification).filter(Notification.user_id == user.id).order_by(Notification.created_at.desc()).limit(50).all()
     unread_count = db.query(Notification).filter(Notification.user_id == user.id, Notification.read == False).count()
     return {
