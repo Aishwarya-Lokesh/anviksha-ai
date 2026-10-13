@@ -139,17 +139,35 @@ def allowed_url(url: str) -> bool:
     return parsed.scheme == "https" and parsed.hostname in IMAGE_HOSTS
 
 
+last_fetch_problem: Optional[str] = None                 # why the last photo download failed; never contains a key
+
+
 def fetch(url: str) -> Optional[bytes]:
+    global last_fetch_problem
     if not allowed_url(url):
+        last_fetch_problem = "the photo link is not from a photo service"
         return None
     try:
-        r = httpx.get(url, timeout=TIMEOUT, follow_redirects=False)
+        # A redirect is followed only while it stays on a photo service's own host.
+        for _ in range(3):
+            r = httpx.get(url, timeout=TIMEOUT, follow_redirects=False, headers={"User-Agent": "Mozilla/5.0 (compatible; AnvikshaSlides/1.0)", "Accept": "image/*"})
+            if r.status_code in (301, 302, 303, 307, 308) and allowed_url(str(r.headers.get("location") or "")):
+                url = r.headers["location"]
+                continue
+            break
         r.raise_for_status()
-    except Exception:
+    except httpx.HTTPStatusError as exc:
+        last_fetch_problem = f"the photo service answered HTTP {exc.response.status_code} for the image"
+        return None
+    except Exception as exc:
+        last_fetch_problem = f"the image could not be downloaded ({type(exc).__name__})"
         return None
     data = r.content
-    if not data or len(data) > MAX_IMAGE_BYTES or not (r.headers.get("content-type") or "").startswith("image/"):
+    kind = r.headers.get("content-type") or ""
+    if not data or len(data) > MAX_IMAGE_BYTES or not kind.startswith("image/"):
+        last_fetch_problem = f"the download was not a usable image (HTTP {r.status_code}, type {kind[:40] or 'unknown'}, {len(data)} bytes)"
         return None
+    last_fetch_problem = None
     return data
 
 

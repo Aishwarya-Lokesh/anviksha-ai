@@ -1570,7 +1570,10 @@ def export_ppt(payload: ExportPPTRequest, user: User = Depends(require_role("tea
     safe_name = _re.sub(r"[^A-Za-z0-9_]", "_", payload.topic)[:50]
     tmp_path = os.path.join(tempfile.gettempdir(), f"{safe_name}_{os.getpid()}.pptx")
     prs.save(tmp_path)
-    return FileResponse(tmp_path, filename=f"{safe_name}.pptx", media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation")
+    # How many slides got a photo, and why not if one could not be fetched — readable by whoever is checking, without opening the file.
+    report = f"{len(photos)} placed" + (f"; {slide_images.last_fetch_problem}" if payload.include_images and slide_images.last_fetch_problem else "")
+    return FileResponse(tmp_path, filename=f"{safe_name}.pptx", media_type="application/vnd.openxmlformats-officedocument.presentationml.presentation",
+                        headers={"X-Slide-Photos": report.encode("ascii", "replace").decode()})
 
 
 class ExportNotesRequest(BaseModel):
