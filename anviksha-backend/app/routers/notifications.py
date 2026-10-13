@@ -8,13 +8,32 @@ from app.models.models import Notification, User
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
 
+def link_for(role: str, message: str) -> str:
+    """The page a notification is about, worked out from its wording."""
+    text = (message or "").lower()
+    if "announcement" in text:
+        return f"/{role}/announcements"
+    if "feedback" in text:
+        return "/teacher/performance?view=feedback" if role == "teacher" else f"/{role}/feedback"
+    if "counseling" in text:
+        return f"/{role}/counseling"
+    if "deadline" in text or "study note" in text:
+        return f"/{role}/notes"
+    if "request is now" in text:
+        return "/student/documents"
+    if "placed" in text or "offer" in text or "internship" in text:
+        return "/student/placement" if role == "student" else f"/{role}/placements"
+    return f"/{role}"
+
+
 @router.get("")
 def my_notifications(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     rows = db.query(Notification).filter(Notification.user_id == user.id).order_by(Notification.created_at.desc()).limit(50).all()
     unread_count = db.query(Notification).filter(Notification.user_id == user.id, Notification.read == False).count()
     return {
         "unread_count": unread_count,
-        "notifications": [{"id": n.id, "message": n.message, "read": n.read, "created_at": str(n.created_at)} for n in rows],
+        "notifications": [{"id": n.id, "message": n.message, "read": bool(n.read), "created_at": n.created_at.isoformat() if n.created_at else None,
+                           "link": link_for(user.role, n.message)} for n in rows],
     }
 
 

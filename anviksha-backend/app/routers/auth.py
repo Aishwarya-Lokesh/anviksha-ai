@@ -14,6 +14,8 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == payload.email).first()
     if not user or not verify_password(payload.password, user.hashed_password):
         raise HTTPException(status_code=401, detail="Invalid email or password")
+    if user.is_active is False:
+        raise HTTPException(status_code=403, detail="This account has been deactivated. Contact the administrator.")
     role = normalize_role(user.role)
     token = create_access_token({"sub": str(user.id), "role": role})
     return TokenResponse(access_token=token, role=role)

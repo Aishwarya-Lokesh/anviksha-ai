@@ -1,5 +1,7 @@
 """Anonymous feedback: who may rate whom, that answers carry no student, and
 who may see what."""
+import pytest
+
 from app.models import models as m
 from tests.conftest import auth_headers
 from tests.test_missing_endpoints import campus  # noqa: F401  (shared fixture)
@@ -95,3 +97,14 @@ def test_teacher_is_notified_without_learning_who(client, campus):  # noqa: F811
     teacher_login = db.query(m.User).filter(m.User.email == "t1@test.local").one()
     messages = [n.message for n in db.query(m.Notification).filter(m.Notification.user_id == teacher_login.id)]
     assert messages == ["New anonymous feedback received for TST701."]
+
+
+@pytest.fixture(autouse=True)
+def feedback_open(campus):  # noqa: F811
+    """These tests are about giving and reading feedback, so both teachers'
+    subjects are switched on. The switch itself is tested in
+    test_campus_and_admin.py."""
+    db = campus["db"]
+    db.add_all([m.FeedbackWindow(subject_id=campus["sub1"].id, faculty_id=campus["t1"].id, is_open=True),
+                m.FeedbackWindow(subject_id=campus["sub2"].id, faculty_id=campus["t2"].id, is_open=True)])
+    db.commit()

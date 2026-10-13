@@ -576,8 +576,10 @@ def my_placement(db: Session = Depends(get_db), user: User = Depends(require_rol
     any_row = db.query(Placement).filter(Placement.student_id == user.student_id).first()
     if not any_row:
         return {"available": False, "note": "No placement record found for this student.", "placements": [], "internships": records["internships"]}
-    # The headline offer is the best-paid one; every offer is listed alongside.
-    best = max(offers, key=lambda o: o["package_lpa"] or 0, default=None)
+    # The headline offer is the best-paid one the student hasn't turned down;
+    # every offer is listed alongside.
+    live = [o for o in offers if o["status"] != "declined"] or offers
+    best = max(live, key=lambda o: o["package_lpa"] or 0, default=None)
     return {
         "available": True, "placed": bool(offers), "placement_type": any_row.placement_type,
         "resume_link": any_row.resume_link,

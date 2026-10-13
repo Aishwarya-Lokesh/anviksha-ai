@@ -16,7 +16,7 @@ from app.core.database import get_db
 from app.core.notifications import notify_user
 from app.core.security import require_role
 from app.models.models import (
-    Faculty, Feedback, FeedbackSubmission, Student, Subject, TeachingAssignment, User,
+    Faculty, Feedback, FeedbackSubmission, FeedbackWindow, Student, Subject, TeachingAssignment, User,
 )
 
 router = APIRouter(tags=["feedback"])
@@ -59,10 +59,12 @@ def _courses_for(db: Session, student: Student) -> list[dict]:
     faculty = {f.id: f for f in db.query(Faculty).filter(Faculty.id.in_({fid for _, fid in pairs})).all()} if pairs else {}
     done = {(r.subject_id, r.faculty_id) for r in db.query(FeedbackSubmission).filter(
         FeedbackSubmission.student_id == student.id, FeedbackSubmission.semester == student.semester).all()}
+    open_now = {(w.subject_id, w.faculty_id) for w in db.query(FeedbackWindow).filter(FeedbackWindow.is_open == True).all()}  # noqa: E712
     return sorted([{
         "subject_id": subject_id, "faculty_id": faculty_id, "code": subject.code, "name": subject.name,
         "faculty_name": faculty[faculty_id].name if faculty_id in faculty else None,
         "submitted": (subject_id, faculty_id) in done,
+        "open": (subject_id, faculty_id) in open_now,
     } for (subject_id, faculty_id), subject in pairs.items() if faculty_id in faculty], key=lambda c: c["code"])
 
 
@@ -92,6 +94,8 @@ def submit_feedback(payload: FeedbackIn, db: Session = Depends(get_db), user: Us
         raise HTTPException(status_code=403, detail="You can only give feedback for subjects you are taught this semester")
     if course["submitted"]:
         raise HTTPException(status_code=409, detail="You have already given feedback for this subject")
+    if not course["open"]:
+        raise HTTPException(status_code=403, detail="Feedback for this subject isn't open yet")
     if sorted(payload.ratings) != sorted(QUESTION_KEYS) or any(not (1 <= v <= 5) for v in payload.ratings.values()):
         raise HTTPException(status_code=400, detail="Rate every question from 1 to 5")
     comment = (payload.comment or "").strip()
@@ -111,6 +115,78 @@ def submit_feedback(payload: FeedbackIn, db: Session = Depends(get_db), user: Us
     if teacher_login:
         notify_user(db, teacher_login.id, f"New anonymous feedback received for {course['code']}.")
     return {"message": "Thank you — your feedback was recorded anonymously."}
+
+
+class WindowIn(BaseModel):
+    subject_id: int
+    open: bool
+    faculty_id: Optional[int] = None      # HOD only: whose subject
+
+
+def _teaches(db: Session, faculty_id: int, subject_id: int) -> bool:
+    if db.query(Subject.id).filter(Subject.id == subject_id, Subject.faculty_id == faculty_id).first():
+        return True
+    return db.query(TeachingAssignment.id).filter(TeachingAssignment.faculty_id == faculty_id, TeachingAssignment.subject_id == subject_id).first() is not None
+
+
+def _set_window(db: Session, user: User, faculty_id: int, subject_id: int, is_open: bool) -> dict:
+    from sqlalchemy.sql import func
+    if not _teaches(db, faculty_id, subject_id):
+        raise HTTPException(status_code=404, detail="That subject is not taught by this faculty member")
+    window = db.query(FeedbackWindow).filter(FeedbackWindow.subject_id == subject_id, FeedbackWindow.faculty_id == faculty_id).first()
+    if not window:
+        window = FeedbackWindow(subject_id=subject_id, faculty_id=faculty_id)
+        db.add(window)
+    changed = bool(window.is_open) != bool(is_open)
+    window.is_open, window.changed_by, window.changed_at = bool(is_open), user.id, func.now()
+    db.commit()
+    if changed and is_open:
+        # Tell the students who can now respond.
+        subject = db.query(Subject).filter(Subject.id == subject_id).first()
+        students = db.query(User.id).join(Student, Student.id == User.student_id).filter(
+            Student.status == "active", Student.department_id == subject.department_id, Student.semester == subject.semester).limit(400).all()
+        for (user_id,) in students:
+            notify_user(db, user_id, f"Feedback is now open for {subject.code}.")
+    return {"subject_id": subject_id, "faculty_id": faculty_id, "open": bool(is_open)}
+
+
+def _window_rows(db: Session, faculty_id: int) -> list[dict]:
+    subject_ids = {s.id for s in db.query(Subject).filter(Subject.faculty_id == faculty_id).all()}
+    subject_ids |= {a.subject_id for a in db.query(TeachingAssignment).filter(TeachingAssignment.faculty_id == faculty_id).all() if a.subject_id}
+    if not subject_ids:
+        return []
+    open_ids = {w.subject_id for w in db.query(FeedbackWindow).filter(FeedbackWindow.faculty_id == faculty_id, FeedbackWindow.is_open == True).all()}  # noqa: E712
+    counts = {}
+    for (sid,) in db.query(Feedback.subject_id).filter(Feedback.faculty_id == faculty_id).all():
+        counts[sid] = counts.get(sid, 0) + 1
+    return [{"subject_id": s.id, "code": s.code, "name": s.name, "semester": s.semester, "open": s.id in open_ids, "responses": counts.get(s.id, 0)}
+            for s in db.query(Subject).filter(Subject.id.in_(subject_ids)).order_by(Subject.semester, Subject.code).all()]
+
+
+@router.get("/teacher/feedback/windows")
+def my_feedback_windows(db: Session = Depends(get_db), user: User = Depends(require_role("teacher"))):
+    return _window_rows(db, user.faculty_id)
+
+
+@router.put("/teacher/feedback/windows")
+def set_my_feedback_window(payload: WindowIn, db: Session = Depends(get_db), user: User = Depends(require_role("teacher"))):
+    return _set_window(db, user, user.faculty_id, payload.subject_id, payload.open)
+
+
+@router.get("/hod/feedback/{faculty_id}/windows")
+def faculty_feedback_windows(faculty_id: int, db: Session = Depends(get_db), user: User = Depends(require_role("hod"))):
+    dept = _hod_department(db, user)
+    if not db.query(Faculty).filter(Faculty.id == faculty_id, Faculty.department_id == dept.id).first():
+        raise HTTPException(status_code=404, detail="Faculty not found in your department")
+    return _window_rows(db, faculty_id)
+
+
+@router.put("/hod/feedback/windows")
+def set_faculty_feedback_window(payload: WindowIn, db: Session = Depends(get_db), user: User = Depends(require_role("hod"))):
+    dept = _hod_department(db, user)
+    if not payload.faculty_id or not db.query(Faculty).filter(Faculty.id == payload.faculty_id, Faculty.department_id == dept.id).first():
+        raise HTTPException(status_code=404, detail="Faculty not found in your department")
+    return _set_window(db, user, payload.faculty_id, payload.subject_id, payload.open)
 
 
 def _average(rows: list[Feedback], key: str) -> Optional[float]:

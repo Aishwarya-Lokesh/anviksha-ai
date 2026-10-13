@@ -3,7 +3,7 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.orm import relationship
-from sqlalchemy.sql import func, false
+from sqlalchemy.sql import func, false, true
 from app.core.database import Base
 
 
@@ -236,6 +236,53 @@ class AssistantMessage(Base):
     created_at = Column(DateTime, server_default=func.now())
 
 
+class FeedbackWindow(Base):
+    """Whether students may currently give feedback for one teacher's subject.
+    Feedback is closed until the teacher (or the HOD) opens it."""
+    __tablename__ = "feedback_windows"
+    __table_args__ = (UniqueConstraint("subject_id", "faculty_id", name="uq_feedback_window"),)
+    id = Column(Integer, primary_key=True)
+    subject_id = Column(Integer, ForeignKey("subjects.id"), nullable=False)
+    faculty_id = Column(Integer, ForeignKey("faculty.id"), nullable=False, index=True)
+    is_open = Column(Boolean, nullable=False, default=False, server_default=false())
+    changed_at = Column(DateTime, server_default=func.now())
+    changed_by = Column(Integer, ForeignKey("users.id"), nullable=True)
+
+
+class PlannerItem(Base):
+    """A student's own note or deadline. Private to that student."""
+    __tablename__ = "planner_items"
+    id = Column(Integer, primary_key=True)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False, index=True)
+    kind = Column(String, nullable=False)          # "note" | "deadline"
+    title = Column(String, nullable=False)
+    body = Column(Text, nullable=True)             # Markdown
+    subject = Column(String, nullable=True)
+    due_at = Column(DateTime, nullable=True)       # deadlines only
+    priority = Column(String, nullable=True)       # "low" | "medium" | "high"
+    remind = Column(Boolean, nullable=False, default=False, server_default=false())
+    done = Column(Boolean, nullable=False, default=False, server_default=false())
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class Announcement(Base):
+    """A notice from a teacher, an HOD or the admin to students and/or faculty."""
+    __tablename__ = "announcements"
+    id = Column(Integer, primary_key=True)
+    author_user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    author_name = Column(String, nullable=False)
+    author_role = Column(String, nullable=False)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)   # None = every department
+    audience = Column(String, nullable=False)       # "students" | "faculty" | "everyone"
+    batch = Column(String, nullable=True)           # students of one batch only, when set
+    semester = Column(Integer, nullable=True)
+    kind = Column(String, nullable=False, default="notice")   # "notice" | "placement"
+    title = Column(String, nullable=False)
+    body = Column(Text, nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+
 class QuestionBankChunk(Base):
     """Chunked, subject-tagged text from ingested question papers — indexed
     into the real TF-IDF retrieval layer (app/core/rag_retrieval.py).
@@ -434,6 +481,7 @@ class User(Base):
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)  # for "hod" role
     hod_title = Column(String, nullable=True)  # e.g. "Head of Department, ISE"
     display_name = Column(String, nullable=True)  # for accounts with no student/faculty record behind them (admin, HOD)
+    is_active = Column(Boolean, nullable=False, default=True, server_default=true())   # a deactivated account cannot sign in
     photo_url = Column(String, nullable=True)     # profile photo for staff accounts; a student's lives on the student record
 
 

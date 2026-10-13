@@ -107,8 +107,12 @@ def _evaluate(row: dict, students: list, errors: list) -> dict:
     return {"row": row, "match": match, "errors": errors, "decision": decision, "open_question": open_question}
 
 
-def run(placements_csv: str, internships_csv: str, department: str | None, apply: bool) -> dict:
-    db = SessionLocal()
+def run(placements_csv: str, internships_csv: str, department: str | None, apply: bool, db=None) -> dict:
+    """`db` lets the admin import screen run this inside its own request;
+    from the command line a session is opened and closed here."""
+    owns_session = db is None
+    if owns_session:
+        db = SessionLocal()
     try:
         dept_query = db.query(Department)
         if department:
@@ -232,7 +236,8 @@ def run(placements_csv: str, internships_csv: str, department: str | None, apply
             db.commit()
         return result
     finally:
-        db.close()
+        if owns_session:
+            db.close()
 
 
 SECTION_TITLES = {
