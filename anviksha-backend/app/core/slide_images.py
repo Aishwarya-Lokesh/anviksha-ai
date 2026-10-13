@@ -43,12 +43,18 @@ def theme(name: Optional[str]) -> dict:
     return THEMES.get((name or "").lower(), THEMES[DEFAULT_THEME])
 
 
+_PIXABAY_KEY = re.compile(r"^\d{5,}-[0-9a-f]{20,}$")     # e.g. 12345678-0a1b2c...; Pexels keys have no dash
+last_problem: Optional[str] = None                       # why the last search failed, for the admin to read; never contains the key
+
+
 def provider() -> Optional[tuple[str, str]]:
-    """(service name, key) for the photo service in use, or None."""
+    """(service name, key) for the photo service in use, or None. A key is
+    recognised by its shape as well as by the variable it was saved under, so
+    a Pixabay key saved as PEXELS_API_KEY still works."""
     for name, variable in (("Pixabay", "PIXABAY_API_KEY"), ("Pexels", "PEXELS_API_KEY")):
-        key = os.getenv(variable, "").strip()
+        key = os.getenv(variable, "").strip().strip('"').strip("'")
         if key:
-            return name, key
+            return ("Pixabay" if _PIXABAY_KEY.match(key) else name), key
     return None
 
 
@@ -103,9 +109,16 @@ def search(query: str, index: int = 0) -> Optional[dict]:
     cache_key = (f"{name}:{query.lower()}", index)
     if cache_key in _cache:
         return _cache[cache_key]
+    global last_problem
     try:
         photos = (_pixabay if name == "Pixabay" else _pexels)(query, key)
-    except Exception:
+        last_problem = None
+    except httpx.HTTPStatusError as exc:
+        code = exc.response.status_code
+        last_problem = f"{name} refused the request (HTTP {code})" + (": the key was not accepted" if code in (400, 401, 403) else ": too many requests" if code == 429 else "")
+        return None
+    except Exception as exc:
+        last_problem = f"{name} could not be reached ({type(exc).__name__})"
         return None                      # slow or unreachable: not cached, so a later try can succeed
     for i, photo in enumerate(photos):
         _cache[(cache_key[0], i)] = photo

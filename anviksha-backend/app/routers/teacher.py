@@ -1308,6 +1308,8 @@ def slide_themes(user: User = Depends(require_role("teacher"))):
     from app.core import slide_images
     return {
         "images_available": slide_images.configured(),
+        "images_service": (slide_images.provider() or (None,))[0],
+        "images_problem": slide_images.last_problem,
         "themes": [{"key": k, "label": t["label"], **{part: "#%02X%02X%02X" % t[part] for part in ("brand", "dark", "light")}} for k, t in slide_images.THEMES.items()],
     }
 
@@ -1321,7 +1323,7 @@ def slide_image(q: str, n: int = 0, user: User = Depends(require_role("teacher")
         return {"available": False, "reason": "not_configured"}
     found = slide_images.search(slide_images.query_for({"title": q}), n)
     if not found:
-        return {"available": False, "reason": "none_found"}
+        return {"available": False, "reason": "service_problem" if slide_images.last_problem else "none_found", "detail": slide_images.last_problem}
     return {"available": True, **found}
 
 
