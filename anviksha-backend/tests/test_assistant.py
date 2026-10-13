@@ -230,3 +230,29 @@ def test_a_batch_can_be_named_by_graduation_year(placed):  # noqa: F811
     assert _run(db, hod, "d_students", batch="2025")["matching"] == 1                      # 2021 entry graduates in 2025
     assert _run(db, hod, "d_batch_placements", batch="2024")["batches"][0]["batch"] == "2024"   # a real entry year is taken as one
     assert _run(db, hod, "d_batch_placements", batch="1999")["batches"] == []
+
+
+def test_a_throttled_or_failing_model_gives_a_clear_message(client, placed, monkeypatch):  # noqa: F811
+    monkeypatch.setattr(assistant, "is_configured", lambda: True)
+
+    class RateLimitError(Exception):
+        status_code = 429
+
+    def throttled(messages, tools):
+        raise RateLimitError("Rate limit reached for model")
+        yield  # pragma: no cover
+
+    monkeypatch.setattr(assistant, "stream_model", throttled)
+    events = _events(client.post("/assistant/chat", headers=placed["h"]["s1"], json={"message": "hello"}))
+    assert ("text", {"text": assistant.BUSY}) in events and events[-1][0] == "done"
+
+    def broken(messages, tools):
+        raise RuntimeError("connection reset")
+        yield  # pragma: no cover
+
+    monkeypatch.setattr(assistant, "stream_model", broken)
+    events = _events(client.post("/assistant/chat", headers=placed["h"]["s1"], json={"message": "hello"}))
+    assert ("text", {"text": assistant.FAILED}) in events and events[-1][0] == "done"
+    # the failed turn is still recorded, so the chat does not silently lose it
+    cid = events[0][1]["conversation_id"]
+    assert [x["role"] for x in client.get(f"/assistant/conversations/{cid}", headers=placed["h"]["s1"]).json()["messages"]] == ["user", "assistant"]

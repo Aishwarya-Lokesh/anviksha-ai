@@ -18,6 +18,12 @@ from app.models.models import Department, Faculty, Student, User
 MAX_ROUNDS = 5            # lookups-then-answer cycles before the model must answer
 HISTORY_MESSAGES = 12     # earlier messages of the conversation sent along for context
 UNAVAILABLE = "The assistant isn't available right now. Please try again later."
+BUSY = "The assistant is handling a lot of requests right now. Please try again in a minute."
+FAILED = "Something went wrong while answering. Please try again."
+# The AI provider's own default is to wait up to ten minutes and retry by
+# itself, which leaves the reader staring at a spinner. One bounded attempt
+# per model, then a clear message.
+MODEL_TIMEOUT_SECONDS = 45
 
 ROLE_BRIEF = {
     "student": "You are a study and career companion for one student. Help with their subjects, attendance, deadlines, achievements, profile score, "
@@ -78,6 +84,12 @@ def system_prompt(db: Session, user: User) -> str:
             "for the same students; pass the year exactly as the user said it and the lookup works out which is meant.\n\n" + RULES)
 
 
+def is_rate_limit(error: Exception) -> bool:
+    """True when the AI provider refused because too much was asked too quickly."""
+    text = f"{type(error).__name__} {error}".lower()
+    return getattr(error, "status_code", None) == 429 or "rate_limit" in text or "ratelimit" in text or "429" in text
+
+
 def stream_model(messages: list[dict], tools: list[dict]) -> Iterator[tuple[str, object]]:
     """Yields ("text", str) as the reply is written, then ("tool_calls", [...])
     if the model asked for lookups. Tries each configured model in turn."""
@@ -85,7 +97,7 @@ def stream_model(messages: list[dict], tools: list[dict]) -> Iterator[tuple[str,
 
     from app.core.llm_client import MODEL_CANDIDATES
 
-    client = Groq(api_key=os.environ["GROQ_API_KEY"])
+    client = Groq(api_key=os.environ["GROQ_API_KEY"], timeout=MODEL_TIMEOUT_SECONDS, max_retries=0)
     last_error: Optional[Exception] = None
     for model in MODEL_CANDIDATES:
         produced = False
@@ -156,10 +168,10 @@ def run_turn(db: Session, user: User, history: list[dict]) -> Iterator[dict]:
                     result, status = assistant_tools.run_tool(db, user, call["name"], call["arguments"])
                     yield {"type": "status", "text": status}
                 messages.append({"role": "tool", "tool_call_id": call["id"], "content": result})
-    except Exception:
+    except Exception as error:
         db.rollback()
         if not answer:
-            answer = "Something went wrong while answering. Please try again."
+            answer = BUSY if is_rate_limit(error) else FAILED
             yield {"type": "text", "text": answer}
         yield {"type": "error", "text": "The reply was interrupted."}
     if not answer.strip() and not charts:
