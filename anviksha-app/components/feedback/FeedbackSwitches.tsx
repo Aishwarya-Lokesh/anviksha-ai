@@ -40,7 +40,7 @@ export function FeedbackSwitches({ facultyId }: { facultyId?: number }) {
 
   const load = () => {
     setFailed(false);
-    (facultyId ? api.hodFeedbackWindows(facultyId) : api.teacherFeedbackWindows()).then(setRows).catch(() => setFailed(true));
+    (facultyId ? api.hodFeedbackWindows(facultyId) : api.teacherFeedbackWindows()).then((d) => (Array.isArray(d) ? setRows(d) : setFailed(true))).catch(() => setFailed(true));
   };
   useEffect(load, [facultyId]); // eslint-disable-line react-hooks/exhaustive-deps
 

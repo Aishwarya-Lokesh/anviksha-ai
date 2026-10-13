@@ -120,6 +120,13 @@ def root():
     return {"status": "ok", "service": "Anviksha AI Phase 2 Backend"}
 
 
+@app.on_event("startup")
+def stay_awake():
+    from app.core import keep_awake
+    keep_awake.start()
+
+
 @app.get("/health")
 def health():
-    return {"status": "healthy"}
+    from app.core import keep_awake
+    return {"status": "healthy", "keep_awake": keep_awake._started}
