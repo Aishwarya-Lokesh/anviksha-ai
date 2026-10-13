@@ -167,6 +167,37 @@ Everything in the "Verified on live URL" columns above that said "Not yet (Verce
 - **The server no longer sleeps.** It visits its own address every 8 minutes. Measured: after almost four hours with no request from the tests, the first request was answered in 3.6 seconds; a sleeping server takes about 50.
 - **Passwords of the four shared accounts were changed** through the admin screen's own endpoint (each is in the activity log). The old passwords are refused. The number of logins is unchanged at 346.
 
+## Round 6: project report and presentation builder (13 Oct, night)
+
+A new student feature: the report and the slides of a project, written from the student's own material into the college's format. Full description and the format read-out are in `docs/project-formats.md`.
+
+**The college's official format files have not been supplied yet.** Everything here was checked against stand-in formats made for testing.
+
+| Check | Result |
+|---|---|
+| Backend automated tests | 133 of 133 pass (20 new: report engine 8, slide engine 4, API 6, plus two more engine cases) |
+| Frontend type-check and production build | Pass (63 pages) |
+| Database | Migration `d1e2f3a4b5c6` applied to production: seven new empty tables, nothing existing changed |
+| Full run on this computer with the real writing model and real LibreOffice | 23-page report and 20-slide deck in about 3 minutes; all four files produced |
+| Report against the format, page by page (rendered PDF) | Cover, certificate, declaration, numbering (ii to ix, then 1 onward), header, footer, fonts and spacing match; 32 of 32 contents entries point to the right page |
+| Browser, whole flow on this computer: HOD uploads formats, student builds a project, guide reviews; 1440 px and 390 px | 36 of 38 pass; the two misses were wording in my test script, not the app |
+| **Live backend**, as the test student (private formats, one project, then everything deleted) | 27 of 27 pass; writing and building took 42 seconds |
+
+| Feature | Verified on live URL | How it was checked |
+|---|---|---|
+| Upload a format; a damaged or wrong-type file is refused with the reason | Backend live | Live test and automated tests |
+| Read-out of the format; fill-in fields that the uploader can correct | Backend live | Automated tests; browser locally |
+| Details prefilled from the records; teammates picked from the same batch | Backend live | Live: USN, department and 16 faculty came from the records |
+| Material: PDF, Word, PowerPoint, text, pictures, CSV/Excel, code, .zip | Backend live (text and picture) | Automated tests for the others |
+| Says which chapters have nothing behind them, and asks before writing | Backend live | Live: four chapters reported as missing, not written |
+| Nothing invented: figures, citations, references, table rows | Backend live | Automated tests with a stand-in model that tries to invent; in the real run a calculated "91.4 %" and "ninety-two percent" were removed |
+| Report built into the format (.docx) | Backend live | Live file opened: the student's details in place, none of the format's wording left |
+| Slides built into the format (.pptx), text split not shrunk | Backend live | Live file opened: 12 slides, title slide filled |
+| PDF export, contents page numbers, page-by-page preview | **Not on the live server yet** | Needs the converter service (see "Still to configure"). Works on this computer with LibreOffice |
+| Edit, rewrite one chapter or slide, reorder slides, rebuild, versions | Not yet (Vercel) | Automated tests; browser locally |
+| Guide review: share, read, download, comment | Not yet (Vercel) | Automated tests; browser locally |
+| The screens themselves at the live address | **Not yet (Vercel)** | The new frontend is built as Preview and has to be promoted |
+
 ## Not tested, and why
 
 | Item | Reason |
@@ -176,6 +207,8 @@ Everything in the "Verified on live URL" columns above that said "Not yet (Verce
 | A real photo in the PowerPoint preview, in the browser, on a real deck | The test teacher has no saved deck, and generating one would create a real record. Verified instead: the live photo search, that the preview image address loads, and real photos inside a deck exported from the live backend |
 | Reading the downloaded resume PDFs page by page | Checked that each downloads as a valid PDF and that the previews differ; the PDFs were not opened and read |
 | Tablet widths 768 px and 1024 px | The sweeps used 1440 px and 390 px, and the new screens also 360 px |
+| The official report and presentation formats | Not supplied yet. Tested with stand-in formats; fidelity on the real ones must be checked when they are uploaded |
+| The four project files in Microsoft Word, PowerPoint, Google Docs and Google Slides | None of these is installed here. The files open in LibreOffice and in the Python Word/PowerPoint libraries |
 | Other browsers | All browser tests used Chromium |
 | Screen readers | Not tested. New controls carry labels and roles (switch, checkbox, tab, dialog) |
 | Lint | The project has no lint configuration; type-check and build are the gates |
@@ -201,6 +234,8 @@ Everything in the "Verified on live URL" columns above that said "Not yet (Verce
 | Vercel | Production Branch = `deploy/production-setup`, then promote the newest deployment |
 | Supabase | Change the database password (it was shared in a chat) and update `DATABASE_URL` in Render |
 | Each test account | Change the temporary password from the profile page after first sign-in |
+| Render (new service) | The PDF converter: a second, Docker web service from the `pdf-converter` folder, with `CONVERTER_TOKEN`; then `PDF_CONVERTER_URL` and `PDF_CONVERTER_TOKEN` on the main backend |
+| HOD or Admin, in the app | Upload the official report (.docx) and presentation (.pptx) formats under Project Formats, and check their fill-in fields |
 
 ## Not built yet
 

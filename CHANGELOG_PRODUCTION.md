@@ -354,5 +354,16 @@ Migration `e6f7a8b9c0d1` (additive): counseling reply columns, resume file and e
 - The feedback switch card shows its error state instead of breaking on an unexpected answer.
 - Removed a GitHub scheduled job added for the same purpose; it never ran.
 
+## Round 6: project report and presentation builder
+
+- **Students** (Project Report & PPT): six steps — details, format, material, sections, write and edit, files. The report and the slides are written from the student's own files and answers into the chosen format, and downloaded as Word, PowerPoint and PDF. Every build is kept as a version.
+- **HOD and Admin** (Project Formats): upload the official .docx and .pptx formats, see what was read from each, correct which wording stands for which field, switch a format off or delete an unused one. A student can also upload their own format, visible only to them.
+- **Teachers** (Project Reviews): a project a student shares with them can be read page by page, downloaded and commented on.
+- **Honesty checks.** A chapter with nothing behind it is not written; references and table rows are only ever the student's; a sentence with a percentage or decimal figure that is not in the student's material, a calculated figure, or a citation, is removed and listed for the student.
+- **Formats are the base document**, not re-created: see `docs/project-formats.md`.
+- **PDF** is made by LibreOffice in a separate small service (`pdf-converter/`), so the main backend is untouched. Without it, Word and PowerPoint downloads work and the app says PDF is not set up.
+- Database: migration `d1e2f3a4b5c6` adds `project_templates`, `student_projects`, `project_materials`, `project_images`, `project_versions`, `project_jobs`, `project_comments`.
+- New dependency: `pypdfium2` (turns PDF pages into pictures for the preview).
+
 ## Deployment note
 - Stored-file links now end with the file's extension, so an older copy of the Achievements page (still served while the frontend deployment was pending) keeps recognising PDFs.
