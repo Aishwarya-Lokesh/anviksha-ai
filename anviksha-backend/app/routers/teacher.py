@@ -1299,6 +1299,30 @@ def delete_generated_presentation(presentation_id: int, db: Session = Depends(ge
 class ExportPPTRequest(BaseModel):
     topic: str
     slides: list  # [{"title": str, "content": str}, ...] — may have been edited by the teacher before export
+    theme: Optional[str] = None          # one of slide_images.THEMES
+    include_images: bool = True
+
+
+@router.get("/slide-themes")
+def slide_themes(user: User = Depends(require_role("teacher"))):
+    from app.core import slide_images
+    return {
+        "images_available": slide_images.configured(),
+        "themes": [{"key": k, "label": t["label"], **{part: "#%02X%02X%02X" % t[part] for part in ("brand", "dark", "light")}} for k, t in slide_images.THEMES.items()],
+    }
+
+
+@router.get("/slide-image")
+def slide_image(q: str, n: int = 0, user: User = Depends(require_role("teacher"))):
+    """A stock photo for a slide, for the preview. `n` steps through the
+    alternatives. The photo service key never leaves the server."""
+    from app.core import slide_images
+    if not slide_images.configured():
+        return {"available": False, "reason": "not_configured"}
+    found = slide_images.search(slide_images.query_for({"title": q}), n)
+    if not found:
+        return {"available": False, "reason": "none_found"}
+    return {"available": True, **found}
 
 
 @router.post("/export-ppt")
@@ -1320,9 +1344,15 @@ def export_ppt(payload: ExportPPTRequest, user: User = Depends(require_role("tea
     from fastapi.responses import FileResponse
     import tempfile, re as _re
 
-    BRAND = RGBColor(0x5B, 0x3F, 0xD9)
-    BRAND_DARK = RGBColor(0x45, 0x30, 0xB0)
-    BRAND_LIGHT = RGBColor(0xED, 0xEB, 0xF9)
+    from app.core import slide_images
+    palette = slide_images.theme(payload.theme)
+    BRAND = RGBColor(*palette["brand"])
+    BRAND_DARK = RGBColor(*palette["dark"])
+    BRAND_LIGHT = RGBColor(*palette["light"])
+    slides_in = [s for s in payload.slides if isinstance(s, dict)]
+    # Photos are fetched together, before the file is built. A slide without
+    # one gets a designed panel further down, never an empty box.
+    photos = slide_images.images_for(slides_in, payload.topic) if payload.include_images else {}
     INK = RGBColor(0x12, 0x14, 0x1F)
     MUTED = RGBColor(0x6B, 0x72, 0x80)
     WHITE = RGBColor(0xFF, 0xFF, 0xFF)
@@ -1417,7 +1447,49 @@ def export_ppt(payload: ExportPPTRequest, user: User = Depends(require_role("tea
             rlr = rlp.add_run(); rlr.text = str(point.get("right", "")).strip(); rlr.font.size = Pt(11); rlr.font.color.rgb = BRAND_DARK; rlr.font.name = "Calibri"
             cur_y += row_h + row_gap
 
-    for slide_data in payload.slides:
+    def add_photo(slide, photo, x, y, width, max_height):
+        """The photo fills the panel width; anything taller than the panel is
+        trimmed equally top and bottom rather than squashed."""
+        import io as _io
+        try:
+            pic = slide.shapes.add_picture(_io.BytesIO(photo["data"]), x, y, width=width)
+        except Exception:
+            return False
+        if pic.height > max_height:
+            trim = (1 - max_height / pic.height) / 2
+            pic.crop_top = pic.crop_bottom = trim
+            pic.height = int(max_height)
+        pic.line.color.rgb = RGBColor(0xE5, 0xE7, 0xEB); pic.line.width = Pt(0.75)
+        credit = slide.shapes.add_textbox(x, y + pic.height + Inches(0.03), width, Inches(0.25))
+        cp = credit.text_frame.paragraphs[0]; cp.alignment = PP_ALIGN.RIGHT
+        cr = cp.add_run(); cr.text = f"Photo: {photo['credit']} / Pexels"; cr.font.size = Pt(8); cr.font.color.rgb = MUTED; cr.font.name = "Calibri"
+        return True
+
+    def add_designed_panel(slide, number, heading, text, x, y, width, height):
+        """Shown when a slide has no photo: a themed panel with the slide
+        number as a graphic element and, when there is one, the visual idea
+        for the slide spelled out."""
+        panel = slide.shapes.add_shape(MSO_SHAPE.ROUNDED_RECTANGLE, x, y, width, height)
+        panel.adjustments[0] = 0.06
+        panel.fill.solid(); panel.fill.fore_color.rgb = BRAND_LIGHT; panel.line.fill.background()
+        ring = slide.shapes.add_shape(MSO_SHAPE.OVAL, x + width - Inches(1.75), y + Inches(0.3), Inches(1.45), Inches(1.45))
+        ring.fill.solid(); ring.fill.fore_color.rgb = BRAND; ring.line.fill.background()
+        rf = ring.text_frame; rf.margin_left = rf.margin_right = 0
+        rp = rf.paragraphs[0]; rp.alignment = PP_ALIGN.CENTER
+        rr = rp.add_run(); rr.text = f"{number:02d}"; rr.font.size = Pt(34); rr.font.bold = True; rr.font.color.rgb = WHITE; rr.font.name = "Calibri"
+        dot = slide.shapes.add_shape(MSO_SHAPE.OVAL, x + Inches(0.35), y + height - Inches(0.85), Inches(0.5), Inches(0.5))
+        dot.fill.solid(); dot.fill.fore_color.rgb = BRAND_DARK; dot.line.fill.background()
+        bar = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, x + Inches(0.35), y + Inches(0.45), Inches(0.9), Inches(0.08))
+        bar.fill.solid(); bar.fill.fore_color.rgb = BRAND; bar.line.fill.background()
+        box = slide.shapes.add_textbox(x + Inches(0.3), y + Inches(1.95), width - Inches(0.6), height - Inches(2.9))
+        tf = box.text_frame; tf.word_wrap = True
+        hp = tf.paragraphs[0]
+        hr = hp.add_run(); hr.text = heading.upper(); hr.font.size = Pt(11); hr.font.bold = True; hr.font.color.rgb = BRAND_DARK; hr.font.name = "Calibri"
+        bp = tf.add_paragraph(); bp.space_before = Pt(6)
+        br = bp.add_run(); br.text = text[:320]; br.font.size = Pt(14); br.font.color.rgb = INK; br.font.name = "Calibri"
+
+    for slide_number, slide_data in enumerate(slides_in):
+        photo = photos.get(slide_number)
         slide = prs.slides.add_slide(blank)
         # accent bar under the title
         accent = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, 0, 0, prs.slide_width, Inches(0.12))
@@ -1435,7 +1507,7 @@ def export_ppt(payload: ExportPPTRequest, user: User = Depends(require_role("tea
         # comparison, a real textbook figure, or a suggested visual to note —
         # bullets get the left column instead of the full width, so the
         # slide has real visual structure rather than one long vertical stack.
-        has_side_panel = bool(process_steps) or bool(comparison_points) or bool(diagram) or bool(textbook_image_b64)
+        has_side_panel = bool(process_steps) or bool(comparison_points) or bool(diagram) or bool(textbook_image_b64) or bool(photo)
         body_width = (prs.slide_width - Inches(2.2)) * (0.58 if has_side_panel else 1.0)
 
         body_box = slide.shapes.add_textbox(Inches(0.6), Inches(1.35), body_width, Inches(4.5))
@@ -1469,13 +1541,13 @@ def export_ppt(payload: ExportPPTRequest, user: User = Depends(require_role("tea
                 left_label = (slide_data.get("comparison_left_label") or "Before").strip()
                 right_label = (slide_data.get("comparison_right_label") or "After").strip()
                 add_comparison_diagram(slide, comparison_points, left_label, right_label, panel_x, Inches(1.2), panel_width, Inches(4.5))
+            elif photo and add_photo(slide, photo, panel_x, Inches(1.4), panel_width, Inches(4.0)):
+                pass
             elif diagram:
-                note_box = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, panel_x, Inches(1.35), panel_width, Inches(4.3))
-                note_box.fill.solid(); note_box.fill.fore_color.rgb = RGBColor(0xF8, 0xF8, 0xFB); note_box.line.color.rgb = RGBColor(0xE5, 0xE7, 0xEB); note_box.line.width = Pt(0.75)
-                ntf = note_box.text_frame; ntf.word_wrap = True; ntf.margin_left = Inches(0.15); ntf.margin_right = Inches(0.15); ntf.margin_top = Inches(0.15)
-                np = ntf.paragraphs[0]
-                run = np.add_run(); run.text = "📊 SUGGESTED VISUAL\n\n"; run.font.size = Pt(11); run.font.bold = True; run.font.color.rgb = MUTED; run.font.name = "Calibri"
-                run2 = np.add_run(); run2.text = diagram; run2.font.size = Pt(13); run2.font.italic = True; run2.font.color.rgb = MUTED; run2.font.name = "Calibri"
+                add_designed_panel(slide, slide_number + 1, "Picture this", diagram, panel_x, Inches(1.35), panel_width, Inches(4.3))
+            else:
+                # the photo could not be placed and there is nothing else for the panel
+                add_designed_panel(slide, slide_number + 1, "In focus", str(slide_data.get("title", "")).replace("**", ""), panel_x, Inches(1.35), panel_width, Inches(4.3))
 
         takeaway = (slide_data.get("core_takeaway") or "").strip()
         if takeaway:
