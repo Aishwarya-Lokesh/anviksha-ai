@@ -607,3 +607,117 @@ class ModuleMapping(Base):
 
     faculty = relationship("Faculty")
     content_source = relationship("ContentSource")
+
+
+# ---------------------------------------------------------------- project report & presentation builder
+
+class ProjectTemplate(Base):
+    """An uploaded report (.docx) or presentation (.pptx) format. `scope` is
+    "official" (uploaded by an HOD or admin, offered to every student of the
+    department) or "custom" (a student's own, visible only to them)."""
+    __tablename__ = "project_templates"
+    id = Column(Integer, primary_key=True)
+    kind = Column(String, nullable=False)             # "report" | "ppt"
+    scope = Column(String, nullable=False)            # "official" | "custom"
+    name = Column(String, nullable=False)
+    project_type = Column(String, nullable=True)      # e.g. "Final year project", "Mini project"
+    batch = Column(String, nullable=True)
+    department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
+    owner_student_id = Column(Integer, ForeignKey("students.id"), nullable=True, index=True)
+    uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    filename = Column(String, nullable=False)
+    file_path = Column(String, nullable=False)
+    preview_path = Column(String, nullable=True)      # PDF rendering, made on first view
+    analysis = Column(Text, nullable=False)           # JSON: what was read from the file
+    field_map = Column(Text, nullable=False)          # JSON: [{match, field}], editable by the uploader
+    is_active = Column(Boolean, nullable=False, default=True, server_default=true())
+    created_at = Column(DateTime, server_default=func.now())
+
+
+class StudentProject(Base):
+    __tablename__ = "student_projects"
+    id = Column(Integer, primary_key=True)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False, index=True)
+    title = Column(String, nullable=False)
+    details = Column(Text, nullable=False, default="{}")        # JSON: team, guide, HOD, year, type, domain, tech stack
+    answers = Column(Text, nullable=False, default="{}")        # JSON: the student's own answers per section
+    content = Column(Text, nullable=False, default="{}")        # JSON: current draft (report chapters + slides)
+    report_template_id = Column(Integer, ForeignKey("project_templates.id"), nullable=True)
+    ppt_template_id = Column(Integer, ForeignKey("project_templates.id"), nullable=True)
+    guide_faculty_id = Column(Integer, ForeignKey("faculty.id"), nullable=True, index=True)   # shared with this guide for review
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    student = relationship("Student")
+
+
+class ProjectMaterial(Base):
+    """A file the student uploaded as source material, with the text read from it."""
+    __tablename__ = "project_materials"
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("student_projects.id"), nullable=False, index=True)
+    filename = Column(String, nullable=False)
+    kind = Column(String, nullable=False)
+    file_path = Column(String, nullable=False)
+    size = Column(Integer, nullable=False, default=0)
+    text = Column(Text, nullable=True)
+    tables = Column(Text, nullable=True)              # JSON list of {caption, rows}
+    note = Column(String, nullable=True)              # anything that could not be read
+    created_at = Column(DateTime, server_default=func.now())
+
+
+class ProjectImage(Base):
+    """A picture available to the report and slides: uploaded directly, or
+    taken out of an uploaded document, or a diagram drawn from the student's modules."""
+    __tablename__ = "project_images"
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("student_projects.id"), nullable=False, index=True)
+    material_id = Column(Integer, ForeignKey("project_materials.id"), nullable=True)
+    name = Column(String, nullable=False)
+    caption = Column(String, nullable=True)
+    source = Column(String, nullable=False)           # "upload" | "extracted" | "generated"
+    file_path = Column(String, nullable=False)
+    width = Column(Integer, nullable=True)
+    height = Column(Integer, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+
+
+class ProjectVersion(Base):
+    """One built set of files. Every build is kept."""
+    __tablename__ = "project_versions"
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("student_projects.id"), nullable=False, index=True)
+    number = Column(Integer, nullable=False)
+    content = Column(Text, nullable=False)            # JSON snapshot of the draft that was built
+    files = Column(Text, nullable=False)              # JSON: {"report_docx": path, "report_pdf": path, "ppt_pptx": path, "ppt_pdf": path}
+    report = Column(Text, nullable=False)             # JSON: page count, notes, anything unfilled or dropped
+    created_at = Column(DateTime, server_default=func.now())
+
+
+class ProjectJob(Base):
+    """A long-running piece of work (writing, building) and how far it has got."""
+    __tablename__ = "project_jobs"
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("student_projects.id"), nullable=False, index=True)
+    kind = Column(String, nullable=False)
+    status = Column(String, nullable=False, default="queued")   # queued | running | done | failed
+    step = Column(String, nullable=True)
+    percent = Column(Integer, nullable=False, default=0)
+    error = Column(String, nullable=True)
+    result = Column(Text, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+
+class ProjectComment(Base):
+    """A guide's (or the student's) comment on one section of a shared project."""
+    __tablename__ = "project_comments"
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("student_projects.id"), nullable=False, index=True)
+    section = Column(String, nullable=False)
+    author_user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    author_name = Column(String, nullable=False)
+    author_role = Column(String, nullable=False)
+    body = Column(Text, nullable=False)
+    resolved = Column(Boolean, nullable=False, default=False, server_default=false())
+    created_at = Column(DateTime, server_default=func.now())

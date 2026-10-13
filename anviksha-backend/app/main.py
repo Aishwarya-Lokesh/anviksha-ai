@@ -11,7 +11,7 @@ import os
 from app.core import file_links
 from app.core.file_storage import get_file
 from app.routers import auth, student, teacher, admin, notifications, search, hod, question_paper, hod_intelligence
-from app.routers import notes, teacher_extras, student_extras, hod_extras, account, feedback, storage_admin, assistant, campus, admin_manage
+from app.routers import notes, teacher_extras, student_extras, hod_extras, account, feedback, storage_admin, assistant, campus, admin_manage, projects
 
 app = FastAPI(title="Anviksha AI — Phase 2 Backend", version="0.2.0")
 
@@ -113,6 +113,7 @@ app.include_router(storage_admin.router)
 app.include_router(assistant.router)
 app.include_router(campus.router)
 app.include_router(admin_manage.router)
+app.include_router(projects.router)
 
 
 @app.get("/")

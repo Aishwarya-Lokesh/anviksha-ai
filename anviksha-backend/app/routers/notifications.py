@@ -11,6 +11,8 @@ router = APIRouter(prefix="/notifications", tags=["notifications"])
 def link_for(role: str, message: str) -> str:
     """The page a notification is about, worked out from its wording."""
     text = (message or "").lower()
+    if "the project" in text:
+        return "/teacher/project-reviews" if role == "teacher" else "/student/project"
     if "announcement" in text:
         return f"/{role}/announcements"
     if "feedback" in text:

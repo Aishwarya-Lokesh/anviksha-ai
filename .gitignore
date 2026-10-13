@@ -15,3 +15,6 @@ IMPORT_REPORT.md
 
 # internal audit: lists open security issues, not for a public repo
 AUDIT.md
+
+# official project format files supplied by the college: kept out of the public repo
+project_formats/
