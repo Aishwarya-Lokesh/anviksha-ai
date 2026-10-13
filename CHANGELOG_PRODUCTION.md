@@ -345,5 +345,14 @@ Migration `e6f7a8b9c0d1` (additive): counseling reply columns, resume file and e
 - Due dates are compared in India time rather than the server's UTC clock.
 - Fixed: two filter changes made close together could undo each other.
 
+## Round 5: photos, staying awake
+
+- **Pixabay** is supported as a photo service alongside Pexels; whichever key is set in Render is used (`PIXABAY_API_KEY` or `PEXELS_API_KEY`), and a Pixabay key is recognised by its shape whichever name it was saved under. Photos are read from Pixabay's image network, because its download links refuse requests from the hosting provider. The credit on each slide names the service.
+- The slide endpoints now say why a photo could not be found or downloaded, without revealing the key.
+- **The backend keeps itself awake** by visiting its own address every 8 minutes (`app/core/keep_awake.py`). It runs only on the host; `KEEP_AWAKE=off` switches it off. `/health` reports whether it is running.
+- The home and sign-in pages ask the server to wake as soon as they open.
+- The feedback switch card shows its error state instead of breaking on an unexpected answer.
+- Removed a GitHub scheduled job added for the same purpose; it never ran.
+
 ## Deployment note
 - Stored-file links now end with the file's extension, so an older copy of the Achievements page (still served while the frontend deployment was pending) keeps recognising PDFs.

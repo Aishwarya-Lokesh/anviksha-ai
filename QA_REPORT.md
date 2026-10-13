@@ -9,7 +9,7 @@ Tested 2026-10-13 against commit `9ad5e92` on `deploy/production-setup`.
 | Backend (Render) | Live on the latest commit |
 | Database (Supabase) | Seven migrations applied; latest revision `c0d1e2f3a4b5` |
 | File storage (Supabase) | Private bucket `anviksha-uploads`, reachable, 68 of 69 certificate files present |
-| Frontend (Vercel) | **Production is still on an older commit (`3397feb`, 11 Oct).** Vercel builds this branch as Preview, and has not built the most recent pushes |
+| Frontend (Vercel) | Live on commit `7eadddf` (promoted by hand on 13 Oct). **Vercel still builds new pushes as Preview**, so later frontend commits are not live until the Production Branch is set or a newer deployment is promoted |
 
 Because of the last row, results are given in two columns:
 
@@ -138,13 +138,42 @@ Built after the sections above were written: notifications, dark mode, the feedb
 
 Found and fixed: two filters changed in quick succession could undo each other (clearing filters while a search was still being typed brought the old filters back).
 
+## Round 5: final run on the live website (13 Oct, evening)
+
+Run at `https://anviksha-ai-anviksha-app.vercel.app` itself, signed in with the four test accounts after their passwords were changed.
+
+| Check | Result |
+|---|---|
+| Backend automated tests | 115 of 115 pass |
+| Live backend, role checks | 41 of 41 pass |
+| Live backend, every read-only endpoint | 103 called, 0 server errors |
+| Live backend, the newer endpoints | 39 of 39 pass |
+| **Live website, every page x 4 roles x 2 widths (1440 and 390 px)** | **60 pages, 0 issues**: no crashes, failed requests, console errors, sideways scroll, broken images or leftover developer wording |
+| Live website, HOD filters and exports on real data, plus device alerts | 44 of 44 pass |
+| Live website, resume templates (real student) and PowerPoint preview | 41 of 41 pass |
+| Live website, new screens used end to end (stand-in data) | 148 of 148 pass |
+| Live website, question paper generator (stand-in data) | 36 of 36 pass in three of four runs; one run had a single failure that did not repeat |
+| Live website, search palette and profile pages (stand-in data) | 25 of 25 pass |
+| Live website, certificate viewer (real student) | Pass at both widths |
+| Live website, feedback screens (stand-in data) | Pass at both widths |
+| Live website, AI assistant with the real AI | 14 of 14 pass |
+| Live website, dark mode, 20 real pages | 0 unreadable texts |
+
+Everything in the "Verified on live URL" columns above that said "Not yet (Vercel)" is now verified on the live URL, **except the two frontend changes made after `7eadddf`**: waking the server when the home or sign-in page opens, and the photo credit wording (the live site shows "name / Pixabay / Pexels" until the newer build is promoted).
+
+### Changes in this round
+
+- **Photos in PowerPoint work on the live server**, using Pixabay (Pexels has paused new keys). A deck exported from the live backend contained two real photos with credits. Two problems were found and fixed on the way: the key was only recognised under one variable name, and Pixabay's download links refused requests from the hosting provider (HTTP 429), so photos are now read from Pixabay's image network instead.
+- **The server no longer sleeps.** It visits its own address every 8 minutes. Measured: after almost four hours with no request from the tests, the first request was answered in 3.6 seconds; a sleeping server takes about 50.
+- **Passwords of the four shared accounts were changed** through the admin screen's own endpoint (each is in the activity log). The old passwords are refused. The number of logins is unchanged at 346.
+
 ## Not tested, and why
 
 | Item | Reason |
 |---|---|
 | The newest frontend at the Vercel address | Vercel has not put it into production |
 | Writing actions on the live site through the browser (posting an announcement, opening feedback, creating a login, importing students, adding a placement) | They would create real records or notify real people. Each is covered by automated tests and by browser tests with stand-in data |
-| Real photos in an exported PowerPoint | Needs `PEXELS_API_KEY` in Render. Tested with a stand-in photo service |
+| A real photo in the PowerPoint preview, in the browser, on a real deck | The test teacher has no saved deck, and generating one would create a real record. Verified instead: the live photo search, that the preview image address loads, and real photos inside a deck exported from the live backend |
 | Reading the downloaded resume PDFs page by page | Checked that each downloads as a valid PDF and that the previews differ; the PDFs were not opened and read |
 | Tablet widths 768 px and 1024 px | The sweeps used 1440 px and 390 px, and the new screens also 360 px |
 | Other browsers | All browser tests used Chromium |
@@ -153,13 +182,13 @@ Found and fixed: two filters changed in quick succession could undo each other (
 
 ## Known issues
 
-1. **Vercel production is behind.** Set Settings → Git → Production Branch to `deploy/production-setup`, then promote the newest deployment. Until then none of this round's screens are visible at the live address.
+1. **Vercel does not publish new pushes by itself.** It builds them as Preview. Set Settings → Git → Production Branch to `deploy/production-setup`; until then each new frontend change has to be promoted by hand.
 2. **Feedback is now closed everywhere until someone opens it.** A teacher opens it under Performance & Feedback → Student feedback; an HOD under Faculty Feedback → a faculty member.
 3. **One certificate file was not uploaded**: `4GW23IS042_1786439470_test_cert.pdf` is not a valid PDF.
 4. **Assistant reply time varies** with the AI provider: usually 3–8 seconds, sometimes longer. Under a burst of questions the provider throttles; the assistant says so instead of hanging.
 5. **Question bank text is uneven.** Some stored questions carry leftover table columns (marks, CO, level) at the end; most are cleaned, a few are not.
 6. **Files uploaded before the storage bucket existed are gone** and need uploading again.
-7. **Server sleeps when idle** until an uptime monitor is set up; the first visit after a quiet period takes about 50 seconds.
+7. **Photos come from Pixabay's free plan**, which allows about 100 searches a minute. If Pixabay is slow or refuses, the slide gets the designed panel instead.
 8. **Reminders and announcements are not emailed.** Student records hold no email address (logins are `usn@anviksha.ai`, which is not a real mailbox), so there is nowhere to send to. They arrive as in-app notifications, and as device alerts for anyone who switches those on.
 9. **Device alerts work only while the site is open in a browser tab**, and not on iPhone Safari. Alerts with the site fully closed would need a push service set up.
 10. **Dark mode recolours charts' surroundings but not the chart colours themselves**, and the resume, question paper and slide previews stay white on purpose, as they are pictures of a printed page.
@@ -170,10 +199,8 @@ Found and fixed: two filters changed in quick succession could undo each other (
 | Where | What |
 |---|---|
 | Vercel | Production Branch = `deploy/production-setup`, then promote the newest deployment |
-| UptimeRobot (or similar) | Monitor `https://anviksha-backend.onrender.com/health` every 5 minutes |
-| Render | `PEXELS_API_KEY` for photos in PowerPoint (free key from pexels.com/api) |
 | Supabase | Change the database password (it was shared in a chat) and update `DATABASE_URL` in Render |
-| Each test account | Change the password from the profile page |
+| Each test account | Change the temporary password from the profile page after first sign-in |
 
 ## Not built yet
 
