@@ -1462,7 +1462,7 @@ def export_ppt(payload: ExportPPTRequest, user: User = Depends(require_role("tea
         pic.line.color.rgb = RGBColor(0xE5, 0xE7, 0xEB); pic.line.width = Pt(0.75)
         credit = slide.shapes.add_textbox(x, y + pic.height + Inches(0.03), width, Inches(0.25))
         cp = credit.text_frame.paragraphs[0]; cp.alignment = PP_ALIGN.RIGHT
-        cr = cp.add_run(); cr.text = f"Photo: {photo['credit']} / Pexels"; cr.font.size = Pt(8); cr.font.color.rgb = MUTED; cr.font.name = "Calibri"
+        cr = cp.add_run(); cr.text = f"Photo: {photo['credit']}"; cr.font.size = Pt(8); cr.font.color.rgb = MUTED; cr.font.name = "Calibri"
         return True
 
     def add_designed_panel(slide, number, heading, text, x, y, width, height):

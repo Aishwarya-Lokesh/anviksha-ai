@@ -463,7 +463,7 @@ export default function ContentGeneratorPage() {
                             <figure>
                               {/* eslint-disable-next-line @next/next/no-img-element */}
                               <img src={currentSlide.image_thumb} alt={`Photo for ${currentSlide.title}`} className="w-full aspect-[4/3] object-cover rounded-lg border border-gray-200" />
-                              <figcaption className="text-[10px] text-muted text-right mt-1">Photo: {currentSlide.image_credit} / Pexels</figcaption>
+                              <figcaption className="text-[10px] text-muted text-right mt-1">Photo: {currentSlide.image_credit}</figcaption>
                             </figure>
                           ) : (
                             <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden p-4 flex flex-col justify-end" style={{ backgroundColor: palette.light }}>

@@ -1,9 +1,11 @@
-"""Stock photos for generated slides (Pexels), and the colour themes a deck can
-be exported in.
+"""Stock photos for generated slides, and the colour themes a deck can be
+exported in.
 
-Photos are optional: without `PEXELS_API_KEY`, or when a search finds nothing
-or the service is slow, callers get `None` and draw a designed panel instead.
-The key stays on the server; the browser only ever receives image links."""
+Two photo services are supported; whichever has a key set is used
+(`PIXABAY_API_KEY`, or `PEXELS_API_KEY`). Photos are optional: without a key,
+or when a search finds nothing or the service is slow, callers get `None`
+and draw a designed panel instead. The key stays on the server; the browser
+only ever receives image links."""
 import os
 import re
 from concurrent.futures import ThreadPoolExecutor
@@ -12,8 +14,9 @@ from urllib.parse import urlparse
 
 import httpx
 
-SEARCH_URL = "https://api.pexels.com/v1/search"
-IMAGE_HOST = "images.pexels.com"
+PEXELS_SEARCH_URL = "https://api.pexels.com/v1/search"
+PIXABAY_SEARCH_URL = "https://pixabay.com/api/"
+IMAGE_HOSTS = {"images.pexels.com", "pixabay.com", "cdn.pixabay.com"}
 TIMEOUT = httpx.Timeout(6.0, connect=4.0)
 MAX_IMAGE_BYTES = 6 * 1024 * 1024
 MAX_IMAGES_PER_DECK = 16
@@ -33,15 +36,48 @@ _STOPWORDS = {
     "the", "to", "what", "why", "how", "with", "vs", "versus", "types", "type", "summary", "recap", "revision", "questions", "key", "concepts",
     "part", "module", "unit", "chapter", "basics", "using", "about",
 }
-_cache: dict[tuple[str, int], Optional[dict]] = {}
+_cache: dict[tuple[str, int], Optional[dict]] = {}   # (service:query, position) -> photo
 
 
 def theme(name: Optional[str]) -> dict:
     return THEMES.get((name or "").lower(), THEMES[DEFAULT_THEME])
 
 
+def provider() -> Optional[tuple[str, str]]:
+    """(service name, key) for the photo service in use, or None."""
+    for name, variable in (("Pixabay", "PIXABAY_API_KEY"), ("Pexels", "PEXELS_API_KEY")):
+        key = os.getenv(variable, "").strip()
+        if key:
+            return name, key
+    return None
+
+
 def configured() -> bool:
-    return bool(os.getenv("PEXELS_API_KEY", "").strip())
+    return provider() is not None
+
+
+def _pexels(query: str, key: str) -> list[Optional[dict]]:
+    r = httpx.get(PEXELS_SEARCH_URL, params={"query": query, "per_page": 15, "orientation": "landscape"}, headers={"Authorization": key}, timeout=TIMEOUT)
+    r.raise_for_status()
+    out = []
+    for p in r.json().get("photos") or []:
+        src = p.get("src") or {}
+        url = src.get("large") or src.get("medium")
+        out.append({"url": url, "thumb": src.get("medium") or src.get("small") or url, "credit": f"{p.get('photographer') or 'Pexels'} / Pexels",
+                    "credit_url": p.get("photographer_url") or "https://www.pexels.com", "alt": p.get("alt") or query} if url else None)
+    return out
+
+
+def _pixabay(query: str, key: str) -> list[Optional[dict]]:
+    r = httpx.get(PIXABAY_SEARCH_URL, params={"key": key, "q": query[:100], "image_type": "photo", "orientation": "horizontal",
+                                              "safesearch": "true", "per_page": 15}, timeout=TIMEOUT)
+    r.raise_for_status()
+    out = []
+    for p in r.json().get("hits") or []:
+        url = p.get("largeImageURL") or p.get("webformatURL")
+        out.append({"url": url, "thumb": p.get("webformatURL") or url, "credit": f"{p.get('user') or 'Pixabay'} / Pixabay",
+                    "credit_url": p.get("pageURL") or "https://pixabay.com", "alt": p.get("tags") or query} if url else None)
+    return out
 
 
 def query_for(slide: dict, topic: str = "") -> str:
@@ -59,26 +95,22 @@ def query_for(slide: dict, topic: str = "") -> str:
 def search(query: str, index: int = 0) -> Optional[dict]:
     """The `index`-th landscape photo for a phrase, or None."""
     query = (query or "").strip()
-    key = os.getenv("PEXELS_API_KEY", "").strip()
-    if not query or not key:
+    service = provider()
+    if not query or not service:
         return None
+    name, key = service
     index = max(0, min(index, 14))
-    cache_key = (query.lower(), index)
+    cache_key = (f"{name}:{query.lower()}", index)
     if cache_key in _cache:
         return _cache[cache_key]
     try:
-        r = httpx.get(SEARCH_URL, params={"query": query, "per_page": 15, "orientation": "landscape"}, headers={"Authorization": key}, timeout=TIMEOUT)
-        r.raise_for_status()
-        photos = r.json().get("photos") or []
+        photos = (_pixabay if name == "Pixabay" else _pexels)(query, key)
     except Exception:
         return None                      # slow or unreachable: not cached, so a later try can succeed
-    for i, p in enumerate(photos):
-        src = p.get("src") or {}
-        _cache[(query.lower(), i)] = {
-            "url": src.get("large") or src.get("medium"), "thumb": src.get("medium") or src.get("small"),
-            "credit": p.get("photographer") or "Pexels", "credit_url": p.get("photographer_url") or "https://www.pexels.com",
-            "alt": p.get("alt") or query,
-        } if (src.get("large") or src.get("medium")) else None
+    for i, photo in enumerate(photos):
+        _cache[(cache_key[0], i)] = photo
+    for i in range(len(photos), 15):
+        _cache[(cache_key[0], i)] = None     # past the last result: remembered, so it isn't asked for again
     if len(_cache) > 2000:
         for stale in list(_cache)[:1000]:
             _cache.pop(stale, None)
@@ -86,12 +118,12 @@ def search(query: str, index: int = 0) -> Optional[dict]:
 
 
 def allowed_url(url: str) -> bool:
-    """Only photos served by Pexels are ever downloaded by the server."""
+    """Only photos served by the photo services are ever downloaded by the server."""
     try:
         parsed = urlparse(url or "")
     except ValueError:
         return False
-    return parsed.scheme == "https" and parsed.hostname == IMAGE_HOST
+    return parsed.scheme == "https" and parsed.hostname in IMAGE_HOSTS
 
 
 def fetch(url: str) -> Optional[bytes]:
@@ -124,7 +156,7 @@ def images_for(slides: list[dict], topic: str = "") -> dict[int, dict]:
         chosen = str(s.get("image_url") or "")
         if chosen and allowed_url(chosen):
             data = fetch(chosen)
-            return i, ({"data": data, "credit": str(s.get("image_credit") or "Pexels")[:80]} if data else None)
+            return i, ({"data": data, "credit": str(s.get("image_credit") or "Stock photo")[:80]} if data else None)
         found = search(query_for(s, topic)) if configured() else None
         data = fetch(found["url"]) if found else None
         return i, ({"data": data, "credit": found["credit"]} if data else None)
