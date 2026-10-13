@@ -9,6 +9,7 @@ import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { EmptyState, LoadError } from "@/components/ui/States";
 import { SimpleBarChart } from "@/components/charts/Charts";
 import { FeedbackResults, FeedbackSummary, Stars } from "@/components/feedback/FeedbackResults";
+import { FeedbackSwitches } from "@/components/feedback/FeedbackSwitches";
 import { api } from "@/lib/api";
 
 type FacultyRow = { faculty_id: number; name: string; designation: string | null; responses: number; average: number | null; subjects: string[] };
@@ -59,6 +60,7 @@ export default function HodFeedbackPage() {
           <button onClick={() => setParam({ faculty: null })} className="inline-flex items-center gap-1.5 min-h-[44px] text-sm font-medium text-brand hover:underline">
             <ArrowLeft size={15} /> All faculty{batch ? ` · Batch ${batch}` : ""}
           </button>
+          <FeedbackSwitches facultyId={detail.faculty.id} />
           <FeedbackResults data={detail} forOwner={false} />
         </div>
       </>

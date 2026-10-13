@@ -5,7 +5,7 @@ import { AppShell } from "@/components/layout/AppShell";
 import type { QuickAction } from "@/components/layout/CommandPalette";
 import {
   LayoutDashboard, User, TrendingUp, CalendarCheck, Award, FileText,
-  BookOpen, HeartHandshake, Bot, Briefcase, MessageSquareQuote,
+  BookOpen, HeartHandshake, Bot, Briefcase, MessageSquareQuote, Megaphone,
 } from "lucide-react";
 
 const navItems: NavItem[] = [
@@ -14,10 +14,11 @@ const navItems: NavItem[] = [
   { key: "rank", label: "Class Rank", short: "Rank", href: "/student/rank", icon: TrendingUp },
   { key: "attendance", label: "Attendance", href: "/student/attendance", icon: CalendarCheck },
   { key: "achievements", label: "Achievements", href: "/student/achievements", icon: Award },
-  { key: "placement", label: "Placement", href: "/student/placement", icon: Briefcase },
+  { key: "placement", label: "Placements & Internships", href: "/student/placement", icon: Briefcase },
   { key: "resume", label: "Resume Builder", href: "/student/resume", icon: FileText },
   { key: "documents", label: "Document Requests", href: "/student/documents", icon: FileText },
   { key: "notes", label: "Notes & Deadlines", href: "/student/notes", icon: BookOpen },
+  { key: "announcements", label: "Announcements", href: "/student/announcements", icon: Megaphone },
   { key: "counseling", label: "Counseling", href: "/student/counseling", icon: HeartHandshake },
   { key: "feedback", label: "Feedback", href: "/student/feedback", icon: MessageSquareQuote },
   { key: "assistant", label: "Ask Anviksha AI", href: "/student/assistant", icon: Bot },
@@ -26,6 +27,8 @@ const navItems: NavItem[] = [
 const quickActions: QuickAction[] = [
   { label: "Add an achievement", href: "/student/achievements?action=add", keywords: "certificate hackathon project upload" },
   { label: "Request a document", href: "/student/documents?action=new", keywords: "bonafide transcript certificate" },
+  { label: "Add a note or deadline", href: "/student/notes?tab=deadlines", keywords: "planner calendar reminder todo" },
+  { label: "See announcements", href: "/student/announcements", keywords: "notices placement wall news" },
   { label: "Build my resume", href: "/student/resume", keywords: "cv download pdf" },
   { label: "Give feedback on my subjects", href: "/student/feedback", keywords: "rate teacher review anonymous" },
   { label: "Ask Anviksha AI", href: "/student/assistant", keywords: "chat assistant help" },

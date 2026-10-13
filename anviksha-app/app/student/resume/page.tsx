@@ -67,12 +67,18 @@ function realContentFor(key: string, profile: any, achievements: any[], courses:
     case "objective": return objective;
     case "education": return educationContent(education);
     case "skills": return profile.skills || "";
-    case "internships": return internships.map((i: any) => `${i.company} (${i.duration})`).join("; ");
+    case "internships": return internships.map((i: any) => (i.duration ? `${i.company} (${i.duration})` : i.company)).join("; ");
     case "courses": return courses.map((c: any) => c.course_name).join(", ");
     case "achievements": return achievements.map((a: any) => a.title).join(", ");
     default: return "";
   }
 }
+
+const TEMPLATE_NOTES: Record<string, string> = {
+  Classic: "Centred header with colour accents",
+  Minimal: "Left-aligned, light and airy",
+  "ATS Friendly": "Plain black text, no photo or colour",
+};
 
 export default function ResumePage() {
   const [profile, setProfile] = useState<any>(null);
@@ -161,7 +167,10 @@ export default function ResumePage() {
   const atsScore = profile ? Math.round((atsChecks.filter((c) => c.pass).length / Math.max(atsChecks.length, 1)) * 100) : 0;
 
   const buildData = { ...profile, contactEmail: contact.email, contactPhone: contact.phone, contactLocation: contact.location };
-  const buildSections = activeOrder.map((s) => ({ title: s.title, content: s.id === "objective" ? objective : s.content }));
+  const buildSections = [
+    ...(objective.trim() && !activeOrder.some((s) => s.id === "objective") ? [{ title: "Career Objective", content: objective }] : []),
+    ...activeOrder.map((s) => ({ title: s.title, content: s.id === "objective" ? objective : s.content })),
+  ];
 
   const openEdit = (s: ResumeSection) => {
     if (s.id === "education") { setEducationDraft(education); setShowEducationModal(true); return; }
@@ -222,13 +231,17 @@ export default function ResumePage() {
           <div className="space-y-3">
             {TEMPLATES.map((t) => (
               <button key={t} onClick={() => setTemplate(t)} className={`w-full text-left border-2 rounded-xl p-3 flex items-center gap-3 transition-colors ${template === t ? "border-brand bg-brand-light" : "border-gray-100 hover:border-gray-200"}`}>
-                <div className="w-10 h-14 bg-white border border-gray-200 rounded shrink-0 flex flex-col p-1 gap-0.5">
-                  <div className={`h-1 rounded-full w-3/4 ${t === "ATS Friendly" ? "bg-gray-800" : t === "Minimal" ? "bg-gray-400" : "bg-brand"}`} />
-                  <div className="h-0.5 bg-gray-200 rounded-full w-full mt-1" />
+                <div className={`force-light w-10 h-14 bg-white border border-gray-200 rounded shrink-0 flex flex-col p-1 gap-0.5 ${t === "Classic" ? "items-center" : ""}`}>
+                  <div className={`h-1 rounded-full ${t === "ATS Friendly" ? "bg-gray-800 w-3/4" : t === "Minimal" ? "bg-gray-400 w-1/2" : "bg-brand w-3/4"}`} />
+                  <div className={`h-0.5 rounded-full w-full mt-1 ${t === "Classic" ? "bg-brand/60" : t === "ATS Friendly" ? "bg-gray-700" : "bg-transparent"}`} />
                   <div className="h-0.5 bg-gray-200 rounded-full w-full" />
-                  <div className="h-0.5 bg-gray-200 rounded-full w-2/3" />
+                  <div className="h-0.5 bg-gray-200 rounded-full w-2/3 self-start" />
+                  <div className="h-0.5 bg-gray-200 rounded-full w-full" />
                 </div>
-                <span className="text-sm font-medium text-ink">{t}</span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-medium text-ink">{t}</span>
+                  <span className="block text-[11px] text-muted">{TEMPLATE_NOTES[t]}</span>
+                </span>
                 {template === t && <Check size={16} className="text-brand ml-auto" />}
               </button>
             ))}
@@ -306,35 +319,38 @@ export default function ResumePage() {
             Preview — {template}
             <Badge tone="brand">{activeOrder.length} sections</Badge>
           </div>
-          <motion.div layout className="p-6 text-xs space-y-3">
-            <div className="text-center border-b border-gray-100 pb-3">
-              <label className="relative w-20 h-20 rounded-full mx-auto mb-2 cursor-pointer group block">
-                {profile.photo_url ? (
-                  <img src={`${API_BASE}${profile.photo_url}`} className="w-20 h-20 rounded-full object-cover border-2 border-brand/30" />
-                ) : (
-                  <div className="w-20 h-20 rounded-full bg-brand-light flex items-center justify-center border-2 border-dashed border-brand/30">
-                    <ImagePlus size={20} className="text-brand" />
+          {/* The page itself always looks like paper, in light and dark mode alike. */}
+          <motion.div layout className={`force-light bg-white p-6 text-xs space-y-3 ${template === "Minimal" ? "font-light" : ""}`}>
+            <div className={template === "Classic" ? "text-center border-b-2 border-brand pb-3" : template === "Minimal" ? "pb-2" : "border-b border-gray-900 pb-2"}>
+              {template !== "ATS Friendly" && (
+                <label className={`relative w-20 h-20 rounded-full mb-2 cursor-pointer group block ${template === "Classic" ? "mx-auto" : ""}`}>
+                  {profile.photo_url ? (
+                    <img src={`${API_BASE}${profile.photo_url}`} alt="" className="w-20 h-20 rounded-full object-cover border-2 border-brand/30" />
+                  ) : (
+                    <div className="w-20 h-20 rounded-full bg-brand-light flex items-center justify-center border-2 border-dashed border-brand/30">
+                      <ImagePlus size={20} className="text-brand" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <span className="text-white text-[9px] font-medium">{uploadingPhoto ? "..." : "Change"}</span>
                   </div>
-                )}
-                <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                  <span className="text-white text-[9px] font-medium">{uploadingPhoto ? "..." : "Change"}</span>
-                </div>
-                <input type="file" accept=".png,.jpg,.jpeg,.webp" className="hidden" onChange={(e) => e.target.files?.[0] && handlePhotoUpload(e.target.files[0])} />
-              </label>
-              <div className="font-bold text-sm text-ink">{(profile.name || "").toUpperCase()}</div>
-              <div className="text-muted mt-0.5">{profile.usn} | {profile.dept}</div>
-              {(contact.email || contact.phone || contact.location) && <div className="text-muted text-[10px] mt-0.5">{contact.email} {contact.phone} {contact.location}</div>}
+                  <input type="file" accept=".png,.jpg,.jpeg,.webp" className="hidden" onChange={(e) => e.target.files?.[0] && handlePhotoUpload(e.target.files[0])} />
+                </label>
+              )}
+              <div className={template === "Classic" ? "font-bold text-base text-brand tracking-wide" : template === "Minimal" ? "text-xl text-ink tracking-tight font-normal" : "font-bold text-sm text-ink"}>
+                {template === "Minimal" ? profile.name : (profile.name || "").toUpperCase()}
+              </div>
+              <div className="text-muted mt-0.5">{[profile.usn, profile.dept].filter(Boolean).join(" | ")}</div>
+              {(contact.email || contact.phone || contact.location) && <div className="text-muted text-[10px] mt-0.5">{[contact.email, contact.phone, contact.location].filter(Boolean).join(template === "ATS Friendly" ? " | " : " · ")}</div>}
             </div>
-            {objective && (
-              <motion.div layout>
-                <div className="font-semibold text-ink mb-1">CAREER OBJECTIVE</div>
-                <div className="text-muted">{objective}</div>
-              </motion.div>
-            )}
-            {activeOrder.map((s) => (
+            {[...(objective ? [{ id: "__objective", title: "Career Objective", content: objective }] : []), ...activeOrder.filter((s) => s.id !== "objective")].map((s) => (
               <motion.div key={s.id} layout initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-                <div className="font-semibold text-ink mb-1">{s.title.toUpperCase()}</div>
-                <div className="text-muted whitespace-pre-wrap">{s.content?.trim() || <span className="italic">Not specified</span>}</div>
+                <div className={
+                  template === "Classic" ? "font-bold text-brand mb-1 pb-0.5 border-b border-brand/25 tracking-wide"
+                  : template === "Minimal" ? "text-[10px] font-medium text-muted mb-1 tracking-[0.18em]"
+                  : "font-bold text-ink mb-1 pb-0.5 border-b border-gray-400"
+                }>{s.title.toUpperCase()}</div>
+                <div className={`whitespace-pre-wrap ${template === "ATS Friendly" ? "text-ink" : "text-gray-600"}`}>{s.content?.trim() || <span className="italic">Not specified</span>}</div>
               </motion.div>
             ))}
           </motion.div>

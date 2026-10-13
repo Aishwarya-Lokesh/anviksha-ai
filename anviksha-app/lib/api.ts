@@ -156,6 +156,30 @@ async function request(path: string, options: RequestInit = {}) {
   return res.json();
 }
 
+// File uploads: the browser sets the multipart content type itself.
+async function upload(path: string, body: FormData) {
+  const headers: Record<string, string> = {};
+  if (getToken()) headers["Authorization"] = `Bearer ${getToken()}`;
+  const res = await fetch(`${API_BASE}${path}`, { method: "POST", body, headers });
+  if (res.status === 401 && typeof window !== "undefined") {
+    clearAuth();
+    window.location.assign("/login?expired=1");
+    throw new Error("Your session has expired. Please sign in again.");
+  }
+  if (!res.ok) {
+    const error = new Error(`Upload to ${path} failed: ${res.status}`) as Error & { status?: number; detail?: string };
+    error.status = res.status;
+    try {
+      const detail = (await res.json())?.detail;
+      if (typeof detail === "string") error.detail = detail;
+    } catch {
+      // no readable explanation to pass on
+    }
+    throw error;
+  }
+  return res.json();
+}
+
 export const api = {
   // =========================================================
   // AUTH
@@ -591,10 +615,16 @@ export const api = {
       method: "DELETE",
     }),
 
+  slideThemes: () => request("/teacher/slide-themes"),
+
+  slideImage: (title: string, n = 0) =>
+    request(`/teacher/slide-image?q=${encodeURIComponent(title)}&n=${n}`),
+
   exportPPT: async (
     topic: string,
     slides: any[],
-    styleReferenceId?: number
+    styleReferenceId?: number,
+    options: { theme?: string; includeImages?: boolean } = {}
   ) => {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
@@ -613,6 +643,8 @@ export const api = {
           topic,
           slides,
           style_reference_id: styleReferenceId,
+          theme: options.theme,
+          include_images: options.includeImages !== false,
         }),
       }
     );
@@ -1381,6 +1413,96 @@ export const api = {
 
   globalSearch: (q: string) =>
     request(`/search?q=${encodeURIComponent(q)}`),
+
+  // ---- feedback switch ----
+  teacherFeedbackWindows: () => request("/teacher/feedback/windows"),
+
+  setTeacherFeedbackWindow: (subjectId: number, open: boolean) =>
+    request("/teacher/feedback/windows", { method: "PUT", body: JSON.stringify({ subject_id: subjectId, open }) }),
+
+  hodFeedbackWindows: (facultyId: number) => request(`/hod/feedback/${facultyId}/windows`),
+
+  setHodFeedbackWindow: (facultyId: number, subjectId: number, open: boolean) =>
+    request("/hod/feedback/windows", { method: "PUT", body: JSON.stringify({ faculty_id: facultyId, subject_id: subjectId, open }) }),
+
+  // ---- student planner ----
+  planner: () => request("/student/planner"),
+
+  addPlannerItem: (payload: Record<string, unknown>) =>
+    request("/student/planner", { method: "POST", body: JSON.stringify(payload) }),
+
+  editPlannerItem: (id: number, payload: Record<string, unknown>) =>
+    request(`/student/planner/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+
+  deletePlannerItem: (id: number) => request(`/student/planner/${id}`, { method: "DELETE" }),
+
+  studentCalendar: () => request("/student/calendar"),
+
+  // ---- announcements ----
+  announcements: () => request("/announcements"),
+
+  postAnnouncement: (payload: Record<string, unknown>) =>
+    request("/announcements", { method: "POST", body: JSON.stringify(payload) }),
+
+  deleteAnnouncement: (id: number) => request(`/announcements/${id}`, { method: "DELETE" }),
+
+  teacherPlacements: () => request("/teacher/placements"),
+
+  // ---- admin: logins ----
+  adminLogins: (params: Record<string, string> = {}) =>
+    request(`/admin/logins?${new URLSearchParams(params).toString()}`),
+
+  adminCreateLogin: (payload: Record<string, unknown>) =>
+    request("/admin/logins", { method: "POST", body: JSON.stringify(payload) }),
+
+  adminEditLogin: (id: number, payload: Record<string, unknown>) =>
+    request(`/admin/logins/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+
+  adminResetPassword: (id: number) => request(`/admin/logins/${id}/reset-password`, { method: "POST" }),
+
+  adminImportStudents: (file: File, options: { apply: boolean; createLogins: boolean; departmentId?: string }) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("apply", options.apply ? "true" : "false");
+    fd.append("create_logins", options.createLogins ? "true" : "false");
+    if (options.departmentId) fd.append("department_id", options.departmentId);
+    return upload("/admin/import/students", fd);
+  },
+
+  // ---- admin: departments and subjects ----
+  adminStructure: () => request("/admin/structure"),
+
+  adminCreateDepartment: (name: string) =>
+    request("/admin/departments", { method: "POST", body: JSON.stringify({ name }) }),
+
+  adminRenameDepartment: (id: number, name: string) =>
+    request(`/admin/departments/${id}`, { method: "PATCH", body: JSON.stringify({ name }) }),
+
+  adminSubjectAllocation: () => request("/admin/subjects/allocation"),
+
+  adminCreateSubject: (payload: Record<string, unknown>) =>
+    request("/admin/subjects", { method: "POST", body: JSON.stringify(payload) }),
+
+  adminEditSubject: (id: number, payload: Record<string, unknown>) =>
+    request(`/admin/subjects/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+
+  // ---- placement and internship records (admin, and HOD for own department) ----
+  placementRecords: (batch?: string) =>
+    request(`/admin/placement-records${batch ? `?batch=${encodeURIComponent(batch)}` : ""}`),
+
+  savePlacementRecord: (kind: "placements" | "internships", id: number | null, payload: Record<string, unknown>) =>
+    request(`/admin/placement-records/${kind}${id ? `/${id}` : ""}`, { method: id ? "PATCH" : "POST", body: JSON.stringify(payload) }),
+
+  deletePlacementRecord: (kind: "placements" | "internships", id: number) =>
+    request(`/admin/placement-records/${kind}/${id}`, { method: "DELETE" }),
+
+  importPlacementRecords: (files: { placements?: File | null; internships?: File | null }, apply: boolean) => {
+    const fd = new FormData();
+    if (files.placements) fd.append("placements", files.placements);
+    if (files.internships) fd.append("internships", files.internships);
+    fd.append("apply", apply ? "true" : "false");
+    return upload("/admin/placement-records/import", fd);
+  },
 
   myNotifications: () =>
     request("/notifications"),

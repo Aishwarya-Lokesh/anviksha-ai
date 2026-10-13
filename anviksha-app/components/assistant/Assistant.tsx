@@ -240,7 +240,7 @@ export function Assistant({ role }: { role: "student" | "teacher" | "hod" | "adm
                 className="flex-1 resize-none max-h-40 min-h-[48px] rounded-xl bg-gray-50 px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-brand/30"
               />
               {streaming ? (
-                <button type="button" onClick={() => abortRef.current?.abort()} aria-label="Stop" className="w-12 h-12 rounded-xl bg-gray-900 text-white flex items-center justify-center shrink-0"><Square size={15} /></button>
+                <button type="button" onClick={() => abortRef.current?.abort()} aria-label="Stop" className="w-12 h-12 rounded-xl bg-navy text-white flex items-center justify-center shrink-0"><Square size={15} /></button>
               ) : (
                 <button type="submit" disabled={!input.trim()} aria-label="Send" className="w-12 h-12 rounded-xl bg-brand text-white flex items-center justify-center shrink-0 hover:bg-brand-dark disabled:opacity-40"><Send size={16} /></button>
               )}

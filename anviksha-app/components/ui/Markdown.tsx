@@ -51,7 +51,7 @@ export function Markdown({ text }: { text: string }) {
       i += 1;
       while (i < lines.length && !lines[i].trim().startsWith("```")) code.push(lines[i++]);
       i += 1;
-      blocks.push(<pre key={key++} className="bg-gray-900 text-gray-100 text-xs rounded-xl p-3 overflow-x-auto"><code>{code.join("\n")}</code></pre>);
+      blocks.push(<pre key={key++} className="bg-navy text-indigo-50 text-xs rounded-xl p-3 overflow-x-auto"><code>{code.join("\n")}</code></pre>);
       continue;
     }
 

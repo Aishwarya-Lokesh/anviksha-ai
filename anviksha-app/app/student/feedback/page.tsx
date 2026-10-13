@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CheckCircle2, MessageSquareQuote, ShieldCheck, Star } from "lucide-react";
+import { CheckCircle2, Lock, MessageSquareQuote, ShieldCheck, Star } from "lucide-react";
 import { Topbar } from "@/components/layout/Topbar";
 import { Card, SectionTitle, Button, Badge } from "@/components/ui/Primitives";
 import { CenterModal } from "@/components/ui/Modal";
@@ -10,7 +10,7 @@ import { EmptyState, LoadError } from "@/components/ui/States";
 import { useToast } from "@/components/ui/Toaster";
 import { api } from "@/lib/api";
 
-type Course = { subject_id: number; faculty_id: number; code: string; name: string; faculty_name: string | null; submitted: boolean };
+type Course = { subject_id: number; faculty_id: number; code: string; name: string; faculty_name: string | null; submitted: boolean; open?: boolean };
 type Question = { key: string; label: string };
 
 const RATING_WORDS = ["", "Poor", "Fair", "Good", "Very good", "Excellent"];
@@ -78,7 +78,8 @@ export default function StudentFeedbackPage() {
   if (loadError) return <><Topbar greeting="Feedback" subtitle="Rate your subjects" avatarLetter="S" /><LoadError message="We couldn't load your subjects." onRetry={load} /></>;
   if (!courses) return <><Topbar greeting="Feedback" subtitle="Loading…" avatarLetter="S" /><DashboardSkeleton /></>;
 
-  const pending = courses.filter((c) => !c.submitted).length;
+  const pending = courses.filter((c) => !c.submitted && c.open !== false).length;
+  const closed = courses.filter((c) => !c.submitted && c.open === false).length;
 
   return (
     <>
@@ -88,14 +89,15 @@ export default function StudentFeedbackPage() {
           <ShieldCheck size={20} className="text-brand shrink-0 mt-0.5" />
           <p className="text-sm text-ink">
             <span className="font-semibold">Your feedback is anonymous.</span> Your answers are stored without your name or USN. Teachers see
-            only totals, and only once at least three students have responded.
+            only totals, and only once at least three students have responded. A subject opens for feedback when your teacher or HOD
+            switches it on — you will get a notification.
           </p>
         </div>
 
         <Card hover>
           <SectionTitle
             title={semester ? `Semester ${semester} subjects` : "Your subjects"}
-            subtitle={courses.length === 0 ? undefined : pending === 0 ? "You have given feedback for every subject" : `${pending} of ${courses.length} still to rate`}
+            subtitle={courses.length === 0 ? undefined : pending > 0 ? `${pending} of ${courses.length} open for your feedback` : closed > 0 ? "No subject is open for feedback right now" : "You have given feedback for every subject"}
           />
           {courses.length === 0 ? (
             <EmptyState icon={MessageSquareQuote} title="No subjects to rate yet" hint="Subjects appear here once a teacher is assigned to them for your semester." />
@@ -109,6 +111,8 @@ export default function StudentFeedbackPage() {
                   </div>
                   {c.submitted ? (
                     <Badge tone="success"><CheckCircle2 size={12} className="mr-1" /> Submitted</Badge>
+                  ) : c.open === false ? (
+                    <Badge tone="neutral"><Lock size={12} className="mr-1" /> Not open yet</Badge>
                   ) : (
                     <Button size="sm" className="min-h-[44px]" onClick={() => open(c)}>Give feedback</Button>
                   )}

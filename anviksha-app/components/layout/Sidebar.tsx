@@ -78,7 +78,7 @@ function NavList({
             <div
               className={`relative z-10 flex items-center gap-3 min-h-[44px] rounded-xl text-sm font-medium transition-colors duration-200 ${
                 compact ? "justify-center px-0" : "px-3.5"
-              } ${active ? "text-white" : "text-white/55 hover:text-white hover:bg-white/[0.06]"}`}
+              } ${active ? "text-white" : "text-white/55 hover:text-white hover:bg-indigo-50/[0.06]"}`}
             >
               <Icon size={17} strokeWidth={active ? 2.25 : 2} className="shrink-0" />
               {!compact && <span className="truncate">{item.label}</span>}
@@ -105,7 +105,7 @@ function UserFooter({
 }) {
   return (
     <div className="p-3">
-      <div className={`bg-white/[0.04] border border-white/[0.06] rounded-xl p-3 flex items-center gap-3 mb-1 ${compact ? "justify-center px-0" : ""}`}>
+      <div className={`bg-indigo-50/[0.04] border border-white/[0.06] rounded-xl p-3 flex items-center gap-3 mb-1 ${compact ? "justify-center px-0" : ""}`}>
         {photoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={photoUrl} alt="" className="w-9 h-9 rounded-full object-cover shrink-0 border border-white/20" />
@@ -125,7 +125,7 @@ function UserFooter({
         onClick={onLogout}
         title={compact ? "Log out" : undefined}
         aria-label="Log out"
-        className={`w-full flex items-center gap-2 min-h-[44px] text-xs text-white/55 hover:text-white rounded-lg hover:bg-white/[0.04] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${
+        className={`w-full flex items-center gap-2 min-h-[44px] text-xs text-white/55 hover:text-white rounded-lg hover:bg-indigo-50/[0.04] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/70 ${
           compact ? "justify-center" : "px-3"
         }`}
       >
@@ -217,7 +217,7 @@ export function Sidebar({
             onClick={toggleCollapsed}
             aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             aria-expanded={!collapsed}
-            className="w-9 h-9 shrink-0 rounded-lg flex items-center justify-center text-white/55 hover:text-white hover:bg-white/[0.06] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            className="w-9 h-9 shrink-0 rounded-lg flex items-center justify-center text-white/55 hover:text-white hover:bg-indigo-50/[0.06] transition-colors outline-none focus-visible:ring-2 focus-visible:ring-white/70"
           >
             {collapsed ? <PanelLeftOpen size={17} /> : <PanelLeftClose size={17} />}
           </button>
@@ -287,7 +287,7 @@ export function Sidebar({
                 <button
                   onClick={() => setDrawerOpen(false)}
                   aria-label="Close menu"
-                  className="w-11 h-11 shrink-0 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-white/[0.06] outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+                  className="w-11 h-11 shrink-0 rounded-lg flex items-center justify-center text-white/70 hover:text-white hover:bg-indigo-50/[0.06] outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                 >
                   <X size={20} />
                 </button>

@@ -7,7 +7,7 @@ Tested 2026-10-13 against commit `9ad5e92` on `deploy/production-setup`.
 | Part | State |
 |---|---|
 | Backend (Render) | Live on the latest commit |
-| Database (Supabase) | Six migrations applied; latest revision `b9c0d1e2f3a4` |
+| Database (Supabase) | Seven migrations applied; latest revision `c0d1e2f3a4b5` |
 | File storage (Supabase) | Private bucket `anviksha-uploads`, reachable, 68 of 69 certificate files present |
 | Frontend (Vercel) | **Production is still on an older commit (`3397feb`, 11 Oct).** Vercel builds this branch as Preview, and has not built the most recent pushes |
 
@@ -81,40 +81,84 @@ Answers checked against the database:
 | HOD | Average IA-1 mark in Computer Networks | "I don't have that data" (no marks exist) ✅ |
 | HOD | Bar chart of placement percentage by batch | Chart drawn with the database's figures ✅ |
 
+## Round 3: the remaining features (13 Oct, later)
+
+Built after the sections above were written: notifications, dark mode, the feedback switch, the student planner and calendar, announcements and the placement wall, placement pages for student and teacher, placement records for HOD and admin, the admin pages (login accounts, bulk import, departments and subject allocation), resume templates, and themes and photos for PowerPoint.
+
+| Layer | Result |
+|---|---|
+| Backend automated tests | 111 of 111 pass |
+| Frontend type-check and production build | Pass (59 pages) |
+| Live backend, the new endpoints as each role | 39 of 39 pass |
+| Newest build, every page × 4 roles × 2 widths, live data | 62 pages, 0 issues |
+| Newest build, new screens used end to end at 1440 px and 360 px (stand-in data) | 148 of 148 pass |
+| Resume templates (real student) and PowerPoint preview (stand-in data) | 41 of 41 pass |
+| Dark mode, 20 real pages, scan for unreadable text | 0 found |
+
+| Feature | Verified on live URL | Newest build | How it was checked |
+|---|---|---|---|
+| Notifications: unread count, relative time, a notice opens its page and only that one is marked read, "Mark all as read" | Not yet (Vercel) | Pass | Browser, stand-in data. Backend live: each notice carries its link |
+| Dark mode: switch in the top bar, remembered, no white flash | Not yet (Vercel) | Pass | Browser; 20 real pages scanned for low-contrast text |
+| Feedback switch: closed until the teacher or HOD opens a subject; students are notified; answers kept when closed | Backend live | Pass | 2 automated tests; browser as teacher, HOD and student. On the live data all 12 of the test student's subjects are closed, as intended |
+| Student planner: own notes (with formatting), deadlines with date, time, priority and reminder, calendar, "due soon" on the dashboard | Backend live | Pass | Browser end to end; on the live backend one private item was created, edited, found in the calendar and deleted, leaving the planner as it was |
+| Announcements for all four roles, with the placement wall | Backend live (read) | Pass | Automated test of who sees what; browser as each role. Nothing was posted on the live site, because a post notifies real people |
+| Student "Placements & Internships": every offer and internship, headline is the best offer not declined | Backend live | Pass | Live data: the test student shows 1 offer and 1 internship |
+| Teacher "Student Placements" | Backend live | Pass | Live data: 70 students, 6 placed |
+| Placement records for HOD and admin: add, edit, delete, export; CSV import with preview (admin) | Backend live (read, and a preview that wrote nothing) | Pass | Automated tests; browser end to end with stand-in data. Live: an unknown name was refused in the preview and left no trace |
+| Admin login accounts: create, change role, deactivate, reset password | Backend live (read) | Pass | Automated test, including that a deactivated account cannot sign in and an open session stops working |
+| Admin bulk student import with preview, problem report and login sheet | Backend live (preview only) | Pass | Automated test; live preview flagged an existing USN and a bad row and wrote nothing |
+| Departments, batches and subject allocation | Backend live (read) | Pass | Live data: 1 department, 5 batches, 67 subjects of which 7 have no teacher yet |
+| Resume: Classic, Minimal and ATS Friendly now differ in layout, in the preview and in the PDF | Not yet (Vercel) | Pass | Real student: three PDFs downloaded at both widths |
+| PowerPoint: five colour themes; a photo per slide with credit, or a designed panel when there is none | Backend live (export with a theme) | Pass | 4 automated tests. Photos need `PEXELS_API_KEY`; without it every slide gets the designed panel, never an empty box |
+
+### Found and fixed in this round
+
+- A student whose best-paid offer had been declined saw that declined offer as their headline. The headline is now the best offer they have not turned down.
+- The resume showed "Company (null)" for an internship with no dates, and a stray "|" after the USN when no department was recorded.
+- The career objective was shown in the resume preview but left out of the downloaded PDF.
+- Long resume sections ran off the bottom of the PDF page instead of continuing on the next one.
+
 ## Not tested, and why
 
 | Item | Reason |
 |---|---|
 | The newest frontend at the Vercel address | Vercel has not put it into production |
-| Writing actions on the live site through the browser (posting a note, saving marks, submitting feedback, uploading a file, changing a password) | They would create or change real records. Each is covered by automated tests and by browser tests with stand-in data |
-| Tablet widths 768 px and 1024 px on the live site | Checked earlier for the navigation with stand-in data; the live sweeps used 1440 px and 390 px |
-| PowerPoint generator output | Not changed in this work; image support is still to be built |
-| Resume PDF output | Not changed in this work |
+| Writing actions on the live site through the browser (posting an announcement, opening feedback, creating a login, importing students, adding a placement) | They would create real records or notify real people. Each is covered by automated tests and by browser tests with stand-in data |
+| Real photos in an exported PowerPoint | Needs `PEXELS_API_KEY` in Render. Tested with a stand-in photo service |
+| Reading the downloaded resume PDFs page by page | Checked that each downloads as a valid PDF and that the previews differ; the PDFs were not opened and read |
+| Tablet widths 768 px and 1024 px | The sweeps used 1440 px and 390 px, and the new screens also 360 px |
 | Other browsers | All browser tests used Chromium |
-| Screen readers | Not tested |
+| Screen readers | Not tested. New controls carry labels and roles (switch, checkbox, tab, dialog) |
+| Lint | The project has no lint configuration; type-check and build are the gates |
 
 ## Known issues
 
-1. **Vercel production is behind.** Set Settings → Git → Production Branch to `deploy/production-setup`, then promote the newest deployment.
-2. **One certificate file was not uploaded**: `4GW23IS042_1786439470_test_cert.pdf` is not a valid PDF.
-3. **Assistant reply time varies** with the AI provider: usually 3–8 seconds, sometimes longer. Under a burst of questions the provider throttles; the assistant now says so instead of hanging.
-4. **Question bank text is uneven.** Some stored questions carry leftover table columns (marks, CO, level) at the end; most are cleaned, a few are not.
-5. **Files uploaded before the storage bucket existed are gone.** They were on the server's temporary disk. Confirmed for the one existing note attachment (it now reports "file not found" cleanly; before this round it produced a server error). The three achievement proofs students uploaded in that period are very likely affected too, but I could not check them without signing in as those students. All need uploading again.
-6. **Server sleeps when idle** until an uptime monitor is set up; the first visit after a quiet period takes about 50 seconds.
+1. **Vercel production is behind.** Set Settings → Git → Production Branch to `deploy/production-setup`, then promote the newest deployment. Until then none of this round's screens are visible at the live address.
+2. **Feedback is now closed everywhere until someone opens it.** A teacher opens it under Performance & Feedback → Student feedback; an HOD under Faculty Feedback → a faculty member.
+3. **One certificate file was not uploaded**: `4GW23IS042_1786439470_test_cert.pdf` is not a valid PDF.
+4. **Assistant reply time varies** with the AI provider: usually 3–8 seconds, sometimes longer. Under a burst of questions the provider throttles; the assistant says so instead of hanging.
+5. **Question bank text is uneven.** Some stored questions carry leftover table columns (marks, CO, level) at the end; most are cleaned, a few are not.
+6. **Files uploaded before the storage bucket existed are gone** and need uploading again.
+7. **Server sleeps when idle** until an uptime monitor is set up; the first visit after a quiet period takes about 50 seconds.
+8. **Deadline reminders show on the dashboard and planner only.** They are not sent by email or as a push notification.
+9. **Dark mode recolours charts' surroundings but not the chart colours themselves**, and the resume, question paper and slide previews stay white on purpose, as they are pictures of a printed page.
+10. **A login cannot be deleted, only deactivated**, in line with the rule that nothing real is deleted.
 
 ## Still to configure
 
 | Where | What |
 |---|---|
-| Vercel | Production Branch = `deploy/production-setup` |
+| Vercel | Production Branch = `deploy/production-setup`, then promote the newest deployment |
 | UptimeRobot (or similar) | Monitor `https://anviksha-backend.onrender.com/health` every 5 minutes |
-| Render | `PEXELS_API_KEY`, when PowerPoint images are built |
+| Render | `PEXELS_API_KEY` for photos in PowerPoint (free key from pexels.com/api) |
 | Supabase | Change the database password (it was shared in a chat) and update `DATABASE_URL` in Render |
 | Each test account | Change the password from the profile page |
 
 ## Not built yet
 
-Placement dashboards for student, teacher and admin; admin bulk import, department and batch management, subject allocation, roles, audit log; notifications redesign; dark mode; students' own notes and calendar; resume templates; a switch to open and close feedback; PowerPoint images.
+- HOD exports beyond the placement and feedback pages, and year filters on every HOD page.
+- Email or push delivery of reminders and announcements.
+- Deleting the hidden demo certificates and achievements: waiting for your confirmation.
 
 ## Assistant: final live run
 

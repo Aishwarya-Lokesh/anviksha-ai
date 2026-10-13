@@ -288,5 +288,52 @@ Migration `e6f7a8b9c0d1` (additive): counseling reply columns, resume file and e
 - Reply time varies with the AI provider: usually 3–8 seconds to the first words, occasionally 20–30.
 - One reply in roughly thirty lost its connection mid-stream during testing and could not be reproduced. The page now reports that case and asks the user to try again.
 
+## Round 3: planner, announcements, admin tools, dark mode
+
+### Database
+- Migration `c0d1e2f3a4b5` (applied to production 13 Oct): new tables `feedback_windows`, `planner_items`, `announcements`; new column `users.is_active` (default true). Nothing existing was changed or removed.
+
+### Student
+- **Notes & Deadlines** is now a planner: own notes with simple formatting, own deadlines with date, time, priority, subject and a reminder, a month calendar that also shows deadlines set by teachers, and the material teachers shared. Own items are private to the student.
+- **Placements & Internships** lists every offer and internship, with status and whether it is verified.
+- Dashboard: "Due soon" now combines own and class deadlines; new cards for placements and announcements.
+- **Feedback** shows "Not open yet" for a subject until the teacher or HOD opens it.
+- **Resume**: the three templates now differ in layout in both the preview and the PDF. The PDF continues onto further pages and includes the career objective.
+
+### Teacher
+- A **switch per subject** to open and close student feedback (Performance & Feedback → Student feedback). Students of that class are notified when it opens.
+- **Student Placements**: offers and internships of the students they teach, with search and export.
+- **Announcements** to one of their own classes.
+- **PowerPoint**: five colour themes; each slide without a diagram gets a photo (with credit) that can be swapped or removed, or a designed panel when no photo is available.
+
+### HOD
+- Can open or close feedback for any faculty member in the department.
+- **Placement Records**: add, correct, delete and export offers and internships for the department's students.
+- **Announcements** to students, faculty or both, in their own department.
+
+### Admin
+- **Login Accounts**: create a login, change its role, deactivate or reactivate it, reset its password. Temporary passwords are shown once.
+- **Bulk Import**: students from CSV or Excel, with a check-first preview, a problem report, and an optional login per student.
+- **Departments & Subjects**: add or rename departments, see batches and counts, allocate subjects to faculty, add subjects.
+- **Placement Records** for every department, plus CSV import with the same strict student matching as the command-line importer.
+- **Announcements** to everyone or to one department.
+- Every one of these actions is written to the activity log.
+
+### Everyone
+- **Notifications** redesigned: unread count, relative time, a notice opens the page it is about and only then is marked read, and "Mark all as read". Opening the panel no longer marks everything read.
+- **Dark mode**, switched from the top bar and remembered on that device.
+- **Placement wall**: recording an offer posts a congratulation to the announcements feed.
+
+### Security
+- A deactivated account cannot sign in, and a session it already had stops working.
+- The server only ever downloads slide photos from the photo service's own image host.
+- The photo service key is read on the server and never sent to the browser.
+
+### Decisions made
+- Feedback is closed by default, as asked. Existing answers are untouched.
+- A login can be deactivated but not deleted.
+- A teacher's announcement always goes to students of one of their own classes; they cannot write to faculty or other classes.
+- Reminders appear on the dashboard and planner; nothing is emailed.
+
 ## Deployment note
 - Stored-file links now end with the file's extension, so an older copy of the Achievements page (still served while the frontend deployment was pending) keeps recognising PDFs.

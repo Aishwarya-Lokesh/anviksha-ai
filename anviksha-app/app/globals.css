@@ -4,16 +4,69 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme colours. Tailwind reads these (tailwind.config.ts), so every page
+   follows the theme without per-component dark styles. */
+:root, .force-light {
+  --card: 255 255 255;
+  --surface: 247 247 251;
+  --ink: 18 20 31;
+  --muted: 107 114 128;
+  --brand-light: 237 235 249;
+  --brand-50: 245 243 254;
+  --brand-text: 91 63 217;
+  --brand-text-strong: 69 48 176;
+  --gray-50: 249 250 251;
+  --gray-100: 243 244 246;
+  --gray-200: 229 231 235;
+  --gray-300: 209 213 219;
+  --gray-400: 156 163 175;
+  --gray-500: 107 114 128;
+  --gray-600: 75 85 99;
+  --gray-700: 55 65 81;
+  --gray-800: 31 41 55;
+  --gray-900: 17 24 39;
+  --scroll-thumb: #d1d0e6;
+  color-scheme: light;
+}
+
+.dark {
+  --card: 25 28 49;
+  --surface: 14 16 31;
+  --ink: 236 237 246;
+  --muted: 156 162 190;
+  --brand-light: 44 38 88;
+  --brand-50: 34 30 68;
+  --brand-text: 178 163 255;
+  --brand-text-strong: 205 195 255;
+  --gray-50: 33 37 62;
+  --gray-100: 41 46 74;
+  --gray-200: 54 59 91;
+  --gray-300: 76 82 117;
+  --gray-400: 124 130 163;
+  --gray-500: 152 158 187;
+  --gray-600: 182 187 210;
+  --gray-700: 206 210 227;
+  --gray-800: 227 230 241;
+  --gray-900: 243 244 250;
+  --scroll-thumb: #3a3f63;
+  color-scheme: dark;
+}
+
+/* Amber text is tuned for a light background; lift it on dark. */
+.dark .text-\[\#9c6b12\], .dark .text-\[\#7a5410\] { color: #f1c56d; }
+.dark .force-light .text-\[\#9c6b12\], .dark .force-light .text-\[\#7a5410\] { color: #9c6b12; }
+.force-light { color: rgb(var(--ink)); }
+
 html, body {
-  background-color: #F7F7FB;
-  color: #12141F;
+  background-color: rgb(var(--surface));
+  color: rgb(var(--ink));
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #d1d0e6 transparent;
+  scrollbar-color: var(--scroll-thumb) transparent;
 }
 *::-webkit-scrollbar { width: 8px; height: 8px; }
-*::-webkit-scrollbar-thumb { background: #d1d0e6; border-radius: 8px; }
+*::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 8px; }
 
 .numeric { font-variant-numeric: tabular-nums; }

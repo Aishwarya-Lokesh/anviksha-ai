@@ -7,7 +7,7 @@ import { CenterModal } from "@/components/ui/Modal";
 import { PillNav } from "@/components/ui/Tabs";
 import { useToast } from "@/components/ui/Toaster";
 import { motion, AnimatePresence } from "framer-motion";
-import { Presentation, FileText, RotateCw, Download, ChevronLeft, ChevronRight, Upload, Trash2, BookOpen, Sparkles, Layers, Check, X } from "lucide-react";
+import { Presentation, FileText, RotateCw, Download, ChevronLeft, ChevronRight, Upload, Trash2, BookOpen, Sparkles, Layers, Check, X, ImageOff, ImagePlus, Shuffle } from "lucide-react";
 import { api } from "@/lib/api";
 
 export default function ContentGeneratorPage() {
@@ -41,7 +41,13 @@ export default function ContentGeneratorPage() {
   const [includeRevision, setIncludeRevision] = useState(true);
   const [loading, setLoading] = useState(false);
   const [generated, setGenerated] = useState(false);
-  const [realSlides, setRealSlides] = useState<{ title: string; content: string }[]>([]);
+  const [realSlides, setRealSlides] = useState<any[]>([]);
+  // Deck look: colour theme and stock photos (photos need the server's photo key).
+  const [themes, setThemes] = useState<{ key: string; label: string; brand: string; dark: string; light: string }[]>([]);
+  const [theme, setTheme] = useState("violet");
+  const [imagesAvailable, setImagesAvailable] = useState(false);
+  const [includeImages, setIncludeImages] = useState(true);
+  const [imageBusy, setImageBusy] = useState(false);
   const [realNotes, setRealNotes] = useState("");
   const [connected, setConnected] = useState(true);
   const [notice, setNotice] = useState("");
@@ -168,6 +174,40 @@ export default function ContentGeneratorPage() {
     setLoading(false);
   };
 
+  useEffect(() => {
+    api.slideThemes().then((d) => { setThemes(d.themes || []); setImagesAvailable(!!d.images_available); }).catch(() => {});
+  }, []);
+
+  const palette = themes.find((t) => t.key === theme) || { key: "violet", label: "Violet", brand: "#5B3FD9", dark: "#4530B0", light: "#EDEBF9" };
+  const currentSlide = realSlides[slideIdx];
+  // A slide that already has a figure, a process flow or a comparison keeps that instead of a photo.
+  const slideTakesPhoto = !!currentSlide && !currentSlide.textbook_image_base64 && !(currentSlide.process_steps || []).length && !(currentSlide.comparison_points || []).length;
+
+  const loadSlideImage = async (idx: number, n: number) => {
+    const slide = realSlides[idx];
+    if (!slide?.title) return;
+    setImageBusy(true);
+    try {
+      const found = await api.slideImage(slide.title, n);
+      setRealSlides((prev) => prev.map((s, i) => i !== idx ? s : found.available
+        ? { ...s, image_url: found.url, image_thumb: found.thumb, image_credit: found.credit, image_n: n, no_image: false, image_missing: false }
+        : { ...s, image_url: undefined, image_thumb: undefined, image_missing: true }));
+      if (!found.available && n > 0) push("No more photos for this slide", "info");
+    } catch {
+      // the preview falls back to the designed panel
+    }
+    setImageBusy(false);
+  };
+
+  // Each slide gets its photo the first time it is looked at.
+  useEffect(() => {
+    if (!generated || outputType !== "ppt" || !imagesAvailable || !includeImages || !slideTakesPhoto) return;
+    if (currentSlide.image_url || currentSlide.no_image || currentSlide.image_missing) return;
+    loadSlideImage(slideIdx, 0);
+  }, [slideIdx, generated, imagesAvailable, includeImages, realSlides.length]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const removeSlideImage = () => setRealSlides((prev) => prev.map((s, i) => i === slideIdx ? { ...s, image_url: undefined, image_thumb: undefined, no_image: true } : s));
+
   const updateSlideField = (idx: number, field: "title" | "content", value: string) => {
     setRealSlides((prev) => prev.map((s, i) => i === idx ? { ...s, [field]: value } : s));
   };
@@ -194,7 +234,7 @@ export default function ContentGeneratorPage() {
   const downloadPPT = async () => {
     setExporting(true);
     try {
-      const blob = await api.exportPPT(activeGeneration?.label || "Presentation", realSlides, selectedStyleRefId || undefined);
+      const blob = await api.exportPPT(activeGeneration?.label || "Presentation", realSlides, selectedStyleRefId || undefined, { theme, includeImages });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url; a.download = `${activeGeneration?.label || "presentation"}.pptx`;
@@ -383,10 +423,78 @@ export default function ContentGeneratorPage() {
                     <Badge tone={chaptersDetected ? "success" : "warning"}>{chaptersDetected ? "Content detected" : "Fallback section"}</Badge>
                     <Badge tone="brand">{realSlides.length} of {plannedSlideCount || numSlides} slides generated</Badge>
                   </div>
-                  <div className="bg-gradient-to-br from-brand to-[#7A5FEA] rounded-xl p-6 mb-4">
-                    <input value={realSlides[slideIdx]?.title || ""} onChange={(e) => updateSlideField(slideIdx, "title", e.target.value)} className="w-full bg-transparent text-white text-xl font-bold font-display text-center mb-3 outline-none border-b border-white/20 focus:border-white/60 pb-2" />
-                    <textarea value={realSlides[slideIdx]?.content || ""} onChange={(e) => updateSlideField(slideIdx, "content", e.target.value)} rows={5} className="w-full bg-white/10 text-white text-sm rounded-lg p-3 outline-none resize-none placeholder-white/50" />
+                  <div className="flex items-center gap-3 flex-wrap mb-3">
+                    <div className="flex items-center gap-1.5" role="radiogroup" aria-label="Colour theme">
+                      <span className="text-xs text-muted mr-1">Theme</span>
+                      {(themes.length ? themes : [palette]).map((t) => (
+                        <button
+                          key={t.key}
+                          role="radio"
+                          aria-checked={theme === t.key}
+                          aria-label={`${t.label} theme`}
+                          title={t.label}
+                          onClick={() => setTheme(t.key)}
+                          className={`w-9 h-9 rounded-full flex items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-brand/50 ring-offset-2 ${theme === t.key ? "ring-2 ring-brand" : ""}`}
+                          style={{ backgroundColor: t.brand }}
+                        >
+                          {theme === t.key && <Check size={15} className="text-white" />}
+                        </button>
+                      ))}
+                    </div>
+                    <label className="flex items-center gap-2 text-xs text-ink min-h-[44px] cursor-pointer ml-auto">
+                      <input type="checkbox" checked={includeImages} onChange={(e) => setIncludeImages(e.target.checked)} className="w-5 h-5 accent-[#5B3FD9]" />
+                      Add photos to slides
+                    </label>
                   </div>
+                  {includeImages && !imagesAvailable && (
+                    <p className="text-xs text-muted mb-3">Stock photos aren't switched on for this server yet, so slides without a diagram use a designed panel in the theme colour.</p>
+                  )}
+                  {/* The slide as it will look in the file: always a light page, whatever the app theme. */}
+                  <div className="force-light rounded-xl overflow-hidden border border-gray-200 bg-white mb-4 shadow-soft">
+                    <div className="h-1.5" style={{ backgroundColor: palette.brand }} />
+                    <div className={`p-4 md:p-5 grid gap-4 ${includeImages && slideTakesPhoto && !currentSlide?.no_image ? "md:grid-cols-5" : ""}`}>
+                      <div className="md:col-span-3 min-w-0">
+                        <input aria-label="Slide title" value={currentSlide?.title || ""} onChange={(e) => updateSlideField(slideIdx, "title", e.target.value)} className="w-full bg-transparent text-lg md:text-xl font-bold font-display mb-2 outline-none border-b border-gray-200 focus:border-gray-400 pb-1.5" style={{ color: palette.dark }} />
+                        <textarea aria-label="Slide content" value={currentSlide?.content || ""} onChange={(e) => updateSlideField(slideIdx, "content", e.target.value)} rows={7} className="w-full bg-gray-50 text-ink text-sm rounded-lg p-3 outline-none resize-y focus:ring-2 focus:ring-brand/20" />
+                      </div>
+                      {includeImages && slideTakesPhoto && !currentSlide?.no_image && (
+                        <div className="md:col-span-2 min-w-0">
+                          {currentSlide?.image_thumb ? (
+                            <figure>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img src={currentSlide.image_thumb} alt={`Photo for ${currentSlide.title}`} className="w-full aspect-[4/3] object-cover rounded-lg border border-gray-200" />
+                              <figcaption className="text-[10px] text-muted text-right mt-1">Photo: {currentSlide.image_credit} / Pexels</figcaption>
+                            </figure>
+                          ) : (
+                            <div className="relative w-full aspect-[4/3] rounded-xl overflow-hidden p-4 flex flex-col justify-end" style={{ backgroundColor: palette.light }}>
+                              <span className="absolute top-3 right-3 w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-bold" style={{ backgroundColor: palette.brand }}>{String(slideIdx + 1).padStart(2, "0")}</span>
+                              <span className="absolute top-5 left-4 w-10 h-1 rounded" style={{ backgroundColor: palette.brand }} />
+                              <span className="text-[10px] font-bold tracking-wide" style={{ color: palette.dark }}>{currentSlide?.diagram_description ? "PICTURE THIS" : "IN FOCUS"}</span>
+                              <span className="text-xs text-ink line-clamp-4 mt-1">{imageBusy ? "Finding a photo…" : currentSlide?.diagram_description || currentSlide?.title}</span>
+                            </div>
+                          )}
+                          <div className="flex gap-2 mt-2">
+                            {imagesAvailable && (
+                              <button onClick={() => loadSlideImage(slideIdx, currentSlide?.image_url ? (currentSlide.image_n || 0) + 1 : 0)} disabled={imageBusy} className="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[40px] rounded-lg text-xs font-semibold text-brand bg-brand-50 hover:bg-brand-light disabled:opacity-50">
+                                <Shuffle size={13} /> {currentSlide?.image_url ? "Another photo" : "Find a photo"}
+                              </button>
+                            )}
+                            <button onClick={removeSlideImage} className="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[40px] rounded-lg text-xs font-semibold text-muted bg-gray-50 hover:bg-gray-100">
+                              <ImageOff size={13} /> Text only
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    {currentSlide?.core_takeaway && (
+                      <div className="mx-4 md:mx-5 mb-4 rounded-lg px-3 py-2 text-xs" style={{ backgroundColor: palette.light, color: palette.dark }}><span className="font-bold">Key takeaway: </span>{currentSlide.core_takeaway}</div>
+                    )}
+                  </div>
+                  {includeImages && slideTakesPhoto && currentSlide?.no_image && (
+                    <button onClick={() => { setRealSlides((prev) => prev.map((s, i) => i === slideIdx ? { ...s, no_image: false, image_missing: false } : s)); }} className="inline-flex items-center gap-1.5 min-h-[40px] text-xs font-semibold text-brand hover:underline mb-2">
+                      <ImagePlus size={13} /> Give this slide a picture panel
+                    </button>
+                  )}
                   <div className="flex items-center justify-between">
                     <button onClick={() => setSlideIdx((i) => Math.max(0, i - 1))} disabled={slideIdx === 0} className="p-2 rounded-lg hover:bg-gray-100 disabled:opacity-30"><ChevronLeft size={18} /></button>
                     <span className="text-xs text-muted">Slide {slideIdx + 1} of {realSlides.length}</span>

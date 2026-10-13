@@ -10,7 +10,7 @@ import { AskAIBar } from "@/components/ui/AskAI";
 import { AIInsightCard } from "@/components/ui/AIInsightCard";
 import { useToast } from "@/components/ui/Toaster";
 import { motion } from "framer-motion";
-import { GraduationCap, CalendarCheck, Star, Award, AlertCircle, Calendar, Trophy, UserPlus, FileEdit, MessageSquare, Briefcase, Users, Inbox } from "lucide-react";
+import { GraduationCap, CalendarCheck, Star, Award, AlertCircle, Calendar, Trophy, UserPlus, FileEdit, MessageSquare, Briefcase, Users, Inbox, Megaphone } from "lucide-react";
 import { LoadError, EmptyState } from "@/components/ui/States";
 import { useRouter } from "next/navigation";
 import { api, consumeJustLoggedIn } from "@/lib/api";
@@ -63,6 +63,8 @@ export default function StudentDashboard() {
   const [showAttendance, setShowAttendance] = useState(false);
   const [deadlines, setDeadlines] = useState<any[] | null>(null);
   const [celebrate, setCelebrate] = useState(false);
+  const [placement, setPlacement] = useState<any>(null);
+  const [notices, setNotices] = useState<any[] | null>(null);
 
   // Every achievement on record — the student's own added achievements plus the
   // certificate/proof files on their record, i.e. exactly what the Achievements
@@ -80,7 +82,12 @@ export default function StudentDashboard() {
   useEffect(() => {
     api.excellenceScore().then(setExcellence).catch(() => {});
     api.myAttendance().then(setAttendance).catch(() => {});
-    api.studentNotes().then((d) => setDeadlines(d.deadlines || [])).catch(() => setDeadlines([]));
+    // Own deadlines and the ones teachers set, together.
+    api.studentCalendar()
+      .then((c) => setDeadlines((c.events || []).filter((e: any) => !e.done).map((e: any) => ({ id: e.id, title: e.title, subject: e.subject, due_date: e.date, mine: e.source === "mine" }))))
+      .catch(() => setDeadlines([]));
+    api.myPlacement().then(setPlacement).catch(() => setPlacement({ failed: true }));
+    api.announcements().then((a) => setNotices(a.slice(0, 3))).catch(() => setNotices([]));
   }, []);
 
   const loadProfile = () => {
@@ -242,9 +249,73 @@ export default function StudentDashboard() {
           </div>
         )}
 
+        <div className="grid lg:grid-cols-2 gap-6">
+          <Card hover>
+            <SectionTitle title="My Placements & Internships" action={<button onClick={() => router.push("/student/placement")} className="text-xs font-semibold text-brand hover:underline min-h-[44px] px-2">View all</button>} />
+            {placement === null ? (
+              <div className="text-xs text-muted py-4 text-center">Loading...</div>
+            ) : placement.failed ? (
+              <p className="text-sm text-muted py-4 text-center">Couldn't load your placement record just now.</p>
+            ) : (placement.placements || []).length === 0 && (placement.internships || []).length === 0 ? (
+              <div className="text-center py-6">
+                <Briefcase size={22} className="text-muted mx-auto mb-2 opacity-50" />
+                <p className="text-sm text-muted">No offers or internships recorded yet.</p>
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {(placement.placements || []).slice(0, 3).map((o: any) => (
+                  <li key={`p-${o.id}`} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50">
+                    <div className="w-9 h-9 rounded-lg bg-success/10 flex items-center justify-center shrink-0"><Briefcase size={16} className="text-success" /></div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium text-ink truncate">{o.company}</div>
+                      <div className="text-xs text-muted truncate">{[o.offer_type === "full-time" ? "Full-time offer" : o.offer_type, o.status].filter(Boolean).join(" · ")}</div>
+                    </div>
+                    {o.ctc && <span className="text-sm font-bold text-ink numeric shrink-0">{o.ctc}</span>}
+                  </li>
+                ))}
+                {(placement.internships || []).slice(0, 2).map((i: any) => (
+                  <li key={`i-${i.id}`} className="flex items-center gap-3 p-2.5 rounded-xl bg-gray-50">
+                    <div className="w-9 h-9 rounded-lg bg-brand-light flex items-center justify-center shrink-0"><Briefcase size={16} className="text-brand" /></div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-sm font-medium text-ink truncate">{i.company}</div>
+                      <div className="text-xs text-muted truncate">Internship{i.status ? ` · ${i.status}` : ""}</div>
+                    </div>
+                    {i.stipend_per_month != null && <span className="text-sm font-bold text-ink numeric shrink-0">₹{Number(i.stipend_per_month).toLocaleString("en-IN")}/mo</span>}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+          <Card hover>
+            <SectionTitle title="Announcements" action={<button onClick={() => router.push("/student/announcements")} className="text-xs font-semibold text-brand hover:underline min-h-[44px] px-2">View all</button>} />
+            {notices === null ? (
+              <div className="text-xs text-muted py-4 text-center">Loading...</div>
+            ) : notices.length === 0 ? (
+              <div className="text-center py-6">
+                <Megaphone size={22} className="text-muted mx-auto mb-2 opacity-50" />
+                <p className="text-sm text-muted">No announcements yet.</p>
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {notices.map((a: any) => (
+                  <li key={a.id}>
+                    <button onClick={() => router.push("/student/announcements")} className="w-full text-left flex items-center gap-3 p-2.5 rounded-xl hover:bg-gray-50 transition-colors">
+                      <div className="w-9 h-9 rounded-lg bg-brand-light flex items-center justify-center shrink-0"><Megaphone size={16} className="text-brand" /></div>
+                      <div className="min-w-0">
+                        <div className="text-sm font-medium text-ink truncate">{a.title}</div>
+                        <div className="text-xs text-muted truncate">{a.author_name} · {a.created_at?.slice(0, 10)}</div>
+                      </div>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Card>
+        </div>
+
         <div className="grid lg:grid-cols-3 gap-6">
           <Card hover>
-            <SectionTitle title="Upcoming Events" subtitle="From your teachers' deadlines" />
+            <SectionTitle title="Due soon" subtitle="Your deadlines and your teachers'" />
             <div className="space-y-3">
               {deadlines === null && <div className="text-xs text-muted py-4 text-center">Loading...</div>}
               {deadlines !== null && upcomingDeadlines.length === 0 && (
@@ -258,7 +329,7 @@ export default function StudentDashboard() {
                   <div className="w-9 h-9 rounded-lg bg-brand-light flex items-center justify-center shrink-0"><Calendar size={16} className="text-brand" /></div>
                   <div className="min-w-0">
                     <div className="text-sm font-medium text-ink truncate">{e.title}</div>
-                    <div className="text-xs text-muted">{e.subject ? `${e.subject} · ` : ""}{e.due_date}</div>
+                    <div className="text-xs text-muted">{e.subject ? `${e.subject} · ` : ""}{e.due_date}{e.mine ? " · Mine" : ""}</div>
                   </div>
                 </motion.div>
               ))}
