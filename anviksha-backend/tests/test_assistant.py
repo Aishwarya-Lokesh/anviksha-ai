@@ -256,3 +256,13 @@ def test_a_throttled_or_failing_model_gives_a_clear_message(client, placed, monk
     # the failed turn is still recorded, so the chat does not silently lose it
     cid = events[0][1]["conversation_id"]
     assert [x["role"] for x in client.get(f"/assistant/conversations/{cid}", headers=placed["h"]["s1"]).json()["messages"]] == ["user", "assistant"]
+
+
+def test_the_assistant_is_told_to_stay_on_academic_ground(client, campus):  # noqa: F811
+    from app.core import assistant
+    db = campus["db"]
+    for login in db.query(m.User).all():
+        prompt = assistant.system_prompt(db, login)
+        assert assistant.OUT_OF_SCOPE in prompt and "{OUT_OF_SCOPE}" not in prompt
+        assert "places, travel, directions" in prompt and "General knowledge" not in prompt
+        assert "explaining a topic from a course" in prompt          # study and teaching help stays in
