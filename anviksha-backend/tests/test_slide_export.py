@@ -102,7 +102,7 @@ def test_either_photo_service_can_be_used(monkeypatch):
     def fake_get(url, params=None, headers=None, timeout=None, **_):
         calls.append((url, params, headers))
         if "pixabay" in url:
-            return Reply({"hits": [{"largeImageURL": "https://pixabay.com/get/big.jpg", "webformatURL": "https://pixabay.com/get/small.jpg", "user": "Meera", "pageURL": "https://pixabay.com/photos/1", "tags": "network, cable"}]})
+            return Reply({"hits": [{"largeImageURL": "https://pixabay.com/get/big.jpg", "webformatURL": "https://pixabay.com/get/small.jpg", "previewURL": "https://cdn.pixabay.com/photo/2020/01/02/cable-1_150.jpg", "user": "Meera", "pageURL": "https://pixabay.com/photos/1", "tags": "network, cable"}]})
         return Reply({"photos": [{"src": {"large": "https://images.pexels.com/photos/1/large.jpeg", "medium": "https://images.pexels.com/photos/1/medium.jpeg"}, "photographer": "Asha Rao", "photographer_url": "https://www.pexels.com/@asha", "alt": "cables"}]})
 
     monkeypatch.setattr(slide_images.httpx, "get", fake_get)
@@ -113,7 +113,7 @@ def test_either_photo_service_can_be_used(monkeypatch):
 
     monkeypatch.setenv("PIXABAY_API_KEY", "pix-key")
     found = slide_images.search("network cable")
-    assert (found["url"], found["thumb"], found["credit"]) == ("https://pixabay.com/get/big.jpg", "https://pixabay.com/get/small.jpg", "Meera / Pixabay")
+    assert (found["url"], found["thumb"], found["credit"]) == ("https://cdn.pixabay.com/photo/2020/01/02/cable-1_1280.jpg", "https://cdn.pixabay.com/photo/2020/01/02/cable-1_640.jpg", "Meera / Pixabay")
     assert calls[-1][1]["key"] == "pix-key" and calls[-1][1]["safesearch"] == "true" and slide_images.allowed_url(found["url"])
     assert slide_images.search("network cable", 5) is None and len(calls) == 1          # answered from memory, no second request
 

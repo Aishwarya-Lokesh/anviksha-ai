@@ -80,8 +80,15 @@ def _pixabay(query: str, key: str) -> list[Optional[dict]]:
     r.raise_for_status()
     out = []
     for p in r.json().get("hits") or []:
-        url = p.get("largeImageURL") or p.get("webformatURL")
-        out.append({"url": url, "thumb": p.get("webformatURL") or url, "credit": f"{p.get('user') or 'Pixabay'} / Pixabay",
+        # Pixabay's own download links refuse requests from hosting providers
+        # (HTTP 429), so the same photo is taken from its image network, whose
+        # address is the small preview's with the size changed.
+        preview = str(p.get("previewURL") or "")
+        if preview.startswith("https://cdn.pixabay.com/") and "_150." in preview:
+            url, thumb = preview.replace("_150.", "_1280."), preview.replace("_150.", "_640.")
+        else:
+            url, thumb = p.get("largeImageURL") or p.get("webformatURL"), p.get("webformatURL")
+        out.append({"url": url, "thumb": thumb or url, "credit": f"{p.get('user') or 'Pixabay'} / Pixabay",
                     "credit_url": p.get("pageURL") or "https://pixabay.com", "alt": p.get("tags") or query} if url else None)
     return out
 
@@ -148,13 +155,9 @@ def fetch(url: str) -> Optional[bytes]:
         last_fetch_problem = "the photo link is not from a photo service"
         return None
     try:
-        # A redirect is followed only while it stays on a photo service's own host.
-        for _ in range(3):
-            r = httpx.get(url, timeout=TIMEOUT, follow_redirects=False, headers={"User-Agent": "Mozilla/5.0 (compatible; AnvikshaSlides/1.0)", "Accept": "image/*"})
-            if r.status_code in (301, 302, 303, 307, 308) and allowed_url(str(r.headers.get("location") or "")):
-                url = r.headers["location"]
-                continue
-            break
+        r = _download(url)
+        if r.status_code == 404 and "cdn.pixabay.com" in url and "_1280." in url:
+            r = _download(url.replace("_1280.", "_640."))      # a few photos have no large version
         r.raise_for_status()
     except httpx.HTTPStatusError as exc:
         last_fetch_problem = f"the photo service answered HTTP {exc.response.status_code} for the image"
@@ -169,6 +172,19 @@ def fetch(url: str) -> Optional[bytes]:
         return None
     last_fetch_problem = None
     return data
+
+
+def _download(url: str) -> httpx.Response:
+    """One image request. A redirect is followed only while it stays on a photo service's own host."""
+    response = None
+    for _ in range(3):
+        response = httpx.get(url, timeout=TIMEOUT, follow_redirects=False, headers={"User-Agent": "Mozilla/5.0 (compatible; AnvikshaSlides/1.0)", "Accept": "image/*"})
+        target = str(response.headers.get("location") or "")
+        if response.status_code in (301, 302, 303, 307, 308) and allowed_url(target):
+            url = target
+            continue
+        break
+    return response
 
 
 def images_for(slides: list[dict], topic: str = "") -> dict[int, dict]:
