@@ -1,0 +1,27 @@
+name: Keep backend awake
+
+# The backend's free hosting plan puts the server to sleep after 15 minutes
+# without a visit, and the next visitor then waits about a minute. This asks
+# the server "are you up?" every 10 minutes so it never gets that far.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: keep-backend-awake
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Ask the backend whether it is up
+        run: |
+          # A sleeping server can take a minute to answer, so be patient and retry.
+          curl --silent --show-error --fail --max-time 90 --retry 2 --retry-delay 10 --retry-all-errors \
+            --output /dev/null --write-out "health answered %{http_code} in %{time_total}s\n" \
+            https://anviksha-backend.onrender.com/health
