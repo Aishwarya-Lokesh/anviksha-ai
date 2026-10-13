@@ -156,7 +156,7 @@ def fetch(url: str) -> Optional[bytes]:
         return None
     try:
         r = _download(url)
-        if r.status_code == 404 and "cdn.pixabay.com" in url and "_1280." in url:
+        if r.status_code in (403, 404) and "cdn.pixabay.com" in url and "_1280." in url:
             r = _download(url.replace("_1280.", "_640."))      # a few photos have no large version
         r.raise_for_status()
     except httpx.HTTPStatusError as exc:
