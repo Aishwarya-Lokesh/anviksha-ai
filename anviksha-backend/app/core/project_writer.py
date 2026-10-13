@@ -27,7 +27,7 @@ CHAPTERS: list[dict] = [
                    ("objectives", "Objectives", "List the objectives, one per line.", True),
                    ("scope", "Scope", "What is included, and what is deliberately left out?", False),
                    ("existing_system", "Existing system and its limitations", "How is this done today, and what is wrong with that?", False)]},
-    {"key": "literature", "title": "Literature Survey", "words": ["literature", "survey", "related work", "review", "existing", "paper", "study", "proposed by", "et al"],
+    {"key": "literature", "title": "Literature Survey", "words": ["literature survey", "literature review", "related work", "et al", "proposed by", "published", "journal", "conference"],
      "questions": [("literature", "Papers or systems you studied", "For each: authors and year, what they did, and what it lacked. Only works you actually read.", True)]},
     {"key": "requirements", "title": "System Requirements", "words": ["requirement", "hardware", "software", "functional", "non-functional", "specification", "srs"],
      "questions": [("software_requirements", "Software requirements", "Languages, frameworks, database, tools, operating system.", True),
@@ -48,6 +48,15 @@ CHAPTERS: list[dict] = [
                    ("future_scope", "Future scope", "What could be added or improved next.", False)]},
 ]
 BY_KEY = {c["key"]: c for c in CHAPTERS}
+# Chapters that are only as good as what the student actually did: for these the
+# student's own answer is required, however much the uploaded files say elsewhere.
+STRICT = {"literature": 500, "testing": 250, "results": 250}
+# Where a screenshot or diagram can belong. A picture is never dropped into the
+# introduction or the requirements just because it exists.
+PICTURE_CHAPTERS = ("design", "implementation", "testing", "results")
+WORD_NUMBER = r"(?:one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty|thirty|forty|fifty|sixty|seventy|eighty|ninety|hundred)"
+SPELLED_CLAIM = re.compile(rf"\b{WORD_NUMBER}(?:[\s-]+{WORD_NUMBER})*\s+(?:percent|per\s+cent)\b|\bpercentage\s+of\s+{WORD_NUMBER}", re.IGNORECASE)
+NUMBERED_REF = re.compile(r"\b(?:in|by|see|from)?\s*\(?\b(Table|Fig(?:ure)?)\.?\s+\d+(?:\.\d+)?\)?", re.IGNORECASE)
 GLOBAL_QUESTIONS = [("references", "References", "One per line, complete (authors, title, where published, year). Only sources you actually used.", False)]
 NUMBER_CLAIM = re.compile(r"\d+(?:\.\d+)?\s?%|\b\d+\.\d+\b")
 EXCERPT_BUDGET = 9000
@@ -132,7 +141,8 @@ def readiness(plan: list[dict], answers: dict, materials: list[dict]) -> list[di
         support = len(excerpts(materials, _words_for(chapter["key"], chapter["title"]), budget=4000))
         required_missing = [q[1] for q in qs if q[3] and len(own[q[0]]) < 25]
         answered = sum(len(v) for v in own.values())
-        if not required_missing or support >= 700:
+        enough_in_files = support >= STRICT.get(chapter["key"], 700)
+        if not required_missing or enough_in_files:
             status = "ready"
         elif answered >= 40 or support >= 200:
             status = "thin"
@@ -146,7 +156,7 @@ def readiness(plan: list[dict], answers: dict, materials: list[dict]) -> list[di
 
 # ------------------------------------------------------------------ the model
 
-def _default_complete(prompt: str, max_tokens: int = 3500) -> str:
+def _default_complete(prompt: str, max_tokens: int = 7000) -> str:
     try:
         from groq import Groq
     except ImportError as exc:
@@ -191,27 +201,37 @@ RULES = """Rules you must follow without exception:
 - Never invent results, accuracy figures, measurements, test cases, dataset sizes, team members, tools that are not mentioned, or references.
 - Do not cite sources. Do not write citation marks like [1]. Do not name papers or authors that are not in the student's text.
 - If the material does not support something the chapter normally contains, leave it out and add a short question for the student to "missing".
+- Do not work out new figures from the student's numbers: no percentages, averages, totals or rates that the student did not state. Write numbers as digits, exactly as given.
+- Do not judge the work ("high accuracy", "reliable", "eliminates") beyond what the student says happened.
+- Write only what belongs in THIS chapter. The other chapters of the report are listed below; do not restate their content.
+- Do not refer to a figure or table by number. Say "the figure below" or "the table below".
 - Formal academic English for an engineering project report, third person, no first-person "I". Use the project's own terms consistently.
 - Do not repeat the chapter title as a heading. Do not number headings."""
 
 
 def write_chapter(chapter: dict, details: dict, answers: dict, materials: list[dict], images: list[dict], tables: list[dict],
-                  complete: Callable[..., str], instruction: str = "", previous: Optional[list[dict]] = None) -> dict:
+                  complete: Callable[..., str], instruction: str = "", previous: Optional[list[dict]] = None, others: Optional[list[str]] = None) -> dict:
     """One chapter as blocks, written from the student's material only."""
     key, title = chapter["key"], chapter["title"]
     qs = questions_for(key, title)
     own = "\n".join(f"{q[1]}:\n{str(answers.get(q[0]) or '').strip()}" for q in qs if str(answers.get(q[0]) or "").strip())
     support = excerpts(materials, _words_for(key, title), own)
-    if len(own) < 25 and len(support) < 200:
+    if len(own) < 25 and len(support) < max(200, STRICT.get(key, 0)):
         return {"blocks": [], "missing": [q[1] for q in qs if q[3]], "removed": [], "skipped": True}
+    if key not in PICTURE_CHAPTERS and key in BY_KEY:
+        images = []
+    elif key != "design":
+        images = [i for i in images if i.get("source") != "generated"]        # the module diagram belongs to the design chapter
     image_lines = "\n".join(f"IMG{i['id']}: {i.get('caption') or i.get('name')}" for i in images) or "(none)"
-    table_lines = "\n".join(f"TBL{n}: {t.get('caption') or 'table'} | columns: {', '.join(t['rows'][0][:6])}" for n, t in enumerate(tables, start=1)) or "(none)"
+    table_lines = "\n".join(f"TBL{n}: {t.get('caption') or 'table'}\n" + "\n".join("   " + " | ".join(r[:6]) for r in t["rows"][:8])
+                            for n, t in enumerate(tables, start=1)) or "(none)"
     prompt = f"""You are helping an engineering student write the chapter "{title}" of their project report.
 
 {RULES}
 
 PROJECT: {details.get('title') or ''}
 DOMAIN: {details.get('domain') or 'not stated'} | TECHNOLOGY: {details.get('tech_stack') or 'not stated'}
+OTHER CHAPTERS OF THE REPORT (not yours to write): {', '.join(others) if others else 'none'}
 
 STUDENT'S ANSWERS:
 {own or '(none for this chapter)'}
@@ -222,7 +242,7 @@ STUDENT'S MATERIAL (excerpts):
 PICTURES THE STUDENT SUPPLIED (place one only where this chapter discusses what it shows):
 {image_lines}
 
-TABLES FROM THE STUDENT'S FILES (place one only if it belongs in this chapter; its rows are copied in for you):
+TABLES FROM THE STUDENT'S FILES (place one only in the chapter that discusses its data; its rows are copied in for you, so do not retype them):
 {table_lines}
 {('CURRENT TEXT OF THE CHAPTER (revise it as instructed, keeping what is correct):' + chr(10) + _plain(previous)) if previous else ''}
 {('THE STUDENT ASKS: ' + instruction.strip()[:500]) if instruction.strip() else ''}
@@ -266,7 +286,8 @@ def strip_unsupported(text: str, known: set[str]) -> tuple[str, list[str]]:
     for sentence in re.split(r"(?<=[.!?])\s+", text or ""):
         claims = [re.sub(r"\s", "", c).rstrip("%").rstrip("0").rstrip(".") or "0" for c in NUMBER_CLAIM.findall(sentence)]
         cited = re.search(r"\[\d+\]|\bet al\b", sentence)
-        if any(c not in known for c in claims) or cited:
+        spelled = SPELLED_CLAIM.search(sentence)                # "ninety-two percent": a figure written out to the same effect
+        if any(c not in known for c in claims) or cited or spelled:
             removed.append(sentence.strip())
         else:
             kept.append(sentence)
@@ -283,7 +304,7 @@ def clean_blocks(raw: list, corpus: str, images: list[dict], tables: list[dict])
         if kind == "heading" and str(b.get("text") or "").strip():
             out.append({"type": "heading", "level": 3 if b.get("level") == 3 else 2, "text": re.sub(r"^\s*\d+(\.\d+)*\.?\s+", "", str(b["text"])).strip()[:120]})
         elif kind == "para":
-            text, gone = strip_unsupported(str(b.get("text") or ""), known)
+            text, gone = strip_unsupported(_unnumber(str(b.get("text") or "")), known)
             removed.extend(gone)
             if len(text) > 20:
                 out.append({"type": "para", "text": text})
@@ -304,10 +325,21 @@ def clean_blocks(raw: list, corpus: str, images: list[dict], tables: list[dict])
             m = re.match(r"TBL(\d+)$", str(b.get("table") or "").upper())
             if m and 1 <= int(m.group(1)) <= len(tables):
                 source = tables[int(m.group(1)) - 1]
-                out.append({"type": "table", "caption": (source.get("caption") or str(b.get("caption") or "")).strip()[:140], "rows": source["rows"]})
+                # the caption may be the model's (it only names what the table is); the rows are always the student's
+                caption = str(b.get("caption") or "").strip() or str(source.get("caption") or "").strip().capitalize()
+                out.append({"type": "table", "caption": caption[:140], "rows": source["rows"], "source_table": int(m.group(1))})
     while out and out[-1]["type"] == "heading":          # a heading with nothing under it
         out.pop()
     return out, removed
+
+
+def _unnumber(text: str) -> str:
+    """ "as shown in Table 1" -> "as shown in the table below": the report numbers its own figures and tables."""
+    def swap(m):
+        lead = m.group(0)[: m.start(1) - m.start(0)].replace("(", "")
+        return f"{lead}the {'table' if m.group(1).lower() == 'table' else 'figure'} below"
+    text = re.sub(r"\s*\((?:see\s+)?(?:Table|Fig(?:ure)?)\.?\s+\d+(?:\.\d+)?\)", "", text, flags=re.IGNORECASE)      # "(Figure 4)" simply goes
+    return NUMBERED_REF.sub(swap, text)
 
 
 def acknowledgement(details: dict) -> list[str]:
@@ -337,7 +369,11 @@ Return ONLY JSON: {{"abstract": "..."}}
 
 REPORT TEXT:
 {body}"""
-    text, removed = strip_unsupported(str(_json(complete(prompt, max_tokens=700)).get("abstract") or ""), _digits(corpus + " " + body))
+    known, text, removed = _digits(corpus + " " + body), "", []
+    for _ in range(2):                                   # an empty answer is asked for once more
+        text, removed = strip_unsupported(str(_json(complete(prompt, max_tokens=3000)).get("abstract") or ""), known)
+        if len(text) > 80:
+            break
     return ([text] if len(text) > 80 else []), removed
 
 
@@ -362,25 +398,22 @@ def _short(text: str, words: int = 16) -> str:
 
 def fallback_slides(chapter: dict) -> list[dict]:
     """Slides taken straight from a chapter's own sentences, used when the model is not available."""
-    slides, current = [], None
+    points, notes, image = [], [], None
     for b in chapter.get("blocks") or []:
-        if b["type"] == "heading" and b.get("level", 2) == 2:
-            current = {"title": b["text"], "bullets": [], "notes": ""}
-            slides.append(current)
-            continue
-        if current is None:
-            current = {"title": chapter["title"], "bullets": [], "notes": ""}
-            slides.append(current)
         if b["type"] == "para":
-            first = re.split(r"(?<=[.!?])\s+", b["text"])[0]
-            current["bullets"].append(_short(first))
-            current["notes"] = (current["notes"] + " " + b["text"]).strip()[:900]
+            points.append(_short(re.split(r"(?<=[.!?])\s+", b["text"])[0]))
+            notes.append(b["text"])
         elif b["type"] == "bullets":
-            current["bullets"].extend(_short(i) for i in b["items"])
-        elif b["type"] == "figure" and "image_id" not in current:
-            current["image_id"] = b["image_id"]
-    merged = [s for s in slides if s["bullets"] or s.get("image_id") is not None]
-    return merged[:3] if merged else []
+            points.extend(_short(i) for i in b["items"][:4])
+        elif b["type"] == "figure" and image is None:
+            image = b["image_id"]
+    slides = []
+    for n in range(0, min(len(points), 10), 5):
+        slide = {"title": chapter["title"], "bullets": points[n: n + 5], "notes": " ".join(notes[n: n + 5])[:900]}
+        slides.append(slide)
+    if image is not None and slides:
+        slides[-1]["image_id"] = image
+    return slides
 
 
 def write_slides(chapters: list[dict], details: dict, references: list[str], complete: Optional[Callable[..., str]], corpus: str = "") -> tuple[list[dict], list[str]]:
@@ -393,7 +426,7 @@ def write_slides(chapters: list[dict], details: dict, references: list[str], com
     for chapter in written:
         made = []
         if complete is not None:
-            prompt = f"""Turn this chapter of a project report into 1 to 3 presentation slides.
+            prompt = f"""Turn this chapter of a project report into 1 or 2 presentation slides.
 Use ONLY the chapter text. Do not add facts, figures or claims. No citations.
 Each slide: a short title, 3 to 5 bullets of at most 14 words each (phrases, not sentences), and speaker notes of 2 to 4 sentences taken from the chapter.
 Return ONLY JSON: {{"slides": [{{"title": "...", "bullets": ["..."], "notes": "..."}}]}}
@@ -402,7 +435,7 @@ CHAPTER: {chapter['title']}
 {_plain(chapter['blocks'])}"""
             try:
                 known = _digits(corpus + " " + _plain(chapter["blocks"]))
-                for s in (_json(complete(prompt, max_tokens=1200)).get("slides") or [])[:3]:
+                for s in (_json(complete(prompt, max_tokens=3500)).get("slides") or [])[:2]:
                     bullets = []
                     for item in (s.get("bullets") or [])[:6]:
                         text, gone = strip_unsupported(str(item), known)

@@ -261,16 +261,27 @@ def split_bullets(bullets: list[str], lines: int, chars: int) -> list[list[str]]
                 prepared.append(piece)
         else:
             prepared.append(text)
-    pages, current, used = [], [], 0
-    for text in prepared:
-        need = _lines_needed(text, chars)
-        if current and used + need > lines:
+    def share(limit: int) -> list[list[str]]:
+        pages, current, used = [], [], 0
+        for text in prepared:
+            need = _lines_needed(text, chars)
+            if current and used + need > limit:
+                pages.append(current)
+                current, used = [], 0
+            current.append(text)
+            used += need
+        if current or not pages:
             pages.append(current)
-            current, used = [], 0
-        current.append(text)
-        used += need
-    if current or not pages:
-        pages.append(current)
+        return pages
+
+    pages = share(lines)
+    if len(pages) > 1:
+        # same number of slides, but evenly filled: not a full slide followed by one lonely point
+        total = sum(_lines_needed(t, chars) for t in prepared)
+        for limit in range(math.ceil(total / len(pages)), lines + 1):
+            even = share(limit)
+            if len(even) == len(pages):
+                return even
     return pages
 
 

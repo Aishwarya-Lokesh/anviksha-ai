@@ -115,19 +115,41 @@ def _generate(db: Session, job: ProjectJob, project: StudentProject) -> None:
             g["images"].append({"id": row.id, "name": row.name, "caption": row.caption, "source": "generated", "path": path})
 
     corpus = " ".join([json.dumps(details), json.dumps(answers)] + [m["text"] for m in g["materials"]])
-    chapters, warnings, used_images = [], [], set()
+    chapters, warnings, used_images, used_tables = [], [], set(), set()
+    titles = [c["title"] for c in g["plan"]]
     for n, chapter in enumerate(g["plan"], start=1):
         _progress(db, job, f"Writing Chapter {n}: {chapter['title']}", 5 + int(50 * (n - 1) / max(len(g['plan']), 1)))
         free = [i for i in g["images"] if i["id"] not in used_images]
-        out = pw.write_chapter(chapter, details, answers, g["materials"], free, g["tables"], complete)
+        out = pw.write_chapter(chapter, details, answers, g["materials"], free, g["tables"], complete, others=[t for t in titles if t != chapter["title"]])
+        kept = []
         for b in out["blocks"]:
             if b["type"] == "figure":
+                if b["image_id"] in used_images:
+                    continue
                 used_images.add(b["image_id"])
+            kept.append(b)
+        out["blocks"] = kept
         chapters.append({"key": chapter["key"], "title": chapter["title"], "blocks": out["blocks"], "missing": out["missing"], "skipped": out["skipped"]})
         for sentence in out["removed"]:
             warnings.append(f"Removed from \"{chapter['title']}\" because it states a figure or citation that is not in your material: {sentence[:160]}")
+    # Each of the student's tables appears once. If several chapters asked for the
+    # same one, it goes where data belongs: results first, then testing.
+    preference = {"results": 0, "testing": 1, "implementation": 2, "design": 3}
+    wanted: dict = {}
+    for c in chapters:
+        for b in c["blocks"]:
+            if b["type"] == "table":
+                rank = preference.get(c["key"], 4)
+                if b.get("source_table") not in wanted or rank < wanted[b.get("source_table")][0]:
+                    wanted[b.get("source_table")] = (rank, c["key"])
+    for c in chapters:
+        c["blocks"] = [{k: v for k, v in b.items() if k != "source_table"} for b in c["blocks"]
+                       if b["type"] != "table" or wanted[b.get("source_table")][1] == c["key"]]
+    del used_tables
     _progress(db, job, "Writing the abstract", 58)
     abstract, removed = pw.write_abstract(details, chapters, corpus, complete)
+    if not abstract:
+        warnings.append("The abstract could not be written this time. Write it yourself in step 5, or choose \"Write everything again\".")
     warnings.extend(f"Removed from the abstract (figure not in your material): {s[:160]}" for s in removed)
     references = pw.clean_references(answers.get("references"))
     _progress(db, job, "Preparing the slides", 63)
@@ -161,7 +183,7 @@ Return ONLY JSON: {{"title": "...", "bullets": ["..."], "notes": "..."}}
 
 SOURCE TEXT:
 {source[:6000]}"""
-        data = pw._json(complete(prompt, max_tokens=900))
+        data = pw._json(complete(prompt, max_tokens=3000))
         known = pw._digits(corpus + " " + source)
         bullets = [t for t, _ in (pw.strip_unsupported(str(b), known) for b in (data.get("bullets") or [])[:6]) if t]
         if not bullets:
@@ -179,7 +201,9 @@ SOURCE TEXT:
     _progress(db, job, f"Rewriting \"{chapter['title']}\"", 30)
     used_elsewhere = {b["image_id"] for c in chapters if c is not chapter for b in c.get("blocks") or [] if b.get("type") == "figure"}
     out = pw.write_chapter({"key": key, "title": chapter["title"]}, g["details"], g["answers"], g["materials"],
-                           [i for i in g["images"] if i["id"] not in used_elsewhere], g["tables"], complete, instruction=instruction, previous=chapter.get("blocks"))
+                           [i for i in g["images"] if i["id"] not in used_elsewhere], g["tables"], complete, instruction=instruction, previous=chapter.get("blocks"),
+                           others=[c["title"] for c in chapters if c is not chapter])
+    out["blocks"] = [{k: v for k, v in b.items() if k != "source_table"} for b in out["blocks"]]
     if out["skipped"] or not out["blocks"]:
         raise pw.NeedsModel(f"There is not enough of your own material to write \"{chapter['title']}\". Answer its questions first: {', '.join(out['missing']) or 'see the section questions'}.")
     chapter.update(blocks=out["blocks"], missing=out["missing"], skipped=False)

@@ -157,6 +157,10 @@ async function request(path: string, options: RequestInit = {}) {
     try {
       const detail = JSON.parse(body)?.detail;
       if (typeof detail === "string") error.detail = detail;
+      else if (detail && typeof detail === "object") {
+        error.detail = typeof detail.message === "string" ? detail.message : undefined;
+        (error as Error & { data?: unknown }).data = detail;
+      }
     } catch {
       // not JSON — no readable explanation to pass on
     }
@@ -188,6 +192,45 @@ async function upload(path: string, body: FormData) {
     throw error;
   }
   return res.json();
+}
+
+// A file that needs the signed-in person's token: returned as a blob with the
+// name the server gave it. Used for downloads and for pictures shown in a page.
+export async function fetchFile(path: string): Promise<{ blob: Blob; filename: string }> {
+  const headers: Record<string, string> = {};
+  if (getToken()) headers["Authorization"] = `Bearer ${getToken()}`;
+  const res = await fetchWithWake(`${API_BASE}${path}`, { headers }, true);
+  if (res.status === 401 && typeof window !== "undefined") {
+    clearAuth();
+    window.location.assign("/login?expired=1");
+    throw new Error("Your session has expired. Please sign in again.");
+  }
+  if (!res.ok) {
+    const error = new Error(`File ${path} failed: ${res.status}`) as Error & { status?: number; detail?: string };
+    error.status = res.status;
+    try {
+      const detail = (await res.json())?.detail;
+      if (typeof detail === "string") error.detail = detail;
+    } catch {
+      // no readable explanation to pass on
+    }
+    throw error;
+  }
+  const named = /filename="?([^";]+)"?/.exec(res.headers.get("Content-Disposition") || "");
+  return { blob: await res.blob(), filename: named ? named[1] : path.split("/").pop() || "download" };
+}
+
+export async function saveFile(path: string): Promise<string> {
+  const { blob, filename } = await fetchFile(path);
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+  return filename;
 }
 
 export const api = {
@@ -1423,6 +1466,82 @@ export const api = {
 
   globalSearch: (q: string) =>
     request(`/search?q=${encodeURIComponent(q)}`),
+
+  // ---- project report and presentation builder ----
+  projectFormats: () => request("/project-formats"),
+
+  projectFormat: (id: number) => request(`/project-formats/${id}`),
+
+  uploadProjectFormat: (file: File, fields: { kind: string; name: string; project_type?: string; batch?: string; department_id?: string }) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    for (const [k, v] of Object.entries(fields)) if (v) fd.append(k, v);
+    return upload("/project-formats", fd);
+  },
+
+  editProjectFormat: (id: number, payload: Record<string, unknown>) =>
+    request(`/project-formats/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+
+  projectFormatPages: (id: number) => request(`/project-formats/${id}/pages`),
+
+  deleteProjectFormat: (id: number) => request(`/project-formats/${id}`, { method: "DELETE" }),
+
+  myProjects: () => request("/student/projects"),
+
+  projectStart: () => request("/student/projects/start"),
+
+  projectClassmates: (q: string) => request(`/student/projects/classmates?q=${encodeURIComponent(q)}`),
+
+  createProject: (payload: Record<string, unknown>) =>
+    request("/student/projects", { method: "POST", body: JSON.stringify(payload) }),
+
+  project: (id: number) => request(`/student/projects/${id}`),
+
+  editProject: (id: number, payload: Record<string, unknown>) =>
+    request(`/student/projects/${id}`, { method: "PATCH", body: JSON.stringify(payload) }),
+
+  deleteProject: (id: number) => request(`/student/projects/${id}`, { method: "DELETE" }),
+
+  addProjectMaterial: (id: number, file: File) => {
+    const fd = new FormData();
+    fd.append("file", file);
+    return upload(`/student/projects/${id}/materials`, fd);
+  },
+
+  removeProjectMaterial: (id: number, materialId: number) =>
+    request(`/student/projects/${id}/materials/${materialId}`, { method: "DELETE" }),
+
+  editProjectImage: (id: number, imageId: number, caption: string) =>
+    request(`/student/projects/${id}/images/${imageId}`, { method: "PATCH", body: JSON.stringify({ caption }) }),
+
+  deleteProjectImage: (id: number, imageId: number) =>
+    request(`/student/projects/${id}/images/${imageId}`, { method: "DELETE" }),
+
+  startProjectJob: (id: number, payload: Record<string, unknown>) =>
+    request(`/student/projects/${id}/jobs`, { method: "POST", body: JSON.stringify(payload) }),
+
+  projectJob: (id: number, jobId: number) => request(`/student/projects/${id}/jobs/${jobId}`),
+
+  restoreProjectVersion: (id: number, version: number) =>
+    request(`/student/projects/${id}/versions/${version}/restore`, { method: "POST" }),
+
+  shareProject: (id: number, facultyId: number | null) =>
+    request(`/student/projects/${id}/share`, { method: "PUT", body: JSON.stringify({ faculty_id: facultyId }) }),
+
+  commentOnProject: (id: number, section: string, body: string) =>
+    request(`/student/projects/${id}/comments`, { method: "POST", body: JSON.stringify({ section, body }) }),
+
+  resolveProjectComment: (id: number, commentId: number) =>
+    request(`/student/projects/${id}/comments/${commentId}`, { method: "PATCH" }),
+
+  projectReviews: () => request("/teacher/project-reviews"),
+
+  projectReview: (id: number) => request(`/teacher/project-reviews/${id}`),
+
+  guideComment: (id: number, section: string, body: string) =>
+    request(`/teacher/project-reviews/${id}/comments`, { method: "POST", body: JSON.stringify({ section, body }) }),
+
+  pageCount: (base: string) => request(base),
 
   // ---- feedback switch ----
   teacherFeedbackWindows: () => request("/teacher/feedback/windows"),

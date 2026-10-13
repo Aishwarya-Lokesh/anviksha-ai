@@ -85,6 +85,46 @@ def convert(data: bytes, extension: str) -> bytes:
     raise ConverterUnavailable("PDF export is not set up on this server yet.")
 
 
+_pdf_cache: dict[str, bytes] = {}          # the few PDFs being paged through right now, so each page is not a fresh download
+
+
+def cached_pdf(path: str, load) -> bytes:
+    if path not in _pdf_cache:
+        if len(_pdf_cache) >= 6:
+            _pdf_cache.pop(next(iter(_pdf_cache)))
+        _pdf_cache[path] = load(path)
+    return _pdf_cache[path]
+
+
+def forget_pdf(path: str) -> None:
+    _pdf_cache.pop(path, None)
+
+
+def page_count(pdf: bytes) -> int:
+    import pypdfium2
+    document = pypdfium2.PdfDocument(pdf)
+    try:
+        return len(document)
+    finally:
+        document.close()
+
+
+def page_image(pdf: bytes, page: int, width: int = 1100) -> bytes:
+    """One page of a PDF as a PNG, for the in-browser preview (works on phones, which cannot show a PDF inside a page)."""
+    import pypdfium2
+    document = pypdfium2.PdfDocument(pdf)
+    try:
+        if not 1 <= page <= len(document):
+            raise IndexError(page)
+        sheet = document[page - 1]
+        image = sheet.render(scale=max(0.5, min(2.5, width / sheet.get_width()))).to_pil()
+        out = io.BytesIO()
+        image.convert("RGB").save(out, format="PNG", optimize=True)
+        return out.getvalue()
+    finally:
+        document.close()
+
+
 def page_texts(pdf: bytes) -> list[str]:
     from pypdf import PdfReader
     reader = PdfReader(io.BytesIO(pdf))

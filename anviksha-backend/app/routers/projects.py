@@ -176,6 +176,30 @@ def edit_format(template_id: int, payload: FormatEdit, db: Session = Depends(get
     return _template_out(t, user, full=True)
 
 
+@router.delete("/project-formats/{template_id}")
+def delete_format(template_id: int, db: Session = Depends(get_db), user: User = Depends(require_role("student", "hod", "admin"))):
+    """Removes a format nobody is using. One that a project was built from can only be switched off, so that project keeps working."""
+    t = _template_or_404(db, user, template_id)
+    if not _template_out(t, user)["can_edit"]:
+        raise HTTPException(status_code=403, detail="Only whoever uploaded this format can delete it")
+    in_use = db.query(StudentProject).filter(or_(StudentProject.report_template_id == t.id, StudentProject.ppt_template_id == t.id)).count()
+    if in_use:
+        raise HTTPException(status_code=409, detail=f"{in_use} project{'s use' if in_use != 1 else ' uses'} this format. Switch it off instead; it will stop being offered.")
+    paths, name, official = [t.file_path, t.preview_path], t.name, t.scope == "official"
+    db.delete(t)
+    db.commit()
+    for path in paths:
+        if path:
+            project_pdf.forget_pdf(path)
+            try:
+                file_storage.delete_file(path)
+            except Exception:
+                pass
+    if official:
+        log_activity(db, user, f"Deleted project format: {name}")
+    return {"message": "Deleted"}
+
+
 @router.get("/project-formats/{template_id}/file")
 def format_file(template_id: int, as_pdf: bool = False, db: Session = Depends(get_db), user: User = Depends(require_role("student", "hod", "admin"))):
     """The format file itself, or its PDF rendering for the preview."""
@@ -196,6 +220,37 @@ def format_file(template_id: int, as_pdf: bool = False, db: Session = Depends(ge
     file_storage.upload_file(t.preview_path, pdf, "application/pdf")
     db.commit()
     return Response(pdf, media_type="application/pdf")
+
+
+def _page(path: str, page: int) -> Response:
+    try:
+        pdf = project_pdf.cached_pdf(path, file_storage.get_file)
+        return Response(project_pdf.page_image(pdf, page), media_type="image/png", headers={"Cache-Control": "private, max-age=600"})
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="That file is no longer in storage")
+    except IndexError:
+        raise HTTPException(status_code=404, detail="There is no such page")
+
+
+@router.get("/project-formats/{template_id}/pages")
+def format_pages(template_id: int, db: Session = Depends(get_db), user: User = Depends(require_role("student", "hod", "admin"))):
+    """How many pages the format's preview has. Makes the preview on first use."""
+    t = _template_or_404(db, user, template_id)
+    if not t.preview_path:
+        format_file(template_id, as_pdf=True, db=db, user=user)
+        db.refresh(t)
+    try:
+        return {"pages": project_pdf.page_count(project_pdf.cached_pdf(t.preview_path, file_storage.get_file))}
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="The preview is no longer in storage")
+
+
+@router.get("/project-formats/{template_id}/pages/{page}")
+def format_page(template_id: int, page: int, db: Session = Depends(get_db), user: User = Depends(require_role("student", "hod", "admin"))):
+    t = _template_or_404(db, user, template_id)
+    if not t.preview_path:
+        raise HTTPException(status_code=404, detail="No preview yet")
+    return _page(t.preview_path, page)
 
 
 # ------------------------------------------------------------------ projects
@@ -629,6 +684,28 @@ def download(project_id: int, number: int, which: str, db: Session = Depends(get
     return _send_version_file(db, p.id, number, which, p.title)
 
 
+def _version_pdf(db: Session, project_id: int, number: int, which: str) -> str:
+    v = db.query(ProjectVersion).filter(ProjectVersion.project_id == project_id, ProjectVersion.number == number).first()
+    path = _loads(v.files, {}).get({"report": "report_pdf", "slides": "ppt_pdf"}.get(which, "")) if v else None
+    if not path:
+        raise HTTPException(status_code=404, detail="No PDF was made for this version")
+    return path
+
+
+@router.get("/student/projects/{project_id}/versions/{number}/pages/{which}")
+def version_pages(project_id: int, number: int, which: str, db: Session = Depends(get_db), user: User = Depends(require_role("student"))):
+    path = _version_pdf(db, _project(db, user, project_id).id, number, which)
+    try:
+        return {"pages": project_pdf.page_count(project_pdf.cached_pdf(path, file_storage.get_file))}
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="That file is no longer in storage")
+
+
+@router.get("/student/projects/{project_id}/versions/{number}/pages/{which}/{page}")
+def version_page(project_id: int, number: int, which: str, page: int, db: Session = Depends(get_db), user: User = Depends(require_role("student"))):
+    return _page(_version_pdf(db, _project(db, user, project_id).id, number, which), page)
+
+
 @router.post("/student/projects/{project_id}/versions/{number}/restore")
 def restore_version(project_id: int, number: int, db: Session = Depends(get_db), user: User = Depends(require_role("student"))):
     """Makes an earlier version's content the current draft again. The files of every version stay as they are."""
@@ -746,6 +823,33 @@ def shared_project(project_id: int, db: Session = Depends(get_db), user: User = 
 def guide_download(project_id: int, number: int, which: str, db: Session = Depends(get_db), user: User = Depends(require_role("teacher"))):
     p = _shared(db, user, project_id)
     return _send_version_file(db, p.id, number, which, p.title)
+
+
+@router.get("/teacher/project-reviews/{project_id}/versions/{number}/pages/{which}")
+def guide_pages(project_id: int, number: int, which: str, db: Session = Depends(get_db), user: User = Depends(require_role("teacher"))):
+    path = _version_pdf(db, _shared(db, user, project_id).id, number, which)
+    try:
+        return {"pages": project_pdf.page_count(project_pdf.cached_pdf(path, file_storage.get_file))}
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="That file is no longer in storage")
+
+
+@router.get("/teacher/project-reviews/{project_id}/versions/{number}/pages/{which}/{page}")
+def guide_page(project_id: int, number: int, which: str, page: int, db: Session = Depends(get_db), user: User = Depends(require_role("teacher"))):
+    return _page(_version_pdf(db, _shared(db, user, project_id).id, number, which), page)
+
+
+@router.get("/teacher/project-reviews/{project_id}/images/{image_id}")
+def guide_image(project_id: int, image_id: int, db: Session = Depends(get_db), user: User = Depends(require_role("teacher"))):
+    """A picture placed in the shared draft. Pictures the student uploaded but did not use are not shown."""
+    p = _shared(db, user, project_id)
+    if image_id not in _images_in_use(_loads(p.content, {})):
+        raise HTTPException(status_code=404, detail="Picture not found")
+    i = _image(db, p.id, image_id)
+    try:
+        return Response(file_storage.get_file(i.file_path), media_type="image/jpeg" if i.file_path.endswith(".jpg") else "image/png", headers={"Cache-Control": "private, max-age=3600"})
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="Picture file not found")
 
 
 @router.post("/teacher/project-reviews/{project_id}/comments")

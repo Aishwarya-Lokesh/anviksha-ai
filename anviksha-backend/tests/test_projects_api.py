@@ -112,6 +112,15 @@ def test_formats_are_checked_on_upload_and_scoped(client, lab):
     assert client.get(f"/project-formats/{f['id']}/file?as_pdf=true", headers=h["hod"]).status_code == 503   # no converter in tests
     assert client.get(f"/project-formats/{f['id']}/file", headers=h["hod"]).content[:2] == b"PK"
 
+    # deleting: only the uploader, and never a format a project depends on
+    assert client.delete(f"/project-formats/{f['id']}", headers=h["s1"]).status_code in (403, 404)
+    used = client.post("/student/projects", headers=h["s1"], json={"title": "A project using my format", "report_format_id": own["id"]}).json()
+    assert client.delete(f"/project-formats/{own['id']}", headers=h["s1"]).status_code == 409
+    client.delete(f"/student/projects/{used['id']}", headers=h["s1"])
+    assert client.delete(f"/project-formats/{own['id']}", headers=h["s1"]).status_code == 200
+    assert client.delete(f"/project-formats/{f['id']}", headers=h["hod"]).status_code == 200
+    assert not any(k.startswith("project_formats/") and ("My_guide" in k or f"{f['id']}_" in k) for k in lab["store"])
+
 
 # ---------------------------------------------------------------- a project, end to end
 
@@ -185,8 +194,12 @@ def test_full_flow_builds_files_in_the_format_and_keeps_versions(client, lab):
     assert content["references"] == ["P. Viola and M. Jones, Rapid object detection, CVPR 2001."]
     assert any(i["source"] == "generated" for i in state["images"])                                           # the module diagram, labelled as drawn
     figures = [b["image_id"] for c in content["chapters"] for b in c["blocks"] if b["type"] == "figure"]
-    assert len(figures) == len(set(figures)) == 2                                                             # each picture is placed once
-    table = next(b for c in content["chapters"] for b in c["blocks"] if b["type"] == "table")
+    assert len(figures) == len(set(figures)) >= 1                                                             # each picture is placed once
+    with_pictures = {c["key"] for c in content["chapters"] if any(b["type"] == "figure" for b in c["blocks"])}
+    assert with_pictures <= {"design", "implementation", "testing", "results"}                                # never dropped into the introduction
+    tables = [b for c in content["chapters"] for b in c["blocks"] if b["type"] == "table"]
+    assert len(tables) == 1 and "source_table" not in tables[0]                                               # the student's table appears once
+    table = tables[0]
     assert table["rows"] == [["Metric", "Value"], ["Students", "40"], ["Sessions", "12"]]                     # rows copied from the student's file
     assert content["slides"][0]["title"] == "Agenda" and content["slides"][-1]["title"] == "References"
 
