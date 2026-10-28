@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Sparkles, LogIn, ArrowLeft } from "lucide-react";
+import { Sparkles, LogIn, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { api, setAuth, wakeServer, SERVER_WAKING_EVENT } from "@/lib/api";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -15,6 +15,7 @@ function LoginForm() {
   const selectedRole = params.get("role") || "";
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [waking, setWaking] = useState(false);
@@ -28,10 +29,11 @@ function LoginForm() {
   }, []);
 
   const submit = async () => {
+    if (loading) return;
     setError("");
     setLoading(true);
     try {
-      const res = await api.login(email, password);
+      const res = await api.login(email.trim().toLowerCase(), password);
       if (selectedRole && res.role !== selectedRole) {
         setError(`These credentials belong to a ${ROLE_LABELS[res.role] || res.role} account, not ${ROLE_LABELS[selectedRole] || selectedRole}. Go back and pick the right role, or use the correct login.`);
         setLoading(false);
@@ -41,7 +43,7 @@ function LoginForm() {
       router.push(`/${res.role}`);
     } catch (e: any) {
       const message = e?.message || "";
-      if (/failed: 401/.test(message)) setError("Incorrect email or password.");
+      if (/failed: 401/.test(message)) setError("Incorrect email or password. The password is case-sensitive: tap the eye to check what was typed.");
       else if (/Unable to connect/i.test(message)) setError("We couldn't reach the server. Check your connection and try again.");
       else setError("Something went wrong on our side. Please try again in a moment.");
     } finally {
@@ -70,11 +72,16 @@ function LoginForm() {
         <div className="space-y-3">
           <div>
             <label htmlFor="login-email" className="text-xs font-medium text-muted mb-1 block">Email</label>
-            <input id="login-email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your.login@anviksha.ai" className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/30" />
+            <input id="login-email" type="email" inputMode="email" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} value={email} onKeyDown={(e) => e.key === "Enter" && submit()} onChange={(e) => setEmail(e.target.value)} placeholder="your.login@anviksha.ai" className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/30" />
           </div>
           <div>
             <label htmlFor="login-password" className="text-xs font-medium text-muted mb-1 block">Password</label>
-            <input id="login-password" autoComplete="current-password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/30" />
+            <div className="relative">
+              <input id="login-password" autoComplete="current-password" autoCapitalize="none" autoCorrect="off" spellCheck={false} type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} onKeyDown={(e) => e.key === "Enter" && submit()} className="w-full border border-gray-200 rounded-xl pl-3.5 pr-12 py-2.5 text-sm outline-none focus:ring-2 focus:ring-brand/30" />
+              <button type="button" onClick={() => setShowPassword((v) => !v)} aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} className="absolute right-1 top-1/2 -translate-y-1/2 w-10 h-10 flex items-center justify-center rounded-lg text-muted hover:text-ink">
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
           {sessionExpired && !error && !loading && (
             <p className="text-xs text-muted">Your session ended. Please sign in again.</p>
