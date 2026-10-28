@@ -616,9 +616,15 @@ export function ProjectWorkspace({ id }: { id: number }) {
               </select>
               {p.shared_with && <Badge tone="success">Shared with {p.shared_with.name}</Badge>}
             </div>
-            {p.comments.length > 0 && (
+            {(p.submissions || []).length > 0 && (
+              <p className="text-sm text-muted mt-3">
+                You also sent {p.submissions.length} ready-made document{p.submissions.length === 1 ? "" : "s"} for this project directly.{" "}
+                <button onClick={() => router.push(pathname)} className="text-brand font-semibold hover:underline min-h-[36px]">See them and your guide's replies</button>
+              </p>
+            )}
+            {p.comments.filter((c: any) => !c.submission_id).length > 0 && (
               <ul className="mt-4 space-y-2">
-                {p.comments.map((c: any) => (
+                {p.comments.filter((c: any) => !c.submission_id).map((c: any) => (
                   <li key={c.id} className={`rounded-xl border border-gray-100 p-3 ${c.resolved ? "opacity-60" : ""}`}>
                     <div className="flex items-center gap-2 flex-wrap text-xs text-muted"><MessageSquare size={13} /> {c.author} · {c.role === "teacher" ? "Guide" : "You"} · {c.section} · {c.when}{c.resolved && <Badge tone="success">Done</Badge>}</div>
                     <p className="text-sm text-ink mt-1 whitespace-pre-wrap break-words">{c.body}</p>

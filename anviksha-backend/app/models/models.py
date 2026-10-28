@@ -720,4 +720,24 @@ class ProjectComment(Base):
     author_role = Column(String, nullable=False)
     body = Column(Text, nullable=False)
     resolved = Column(Boolean, nullable=False, default=False, server_default=false())
+    submission_id = Column(Integer, ForeignKey("project_submissions.id"), nullable=True, index=True)   # a reply about one submitted document
+    created_at = Column(DateTime, server_default=func.now())
+
+
+class ProjectSubmission(Base):
+    """A report or presentation the student made elsewhere and sent straight to
+    a guide, without the builder. Every submission is kept, so a revised one
+    sits beside the earlier one and the guide's replies to it."""
+    __tablename__ = "project_submissions"
+    id = Column(Integer, primary_key=True)
+    project_id = Column(Integer, ForeignKey("student_projects.id"), nullable=False, index=True)
+    student_id = Column(Integer, ForeignKey("students.id"), nullable=False, index=True)
+    guide_faculty_id = Column(Integer, ForeignKey("faculty.id"), nullable=False, index=True)
+    number = Column(Integer, nullable=False)                  # 1, 2, 3 ... within the project
+    note = Column(Text, nullable=True)
+    files = Column(Text, nullable=False)                      # JSON: [{name, path, size, kind}]
+    status = Column(String, nullable=False, default="submitted")   # submitted | under_review | changes_requested | reviewed
+    client_token = Column(String, nullable=True, index=True)  # repeats of the same click are recognised by this
+    student_unread = Column(Boolean, nullable=False, default=False, server_default=false())
+    reviewed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, server_default=func.now())

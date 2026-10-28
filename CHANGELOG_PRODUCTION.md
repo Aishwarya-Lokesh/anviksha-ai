@@ -365,5 +365,14 @@ Migration `e6f7a8b9c0d1` (additive): counseling reply columns, resume file and e
 - Database: migration `d1e2f3a4b5c6` adds `project_templates`, `student_projects`, `project_materials`, `project_images`, `project_versions`, `project_jobs`, `project_comments`.
 - New dependency: `pypdfium2` (turns PDF pages into pictures for the preview).
 
+## Round 7: direct submission to a guide (28 Oct)
+
+- **Students** (Project Report & PPT): the tab now offers two options. *Option A, Generate a new report* is the builder, unchanged. *Option B, Submit existing documents* uploads a ready-made report (PDF or .docx) and/or presentation (.ppt or .pptx), up to 5 files of 20 MB each, to a guide chosen from the department's faculty, with an editable note. It goes under an existing project or a new one made from the title given. Every submission is kept; "Send a revised version" adds the next one beside the earlier ones and their replies.
+- **Teachers** (Project Reviews): submissions appear in the same list ("N to review") and on the project's page under "Documents submitted to you": who sent it, the files (PDF opens in a tab, all files download), the note, the date, and the status. The guide replies with feedback and an outcome, *Corrections needed* or *Reviewed*. Opening a submission marks it *Under review*.
+- **Replies reach only the student who submitted**: shown in the same tab with the guide's name and time, a "New reply" marker, and a notification. The student can answer in the same thread.
+- **Reuse:** replies are the existing project comments (new `submission_id` link); notifications, storage, sign-in and role checks are the existing ones. Submitting also shares the project with that guide, as the builder's "share" does.
+- **Checks on the server:** file type by extension and by the file's first bytes, size and count limits, guide must be in the student's department, project must be the student's own, a repeated click (same request token) makes one submission, a guide can open and answer only submissions sent to them, a student only their own. A guide the project is later moved away from keeps only the submissions sent to them.
+- Database: migration `e2f3a4b5c6d7` adds the table `project_submissions` (row-level security on) and the nullable column `project_comments.submission_id`. Applied to production on 28 Oct; nothing existing changed.
+
 ## Deployment note
 - Stored-file links now end with the file's extension, so an older copy of the Achievements page (still served while the frontend deployment was pending) keeps recognising PDFs.

@@ -8,7 +8,8 @@ only when the student shares it with them."""
 import json
 import os
 import re
-from typing import Optional
+from datetime import datetime
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import Response
@@ -21,7 +22,7 @@ from app.core.activity_log import log_activity
 from app.core.database import get_db
 from app.core.security import get_current_user, require_role
 from app.models.models import (
-    Department, Faculty, ProjectComment, ProjectImage, ProjectJob, ProjectMaterial, ProjectTemplate, ProjectVersion, Student, StudentProject, User,
+    Department, Faculty, ProjectComment, ProjectImage, ProjectJob, ProjectMaterial, ProjectSubmission, ProjectTemplate, ProjectVersion, Student, StudentProject, User,
 )
 
 router = APIRouter(tags=["projects"])
@@ -301,6 +302,7 @@ def _state(db: Session, user: User, p: StudentProject) -> dict:
         "versions": [_version_out(v) for v in versions], "job": _job_out(last), "environment": jobs.env_summary(),
         "shared_with": {"id": guide.id, "name": guide.name} if guide else None,
         "comments": [_comment_out(c) for c in comments],
+        "submissions": [_submission_out(db, x) for x in db.query(ProjectSubmission).filter(ProjectSubmission.project_id == p.id).order_by(ProjectSubmission.id.desc())],
         "updated": str(p.updated_at)[:16] if p.updated_at else None,
     }
 
@@ -309,7 +311,8 @@ def _state(db: Session, user: User, p: StudentProject) -> dict:
 def my_projects(db: Session = Depends(get_db), user: User = Depends(require_role("student"))):
     rows = db.query(StudentProject).filter(StudentProject.student_id == user.student_id).order_by(StudentProject.id.desc()).all()
     counts = {pid: n for pid, n in ((r.id, db.query(ProjectVersion).filter(ProjectVersion.project_id == r.id).count()) for r in rows)}
-    return [{"id": r.id, "title": r.title, "project_type": _loads(r.details, {}).get("project_type"), "versions": counts[r.id], "updated": str(r.updated_at)[:16] if r.updated_at else None} for r in rows]
+    return [{"id": r.id, "title": r.title, "project_type": _loads(r.details, {}).get("project_type"), "versions": counts[r.id], "updated": str(r.updated_at)[:16] if r.updated_at else None,
+             "submissions": db.query(ProjectSubmission).filter(ProjectSubmission.project_id == r.id).count()} for r in rows]
 
 
 @router.get("/student/projects/start")
@@ -483,7 +486,9 @@ def delete_project(project_id: int, db: Session = Depends(get_db), user: User = 
     paths = [m.file_path for m in db.query(ProjectMaterial).filter(ProjectMaterial.project_id == p.id)] + [i.file_path for i in db.query(ProjectImage).filter(ProjectImage.project_id == p.id)]
     for v in db.query(ProjectVersion).filter(ProjectVersion.project_id == p.id):
         paths.extend(_loads(v.files, {}).values())
-    for model in (ProjectComment, ProjectJob, ProjectVersion, ProjectImage, ProjectMaterial):
+    for sub in db.query(ProjectSubmission).filter(ProjectSubmission.project_id == p.id):
+        paths.extend(f["path"] for f in _loads(sub.files, []))
+    for model in (ProjectComment, ProjectSubmission, ProjectJob, ProjectVersion, ProjectImage, ProjectMaterial):
         db.query(model).filter(model.project_id == p.id).delete()
     db.delete(p)
     db.commit()
@@ -723,7 +728,8 @@ def restore_version(project_id: int, number: int, db: Session = Depends(get_db),
 # ------------------------------------------------------------------ guide review
 
 def _comment_out(c: ProjectComment) -> dict:
-    return {"id": c.id, "section": c.section, "author": c.author_name, "role": c.author_role, "body": c.body, "resolved": bool(c.resolved), "when": str(c.created_at)[:16] if c.created_at else None}
+    return {"id": c.id, "section": c.section, "author": c.author_name, "role": c.author_role, "body": c.body, "resolved": bool(c.resolved),
+            "submission_id": c.submission_id, "when": str(c.created_at)[:16] if c.created_at else None}
 
 
 class ShareIn(BaseModel):
@@ -753,15 +759,21 @@ def share(project_id: int, payload: ShareIn, db: Session = Depends(get_db), user
 
 
 class CommentIn(BaseModel):
-    section: str
+    section: str = "general"
     body: str
+    submission_id: Optional[int] = None      # a reply about one directly submitted document
+    status: Optional[str] = None             # guide only: "reviewed" | "changes_requested"
 
 
-def _add_comment(db: Session, p: StudentProject, user: User, name: str, payload: CommentIn) -> ProjectComment:
+def _add_comment(db: Session, p: StudentProject, user: User, name: str, payload: CommentIn, submission: Optional[ProjectSubmission] = None) -> ProjectComment:
     body = payload.body.strip()
     if len(body) < 2 or len(body) > 2000:
         raise HTTPException(status_code=400, detail="Write a comment of up to 2000 characters")
-    c = ProjectComment(project_id=p.id, section=payload.section.strip()[:80] or "general", author_user_id=user.id, author_name=name, author_role=user.role, body=body)
+    section = payload.section.strip()[:80] or "general"
+    if submission is not None and section == "general":
+        section = f"Submission {submission.number}"
+    c = ProjectComment(project_id=p.id, section=section, author_user_id=user.id, author_name=name, author_role=user.role, body=body,
+                       submission_id=submission.id if submission is not None else None)
     db.add(c)
     db.commit()
     db.refresh(c)
@@ -771,7 +783,18 @@ def _add_comment(db: Session, p: StudentProject, user: User, name: str, payload:
 @router.post("/student/projects/{project_id}/comments")
 def student_comment(project_id: int, payload: CommentIn, db: Session = Depends(get_db), user: User = Depends(require_role("student"))):
     p = _project(db, user, project_id)
-    return _comment_out(_add_comment(db, p, user, _student(db, user).name, payload))
+    submission = None
+    if payload.submission_id is not None:
+        submission = db.query(ProjectSubmission).filter(ProjectSubmission.id == payload.submission_id, ProjectSubmission.project_id == p.id).first()
+        if not submission:
+            raise HTTPException(status_code=404, detail="Submission not found")
+    c = _add_comment(db, p, user, _student(db, user).name, payload, submission)
+    if submission is not None:
+        from app.core.notifications import notify_user
+        login = db.query(User).filter(User.faculty_id == submission.guide_faculty_id).first()
+        if login:
+            notify_user(db, login.id, f"{_student(db, user).name} replied about submission {submission.number} of \"{p.title[:60]}\".")
+    return _comment_out(c)
 
 
 @router.patch("/student/projects/{project_id}/comments/{comment_id}")
@@ -792,28 +815,65 @@ def _shared(db: Session, user: User, project_id: int) -> StudentProject:
     return p
 
 
+def _my_submissions(db: Session, user: User, project_id: int):
+    return db.query(ProjectSubmission).filter(ProjectSubmission.project_id == project_id, ProjectSubmission.guide_faculty_id == user.faculty_id)
+
+
+def _guide_project(db: Session, user: User, project_id: int) -> tuple[StudentProject, bool]:
+    """The project and whether this guide is the one it is currently shared with.
+    A guide who is neither that nor the recipient of a submission gets nothing."""
+    p = db.query(StudentProject).filter(StudentProject.id == project_id).first() if user.faculty_id else None
+    if not p:
+        raise HTTPException(status_code=404, detail="Project not found")
+    current = p.guide_faculty_id == user.faculty_id
+    if not current and _my_submissions(db, user, p.id).count() == 0:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return p, current
+
+
 @router.get("/teacher/project-reviews")
 def shared_with_me(db: Session = Depends(get_db), user: User = Depends(require_role("teacher"))):
-    rows = db.query(StudentProject).filter(StudentProject.guide_faculty_id == user.faculty_id).order_by(StudentProject.updated_at.desc()).all() if user.faculty_id else []
+    if not user.faculty_id:
+        return []
+    submitted_to_me = db.query(ProjectSubmission.project_id).filter(ProjectSubmission.guide_faculty_id == user.faculty_id)
+    rows = db.query(StudentProject).filter(or_(StudentProject.guide_faculty_id == user.faculty_id, StudentProject.id.in_(submitted_to_me))).order_by(StudentProject.updated_at.desc()).all()
     out = []
     for p in rows:
         details = _loads(p.details, {})
         latest = db.query(ProjectVersion).filter(ProjectVersion.project_id == p.id).order_by(ProjectVersion.number.desc()).first()
+        mine = _my_submissions(db, user, p.id).order_by(ProjectSubmission.id.desc()).all()
         out.append({"id": p.id, "title": p.title, "students": details.get("students") or [], "project_type": details.get("project_type"),
                     "latest_version": latest.number if latest else None, "updated": str(p.updated_at)[:16] if p.updated_at else None,
-                    "open_comments": db.query(ProjectComment).filter(ProjectComment.project_id == p.id, ProjectComment.resolved == False).count()})  # noqa: E712
+                    "open_comments": db.query(ProjectComment).filter(ProjectComment.project_id == p.id, ProjectComment.resolved == False).count(),  # noqa: E712
+                    "submissions": len(mine), "awaiting_review": sum(1 for x in mine if x.status in ("submitted", "under_review")),
+                    "last_submitted": str(mine[0].created_at)[:16] if mine and mine[0].created_at else None})
     return out
 
 
 @router.get("/teacher/project-reviews/{project_id}")
 def shared_project(project_id: int, db: Session = Depends(get_db), user: User = Depends(require_role("teacher"))):
-    """What the guide sees: the draft and the built files. Not the student's raw uploads."""
-    p = _shared(db, user, project_id)
+    """What the guide sees: the draft and the built files, and the documents
+    submitted to them directly. Not the student's raw source material."""
+    p, current = _guide_project(db, user, project_id)
+    submissions = _my_submissions(db, user, p.id).order_by(ProjectSubmission.id.desc()).all()
+    for sub in submissions:
+        if sub.status == "submitted":       # opened by the guide
+            sub.status = "under_review"
+    db.commit()
+    details = _loads(p.details, {})
+    s = db.query(Student).filter(Student.id == p.student_id).first()
+    out = {"id": p.id, "title": p.title, "students": details.get("students") or ([{"name": s.name, "usn": s.usn}] if s else []), "project_type": details.get("project_type"),
+           "submitted_by": {"name": s.name, "usn": s.usn, "batch": s.batch, "semester": s.semester} if s else None,
+           "current_guide": current, "submissions": [_submission_out(db, x) for x in submissions]}
+    if not current:
+        # Shared with another guide since: only what was submitted to this one.
+        ids = [x.id for x in submissions]
+        comments = db.query(ProjectComment).filter(ProjectComment.project_id == p.id, ProjectComment.submission_id.in_(ids)).order_by(ProjectComment.id).all() if ids else []
+        return {**out, "content": {"abstract": [], "chapters": [], "slides": [], "references": []}, "versions": [], "comments": [_comment_out(c) for c in comments]}
     versions = db.query(ProjectVersion).filter(ProjectVersion.project_id == p.id).order_by(ProjectVersion.number.desc()).all()
     comments = db.query(ProjectComment).filter(ProjectComment.project_id == p.id).order_by(ProjectComment.id).all()
     content = _loads(p.content, {})
-    details = _loads(p.details, {})
-    return {"id": p.id, "title": p.title, "students": details.get("students") or [], "project_type": details.get("project_type"),
+    return {**out,
             "content": {"abstract": content.get("abstract") or [], "chapters": [{"key": c["key"], "title": c["title"], "blocks": c.get("blocks") or []} for c in content.get("chapters") or []],
                         "slides": content.get("slides") or [], "references": content.get("references") or []},
             "versions": [_version_out(v) for v in versions], "comments": [_comment_out(c) for c in comments]}
@@ -854,11 +914,188 @@ def guide_image(project_id: int, image_id: int, db: Session = Depends(get_db), u
 
 @router.post("/teacher/project-reviews/{project_id}/comments")
 def guide_comment(project_id: int, payload: CommentIn, db: Session = Depends(get_db), user: User = Depends(require_role("teacher"))):
-    p = _shared(db, user, project_id)
+    submission = None
+    if payload.submission_id is not None:
+        p, _ = _guide_project(db, user, project_id)
+        submission = _my_submissions(db, user, p.id).filter(ProjectSubmission.id == payload.submission_id).first()
+        if not submission:
+            raise HTTPException(status_code=404, detail="Submission not found")
+        if payload.status is not None and payload.status not in REVIEW_OUTCOMES:
+            raise HTTPException(status_code=400, detail="Choose whether the work is reviewed or needs corrections")
+    else:
+        p = _shared(db, user, project_id)
     guide = db.query(Faculty).filter(Faculty.id == user.faculty_id).first()
-    c = _add_comment(db, p, user, guide.name if guide else "Guide", payload)
+    c = _add_comment(db, p, user, guide.name if guide else "Guide", payload, submission)
     from app.core.notifications import notify_user
     owner = db.query(User).filter(User.student_id == p.student_id).first()
-    if owner:
+    if submission is not None:
+        submission.status = payload.status or "reviewed"
+        submission.reviewed_at = datetime.utcnow()
+        submission.student_unread = True
+        db.commit()
+        if owner:
+            outcome = "asked for corrections on" if submission.status == "changes_requested" else "replied to"
+            notify_user(db, owner.id, f"Your guide {outcome} submission {submission.number} of \"{p.title[:60]}\".")
+    elif owner:
         notify_user(db, owner.id, f"Your guide commented on the project \"{p.title[:60]}\".")
     return _comment_out(c)
+
+
+@router.get("/teacher/project-reviews/{project_id}/submissions/{submission_id}/files/{index}")
+def guide_submission_file(project_id: int, submission_id: int, index: int, db: Session = Depends(get_db), user: User = Depends(require_role("teacher"))):
+    sub = _my_submissions(db, user, project_id).filter(ProjectSubmission.id == submission_id).first() if user.faculty_id else None
+    if not sub:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    return _send_submission_file(sub, index)
+
+
+# ------------------------------------------------------------------ direct submission to a guide
+# A report or presentation made outside the builder, sent straight to a guide.
+# It is kept under a project (an existing one, or one made from the title given),
+# so the guide reviews it in the same place and replies the same way.
+
+MAX_SUBMISSION_FILES = 5
+MAX_SUBMISSION_BYTES = 20 * 1024 * 1024
+MAX_NOTE = 2000
+REVIEW_OUTCOMES = ("reviewed", "changes_requested")
+SUBMISSION_TYPES = {
+    ".pdf": ("report", "application/pdf", (b"%PDF",)),
+    ".docx": ("report", project_pdf.TYPES["docx"], (b"PK",)),
+    ".pptx": ("presentation", project_pdf.TYPES["pptx"], (b"PK",)),
+    ".ppt": ("presentation", "application/vnd.ms-powerpoint", (b"\xd0\xcf\x11\xe0",)),
+}
+
+
+def _submission_out(db: Session, sub: ProjectSubmission) -> dict:
+    guide = db.query(Faculty).filter(Faculty.id == sub.guide_faculty_id).first()
+    project = db.query(StudentProject).filter(StudentProject.id == sub.project_id).first()
+    replies = db.query(ProjectComment).filter(ProjectComment.submission_id == sub.id).order_by(ProjectComment.id).all()
+    return {"id": sub.id, "project_id": sub.project_id, "project_title": project.title if project else "", "number": sub.number,
+            "note": sub.note or "", "status": sub.status, "guide": {"id": guide.id, "name": guide.name} if guide else None,
+            "files": [{"index": i, "name": f["name"], "size": f["size"], "kind": f["kind"]} for i, f in enumerate(_loads(sub.files, []))],
+            "submitted": str(sub.created_at)[:16] if sub.created_at else None, "reviewed": str(sub.reviewed_at)[:16] if sub.reviewed_at else None,
+            "unread": bool(sub.student_unread), "replies": [_comment_out(c) for c in replies]}
+
+
+def _send_submission_file(sub: ProjectSubmission, index: int) -> Response:
+    files = _loads(sub.files, [])
+    if index < 0 or index >= len(files):
+        raise HTTPException(status_code=404, detail="File not found")
+    f = files[index]
+    try:
+        data = file_storage.get_file(f["path"])
+    except FileNotFoundError:
+        raise HTTPException(status_code=404, detail="That file is no longer in storage")
+    media = SUBMISSION_TYPES.get(os.path.splitext(f["name"])[1].lower(), ("", "application/octet-stream"))[1]
+    return Response(data, media_type=media, headers={"Content-Disposition": f'attachment; filename="{_safe_name(f["name"])}"',
+                                                     "Access-Control-Expose-Headers": "Content-Disposition", "Cache-Control": "private, no-store"})
+
+
+def _check_submission_file(name: str, data: bytes) -> str:
+    """The kind of document, or an error the student can act on."""
+    extension = os.path.splitext(name or "")[1].lower()
+    if extension not in SUBMISSION_TYPES:
+        raise HTTPException(status_code=400, detail=f"\"{name}\" is not a PDF, Word (.docx) or PowerPoint (.ppt, .pptx) file")
+    if not data:
+        raise HTTPException(status_code=400, detail=f"\"{name}\" is empty")
+    if len(data) > MAX_SUBMISSION_BYTES:
+        raise HTTPException(status_code=400, detail=f"\"{name}\" is larger than {MAX_SUBMISSION_BYTES // (1024 * 1024)} MB")
+    kind, _, signatures = SUBMISSION_TYPES[extension]
+    if not data.startswith(signatures):
+        raise HTTPException(status_code=400, detail=f"\"{name}\" does not look like a real {extension} file. Save it again and upload that copy.")
+    return kind
+
+
+@router.post("/student/project-submissions")
+async def submit_to_guide(files: List[UploadFile] = File(...), guide_id: int = Form(...), note: str = Form(""), project_id: Optional[int] = Form(None),
+                          title: str = Form(""), client_token: str = Form(""), db: Session = Depends(get_db), user: User = Depends(require_role("student"))):
+    s = _student(db, user)
+    token = re.sub(r"[^A-Za-z0-9-]", "", client_token or "")[:64] or None
+    if token:
+        # The same click arriving twice (a double tap, a retried request) makes one submission.
+        earlier = db.query(ProjectSubmission).filter(ProjectSubmission.student_id == s.id, ProjectSubmission.client_token == token).first()
+        if earlier:
+            return _submission_out(db, earlier)
+    guide = db.query(Faculty).filter(Faculty.id == guide_id, Faculty.department_id == s.department_id).first()
+    if not guide:
+        raise HTTPException(status_code=404, detail="Choose a guide from your department")
+    files = [f for f in files if f is not None and (f.filename or "").strip()]
+    if not files:
+        raise HTTPException(status_code=400, detail="Attach your report or presentation")
+    if len(files) > MAX_SUBMISSION_FILES:
+        raise HTTPException(status_code=400, detail=f"Attach up to {MAX_SUBMISSION_FILES} files at a time")
+    note = (note or "").strip()
+    if len(note) > MAX_NOTE:
+        raise HTTPException(status_code=400, detail=f"Keep the note to {MAX_NOTE} characters")
+    received = []
+    for f in files:
+        data = await f.read(MAX_SUBMISSION_BYTES + 1)
+        received.append((f.filename, data, _check_submission_file(f.filename, data)))
+
+    if project_id is not None:
+        p = _project(db, user, project_id)
+    else:
+        name = (title or "").strip()
+        if len(name) < 5 or len(name) > 200:
+            raise HTTPException(status_code=400, detail="The project title should be 5 to 200 characters")
+        if db.query(StudentProject).filter(StudentProject.student_id == s.id).count() >= MAX_PROJECTS:
+            raise HTTPException(status_code=400, detail=f"You can keep up to {MAX_PROJECTS} projects. Choose one of them, or delete one you no longer need.")
+        p = StudentProject(student_id=s.id, title=name, answers="{}", content="{}",
+                           details=json.dumps({"students": [{"name": s.name, "usn": s.usn}], "guide_name": guide.name, "guide_designation": guide.designation or ""}))
+        db.add(p)
+        db.flush()
+
+    number = db.query(ProjectSubmission).filter(ProjectSubmission.project_id == p.id).count() + 1
+    sub = ProjectSubmission(project_id=p.id, student_id=s.id, guide_faculty_id=guide.id, number=number, note=note or None, files="[]",
+                            status="submitted", client_token=token)
+    db.add(sub)
+    db.flush()
+    stored = []
+    try:
+        for i, (filename, data, kind) in enumerate(received):
+            path = f"projects/{p.id}/submissions/{sub.id}/{i + 1}_{_safe_name(filename)}"
+            file_storage.upload_file(path, data, SUBMISSION_TYPES[os.path.splitext(filename)[1].lower()][1])
+            stored.append({"name": os.path.basename(filename)[:150], "path": path, "size": len(data), "kind": kind})
+    except Exception:
+        db.rollback()
+        for f in stored:
+            try:
+                file_storage.delete_file(f["path"])
+            except Exception:
+                pass
+        raise HTTPException(status_code=503, detail="Your files could not be stored just now. Nothing was submitted. Please try again.")
+    sub.files = json.dumps(stored)
+    p.guide_faculty_id = guide.id          # shared with this guide, as the builder's "share" does
+    db.commit()
+    db.refresh(sub)
+
+    from app.core.notifications import notify_user
+    login = db.query(User).filter(User.faculty_id == guide.id).first()
+    if login:
+        notify_user(db, login.id, f"{s.name} submitted {'a revised version of ' if number > 1 else ''}\"{p.title[:60]}\" for your review.")
+    log_activity(db, user, f"Submitted project documents to guide: {p.title[:60]}")
+    return _submission_out(db, sub)
+
+
+@router.get("/student/project-submissions")
+def my_submissions(db: Session = Depends(get_db), user: User = Depends(require_role("student"))):
+    """Every document this student submitted directly, newest first, with the guide's replies."""
+    rows = db.query(ProjectSubmission).filter(ProjectSubmission.student_id == user.student_id).order_by(ProjectSubmission.id.desc()).all() if user.student_id else []
+    return [_submission_out(db, x) for x in rows]
+
+
+@router.post("/student/project-submissions/seen")
+def submissions_seen(db: Session = Depends(get_db), user: User = Depends(require_role("student"))):
+    """Called once the page has shown the replies, so "New reply" is not lost to a reload that happens first."""
+    changed = db.query(ProjectSubmission).filter(ProjectSubmission.student_id == user.student_id, ProjectSubmission.student_unread == True).update(  # noqa: E712
+        {ProjectSubmission.student_unread: False}, synchronize_session=False) if user.student_id else 0
+    db.commit()
+    return {"marked": changed}
+
+
+@router.get("/student/project-submissions/{submission_id}/files/{index}")
+def my_submission_file(submission_id: int, index: int, db: Session = Depends(get_db), user: User = Depends(require_role("student"))):
+    sub = db.query(ProjectSubmission).filter(ProjectSubmission.id == submission_id, ProjectSubmission.student_id == user.student_id).first() if user.student_id else None
+    if not sub:
+        raise HTTPException(status_code=404, detail="Submission not found")
+    return _send_submission_file(sub, index)

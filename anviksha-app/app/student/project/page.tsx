@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { FileText, Plus } from "lucide-react";
+import { FileText, Plus, Send, Sparkles, X } from "lucide-react";
 import { Topbar } from "@/components/layout/Topbar";
 import { Card, SectionTitle, Button, Badge } from "@/components/ui/Primitives";
 import { CenterModal } from "@/components/ui/Modal";
@@ -12,31 +12,51 @@ import { useToast } from "@/components/ui/Toaster";
 import { api } from "@/lib/api";
 import { INPUT } from "@/components/projects/shared";
 import { ProjectWorkspace } from "@/components/projects/ProjectWorkspace";
+import { StudentSubmissions, Submission, SubmissionForm } from "@/components/projects/DirectSubmission";
 
-type Row = { id: number; title: string; project_type: string | null; versions: number; updated: string | null };
+type Row = { id: number; title: string; project_type: string | null; versions: number; submissions?: number; updated: string | null };
 
 export default function ProjectPage() {
   const router = useRouter();
   const pathname = usePathname();
-  const id = Number(useSearchParams().get("id")) || null;
+  const params = useSearchParams();
+  const id = Number(params.get("id")) || null;
   const { push } = useToast();
   const [rows, setRows] = useState<Row[] | null>(null);
+  const [subs, setSubs] = useState<Submission[] | null>(null);
+  const [guides, setGuides] = useState<any[]>([]);
   const [failed, setFailed] = useState(false);
   const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
   const [type, setType] = useState("Final year project");
   const [types, setTypes] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
+  const [submitting, setSubmitting] = useState(params.get("submit") === "1");
+  const [preset, setPreset] = useState<{ projectId?: number; guideId?: number }>({});
+  const [formKey, setFormKey] = useState(0);
+  const formRef = useRef<HTMLDivElement>(null);
 
   const load = () => {
     setFailed(false);
     api.myProjects().then(setRows).catch(() => setFailed(true));
+    api.mySubmissions().then((list: Submission[]) => {
+      setSubs(list);
+      // Shown now, so marked as read; the "New reply" marks stay on screen until the next visit.
+      if (list.some((s) => s.unread)) api.markSubmissionsSeen().catch(() => {});
+    }).catch(() => setSubs([]));
   };
   useEffect(() => {
     if (id) return;
     load();
-    api.projectStart().then((s) => setTypes(s.project_types || [])).catch(() => {});
-  }, [id]);
+    api.projectStart().then((s) => { setTypes(s.project_types || []); setGuides(s.guides || []); }).catch(() => {});
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const openForm = (next: { projectId?: number; guideId?: number } = {}) => {
+    setPreset(next);
+    setFormKey((k) => k + 1);
+    setSubmitting(true);
+    setTimeout(() => formRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
 
   const create = async () => {
     if (busy) return;
@@ -57,21 +77,52 @@ export default function ProjectPage() {
   if (failed) return <><Topbar greeting={heading} subtitle="In your college's format" avatarLetter="S" /><LoadError message="We couldn't load your projects." onRetry={load} /></>;
   if (!rows) return <><Topbar greeting={heading} subtitle="Loading…" avatarLetter="S" /><DashboardSkeleton /></>;
 
+  const unread = (subs || []).filter((s) => s.unread).length;
+
   return (
     <>
       <Topbar greeting={heading} subtitle="Dashboard > Project Report & PPT" avatarLetter="S" />
       <div className="p-4 md:p-8 space-y-5 max-w-4xl">
-        <div className="flex items-start justify-between gap-3 flex-wrap">
-          <p className="text-sm text-muted max-w-xl">
-            Give your project's details and your own material. You get the report and the presentation in the official format,
-            as Word, PowerPoint and PDF, ready to review and edit.
-          </p>
-          <Button className="min-h-[44px]" onClick={() => setCreating(true)}><Plus size={15} /> New project</Button>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Card className="flex flex-col">
+            <div className="flex items-center gap-2 text-xs font-semibold text-brand"><Sparkles size={14} /> Option A</div>
+            <h2 className="text-base font-semibold text-ink mt-1">Generate a new report</h2>
+            <p className="text-sm text-muted mt-1 flex-1">Give your project's details and your own material, step by step. You get the report and the presentation in the official format, as Word, PowerPoint and PDF, and can share them with your guide.</p>
+            <Button className="min-h-[44px] mt-3 self-start" onClick={() => setCreating(true)}><Plus size={15} /> New project</Button>
+          </Card>
+          <Card className="flex flex-col">
+            <div className="flex items-center gap-2 text-xs font-semibold text-brand"><Send size={14} /> Option B</div>
+            <h2 className="text-base font-semibold text-ink mt-1">Submit existing documents</h2>
+            <p className="text-sm text-muted mt-1 flex-1">Already have your report or PPT ready? Upload it, choose your guide, add a note and send it straight away. No steps to go through.</p>
+            <div className="flex items-center gap-2 flex-wrap mt-3">
+              <Button className="min-h-[44px]" onClick={() => (submitting ? setSubmitting(false) : openForm())}><Send size={15} /> Submit Existing Project Documents</Button>
+              {unread > 0 && <Badge tone="brand">{unread} new {unread === 1 ? "reply" : "replies"}</Badge>}
+            </div>
+          </Card>
         </div>
+
+        {submitting && (
+          <div ref={formRef} className="scroll-mt-4">
+            <Card>
+              <SectionTitle title="Direct submission to guide" subtitle="Your guide sees the files and your note on their Project Reviews page and is notified."
+                action={<button aria-label="Close" onClick={() => setSubmitting(false)} className="inline-flex items-center justify-center w-10 h-10 rounded-lg text-muted hover:bg-gray-100"><X size={16} /></button>} />
+              <SubmissionForm key={formKey} projects={rows.map((r) => ({ id: r.id, title: r.title }))} guides={guides} preset={preset}
+                onDone={() => { setSubmitting(false); load(); }} />
+            </Card>
+          </div>
+        )}
+
+        {subs && subs.length > 0 && (
+          <Card>
+            <SectionTitle title="Submitted to your guide" subtitle="Each document you sent, its status, and your guide's replies." />
+            <StudentSubmissions subs={subs} onChanged={load} onRevise={(s) => openForm({ projectId: s.project_id, guideId: s.guide?.id })} />
+          </Card>
+        )}
+
         <Card className="!p-0 overflow-hidden">
           <div className="px-5 pt-5"><SectionTitle title="My projects" /></div>
           {rows.length === 0 ? (
-            <EmptyState icon={FileText} title="No project yet" hint="Start one for your mini project or final year project. Only you can see it until you share it with your guide." action={<Button className="min-h-[44px]" onClick={() => setCreating(true)}><Plus size={15} /> Start a project</Button>} />
+            <EmptyState icon={FileText} title="No project yet" hint="Start one for your mini project or final year project, or submit documents you already have. Only you can see a project until you share it with your guide." action={<Button className="min-h-[44px]" onClick={() => setCreating(true)}><Plus size={15} /> Start a project</Button>} />
           ) : (
             <ul className="divide-y divide-gray-100">
               {rows.map((r) => (
@@ -82,7 +133,9 @@ export default function ProjectPage() {
                       <div className="text-sm font-medium text-ink break-words">{r.title}</div>
                       <div className="text-xs text-muted">{[r.project_type, r.updated ? `Updated ${r.updated}` : null].filter(Boolean).join(" · ")}</div>
                     </div>
-                    <Badge tone={r.versions ? "success" : "neutral"}>{r.versions ? `${r.versions} version${r.versions === 1 ? "" : "s"}` : "Not built yet"}</Badge>
+                    {r.versions > 0 ? <Badge tone="success">{`${r.versions} version${r.versions === 1 ? "" : "s"}`}</Badge>
+                      : r.submissions ? <Badge tone="info">{`${r.submissions} submitted`}</Badge>
+                      : <Badge tone="neutral">Not built yet</Badge>}
                   </button>
                 </li>
               ))}

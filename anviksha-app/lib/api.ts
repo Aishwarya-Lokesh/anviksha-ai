@@ -1528,8 +1528,21 @@ export const api = {
   shareProject: (id: number, facultyId: number | null) =>
     request(`/student/projects/${id}/share`, { method: "PUT", body: JSON.stringify({ faculty_id: facultyId }) }),
 
-  commentOnProject: (id: number, section: string, body: string) =>
-    request(`/student/projects/${id}/comments`, { method: "POST", body: JSON.stringify({ section, body }) }),
+  commentOnProject: (id: number, section: string, body: string, submissionId?: number) =>
+    request(`/student/projects/${id}/comments`, { method: "POST", body: JSON.stringify({ section, body, ...(submissionId ? { submission_id: submissionId } : {}) }) }),
+
+  // A ready-made report or presentation sent straight to a guide. Either
+  // `project_id` (an existing project) or `title` (a new one) is given.
+  submitToGuide: (fields: { guide_id: number; note: string; client_token: string; project_id?: number; title?: string }, files: File[]) => {
+    const fd = new FormData();
+    Object.entries(fields).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== "") fd.append(k, String(v)); });
+    files.forEach((f) => fd.append("files", f));
+    return upload("/student/project-submissions", fd);
+  },
+
+  mySubmissions: () => request("/student/project-submissions"),
+
+  markSubmissionsSeen: () => request("/student/project-submissions/seen", { method: "POST" }),
 
   resolveProjectComment: (id: number, commentId: number) =>
     request(`/student/projects/${id}/comments/${commentId}`, { method: "PATCH" }),
@@ -1538,8 +1551,8 @@ export const api = {
 
   projectReview: (id: number) => request(`/teacher/project-reviews/${id}`),
 
-  guideComment: (id: number, section: string, body: string) =>
-    request(`/teacher/project-reviews/${id}/comments`, { method: "POST", body: JSON.stringify({ section, body }) }),
+  guideComment: (id: number, section: string, body: string, submission?: { id: number; status: "reviewed" | "changes_requested" }) =>
+    request(`/teacher/project-reviews/${id}/comments`, { method: "POST", body: JSON.stringify({ section, body, ...(submission ? { submission_id: submission.id, status: submission.status } : {}) }) }),
 
   pageCount: (base: string) => request(base),
 

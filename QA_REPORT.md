@@ -198,6 +198,17 @@ A new student feature: the report and the slides of a project, written from the 
 | Guide review: share, read, download, comment | Not yet (Vercel) | Automated tests; browser locally |
 | The screens themselves at the live address | **Not yet (Vercel)** | The new frontend is built as Preview and has to be promoted |
 
+## Round 7: direct submission to a guide (28 Oct)
+
+| What | Result |
+|---|---|
+| Backend automated tests | 139 of 139 pass (5 new: full student → guide → student flow, repeated click, validation, privacy, builder still works and delete cleans up) |
+| Frontend type-check and production build | Pass |
+| Migration | Applies, rolls back and re-applies on a fresh database; applied to production (`e2f3a4b5c6d7`), row-level security on |
+| Browser, local backend with a throwaway database | 27 of 27 checks pass: both options shown; empty-form, wrong-type messages; remove a chosen file; double tap makes one submission; another student and another guide see nothing; the chosen guide sees name, USN, note, files, downloads the exact file, replies with "Corrections needed"; the student sees "New reply", the reply and the status; a revised version keeps the history; the builder (Option A) still creates and opens projects |
+| Phone width (390 px) | Student form and guide page fit, no sideways scrolling |
+| Live site | Backend live after the push; the screens need the Vercel promotion, like Round 6 |
+
 ## Not tested, and why
 
 | Item | Reason |
